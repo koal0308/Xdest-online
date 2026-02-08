@@ -1,0 +1,208 @@
+{% extends "base.html" %}
+
+{% block title %}Leaderboard - Xdest{% endblock %}
+
+{% block content %}
+<div class="min-h-screen">
+    <!-- Navigation -->
+    <nav class="border-b border-gray-800 bg-dark-400/80 backdrop-blur-sm fixed w-full z-50">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between h-16 items-center">
+                <a href="/">
+                    <img src="/static/logo.png" alt="Xdest" class="h-48 rounded-lg">
+                </a>
+                <div class="flex items-center gap-4">
+                    <a href="/explore" class="text-gray-400 hover:text-white transition">Explore</a>
+                    <a href="/leaderboard" class="text-white font-medium">Leaderboard</a>
+                    {% if user %}
+                        <a href="/dashboard" class="text-gray-400 hover:text-white transition">Dashboard</a>
+                        <a href="/user/{{ user.username }}">
+                            <img src="{{ user.avatar or '/static/default-avatar.png' }}" class="w-8 h-8 rounded-full" alt="Avatar">
+                        </a>
+                        <a href="/auth/logout" class="text-gray-400 hover:text-red-400 transition" title="Logout">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"></path>
+                            </svg>
+                        </a>
+                    {% else %}
+                        <a href="/auth/github" class="px-4 py-2 rounded-lg bg-gray-800 hover:bg-gray-700 transition">Sign in</a>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <main class="pt-24 pb-12 px-4 max-w-4xl mx-auto">
+        <!-- Header -->
+        <div class="text-center mb-12">
+            <h1 class="text-4xl font-bold mb-4">🏆 Leaderboard</h1>
+            <p class="text-gray-400 text-lg">The most helpful members</p>
+            <p class="text-sm text-gray-500 mt-2">Points: Solution marked = 10 points | Helpful vote = 1 point</p>
+        </div>
+
+        <!-- Top 3 Podium -->
+        <div class="flex justify-center items-end gap-4 mb-12" id="podium">
+            <!-- Wird per JavaScript gefüllt -->
+        </div>
+
+        <!-- Full Leaderboard -->
+        <div class="bg-dark-100 rounded-xl border border-gray-800 overflow-hidden">
+            <div class="p-4 border-b border-gray-800 bg-dark-200">
+                <h2 class="font-semibold">Complete Ranking</h2>
+            </div>
+            
+            <div id="leaderboard-list">
+                <!-- Loading State -->
+                <div class="p-8 text-center text-gray-500" id="loading">
+                    <div class="animate-spin w-8 h-8 border-2 border-purple-500 border-t-transparent rounded-full mx-auto mb-4"></div>
+                    Loading leaderboard...
+                </div>
+            </div>
+        </div>
+
+        <!-- Info Box -->
+        <div class="mt-8 bg-dark-100 rounded-xl border border-gray-800 p-6">
+            <h3 class="font-semibold mb-3 flex items-center gap-2">
+                <span class="text-xl">💡</span> How to earn points?
+            </h3>
+            <div class="grid md:grid-cols-2 gap-4 text-gray-400 text-sm">
+                <div class="flex items-start gap-3">
+                    <span class="text-green-400 text-lg">✅</span>
+                    <div>
+                        <p class="font-medium text-white">Solution marked (+10 points)</p>
+                        <p>When the issue creator marks your answer as the solution</p>
+                    </div>
+                </div>
+                <div class="flex items-start gap-3">
+                    <span class="text-blue-400 text-lg">👍</span>
+                    <div>
+                        <p class="font-medium text-white">Helpful vote (+1 point)</p>
+                        <p>When other users mark your answer or issue as helpful</p>
+                    </div>
+                </div>
+                <div class="flex items-start gap-3">
+                    <span class="text-purple-400 text-lg">🐙</span>
+                    <div>
+                        <p class="font-medium text-white">GitHub 👍 Reaction (+2 points)</p>
+                        <p>When your issue gets a 👍 reaction on GitHub</p>
+                    </div>
+                </div>
+                <div class="flex items-start gap-3">
+                    <span class="text-red-400 text-lg">👎</span>
+                    <div>
+                        <p class="font-medium text-white">GitHub 👎 Reaction (-1 point)</p>
+                        <p>When your issue gets a 👎 reaction on GitHub</p>
+                    </div>
+                </div>
+                <div class="flex items-start gap-3">
+                    <span class="text-yellow-400 text-lg">⭐</span>
+                    <div>
+                        <p class="font-medium text-white">5-Star rating (+0.5 points)</p>
+                        <p>When other users rate you with 5 stars</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+</div>
+
+<!-- Footer -->
+<footer class="border-t border-gray-800 bg-gray-950 py-4 px-6 mt-8">
+    <div class="max-w-7xl mx-auto flex justify-between items-center text-xs text-gray-500">
+        <span>© 2026 Xdest</span>
+        <div class="flex gap-4">
+            <a href="mailto:aiandfriends@gmail.com" class="hover:text-gray-300 transition">Contact</a>
+            <a href="https://x.com/karlbeis" target="_blank" class="hover:text-gray-300 transition">𝕏 @karlbeis</a>
+            <a href="/privacy" class="hover:text-gray-300 transition">Privacy</a>
+            <a href="/terms" class="hover:text-gray-300 transition">Terms</a>
+            <a href="https://github.com/koal0308/Xdest" target="_blank" class="hover:text-gray-300 transition">GitHub</a>
+        </div>
+    </div>
+</footer>
+
+<script>
+document.addEventListener('DOMContentLoaded', async function() {
+    try {
+        const response = await fetch('/api/leaderboard');
+        const data = await response.json();
+        
+        const leaderboard = data.leaderboard;
+        const podiumEl = document.getElementById('podium');
+        const listEl = document.getElementById('leaderboard-list');
+        
+        if (leaderboard.length === 0) {
+            listEl.innerHTML = `
+                <div class="p-12 text-center text-gray-500">
+                    <div class="text-5xl mb-4">🤷</div>
+                    <p class="text-lg">No helpful answers yet</p>
+                    <p class="text-sm mt-2">Be the first to help others!</p>
+                </div>
+            `;
+            podiumEl.innerHTML = '';
+            return;
+        }
+        
+        // Top 3 Podium
+        const top3 = leaderboard.slice(0, 3);
+        const podiumOrder = [1, 0, 2]; // 2nd, 1st, 3rd für visuelles Layout
+        const podiumColors = ['from-yellow-500 to-yellow-600', 'from-gray-400 to-gray-500', 'from-orange-600 to-orange-700'];
+        const podiumHeights = ['h-32', 'h-24', 'h-20'];
+        const podiumLabels = ['🥇', '🥈', '🥉'];
+        
+        podiumEl.innerHTML = podiumOrder.map((idx, visualIdx) => {
+            if (!top3[idx]) return '';
+            const user = top3[idx];
+            const height = podiumHeights[idx];
+            const color = podiumColors[idx];
+            const label = podiumLabels[idx];
+            
+            return `
+                <a href="/user/${user.username}" class="flex flex-col items-center group">
+                    <img src="${user.avatar || '/static/default-avatar.png'}" 
+                         class="w-16 h-16 rounded-full border-4 border-gray-700 group-hover:border-purple-500 transition mb-2" 
+                         alt="${user.username}">
+                    <span class="font-semibold group-hover:text-purple-400 transition">${user.username}</span>
+                    <span class="text-2xl">${label}</span>
+                    <span class="text-sm text-gray-400">${user.total_score} Points</span>
+                    <div class="${height} w-20 bg-gradient-to-t ${color} rounded-t-lg mt-2 flex items-center justify-center">
+                        <span class="text-white font-bold text-2xl">${idx + 1}</span>
+                    </div>
+                </a>
+            `;
+        }).join('');
+        
+        // Full List
+        listEl.innerHTML = leaderboard.map(user => `
+            <a href="/user/${user.username}" 
+               class="flex items-center gap-4 p-4 hover:bg-dark-200 transition border-b border-gray-800 last:border-0">
+                <div class="w-8 text-center font-bold ${user.rank <= 3 ? 'text-yellow-400' : 'text-gray-500'}">
+                    ${user.rank <= 3 ? ['🥇', '🥈', '🥉'][user.rank - 1] : '#' + user.rank}
+                </div>
+                <img src="${user.avatar || '/static/default-avatar.png'}" 
+                     class="w-10 h-10 rounded-full" alt="">
+                <div class="flex-1">
+                    <p class="font-semibold">${user.username}</p>
+                    <p class="text-sm text-gray-500">
+                        ${user.solutions_count > 0 ? `✅ ${user.solutions_count} Solutions · ` : ''}${user.response_helpful > 0 ? `👍 ${user.response_helpful} Response votes · ` : ''}${user.github_reactions > 0 ? `🐙 ${user.github_reactions} GitHub👍 · ` : ''}${user.github_negative_reactions > 0 ? `👎 ${user.github_negative_reactions} GitHub👎 · ` : ''}${user.issue_helpful > 0 ? `📝 ${user.issue_helpful} Issue votes` : ''}${user.five_star_ratings > 0 ? ` · ⭐ ${user.five_star_ratings}x 5★` : ''}
+                    </p>
+                </div>
+                <div class="text-right">
+                    <p class="font-bold text-lg bg-gradient-to-r from-purple-400 to-pink-500 bg-clip-text text-transparent">
+                        ${user.total_score}
+                    </p>
+                    <p class="text-xs text-gray-500">Points</p>
+                </div>
+            </a>
+        `).join('');
+        
+    } catch (error) {
+        console.error('Error loading leaderboard:', error);
+        document.getElementById('leaderboard-list').innerHTML = `
+            <div class="p-8 text-center text-red-400">
+                Error loading leaderboard
+            </div>
+        `;
+    }
+});
+</script>
+{% endblock %}

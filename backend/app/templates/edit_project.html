@@ -1,0 +1,216 @@
+{% extends "base.html" %}
+
+{% block title %}Edit {{ project.name }} - Xdest{% endblock %}
+
+{% block content %}
+<div class="min-h-screen">
+    <!-- Navigation -->
+    <nav class="border-b border-gray-800 bg-dark-400/80 backdrop-blur-sm fixed w-full z-50">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between h-16 items-center">
+                <a href="/">
+                    <img src="/static/logo.png" alt="Xdest" class="h-48 rounded-lg">
+                </a>
+                <div class="flex items-center gap-4">
+                    <a href="/explore" class="text-gray-400 hover:text-white transition">Explore</a>
+                    {% if user %}
+                        <a href="/dashboard" class="text-gray-400 hover:text-white transition">Dashboard</a>
+                        <a href="/user/{{ user.username }}">
+                            <img src="{{ user.avatar or '/static/default-avatar.png' }}" class="w-8 h-8 rounded-full" alt="Avatar">
+                        </a>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <main class="pt-24 pb-12 px-4 max-w-2xl mx-auto">
+        <div class="bg-dark-100 rounded-xl border border-gray-800 p-8">
+            <div class="flex items-center justify-between mb-6">
+                <h1 class="text-2xl font-bold">Edit Project</h1>
+                <a href="/project/{{ project.id }}" class="text-gray-400 hover:text-white transition">
+                    ← Back to Project
+                </a>
+            </div>
+            
+            <form action="/api/project/{{ project.id }}/edit" method="POST" enctype="multipart/form-data" class="space-y-6">
+                <!-- Project Name -->
+                <div>
+                    <label class="block text-sm font-medium text-gray-300 mb-2">Project Name *</label>
+                    <input type="text" name="name" value="{{ project.name }}" required
+                           class="w-full px-4 py-3 bg-dark-300 border border-gray-700 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent transition">
+                </div>
+                
+                <!-- Description -->
+                <div>
+                    <label class="block text-sm font-medium text-gray-300 mb-2">Description</label>
+                    <textarea name="description" rows="4"
+                              class="w-full px-4 py-3 bg-dark-300 border border-gray-700 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent transition resize-none"
+                              placeholder="Describe your project...">{{ project.description or '' }}</textarea>
+                </div>
+                
+                <!-- Project URL -->
+                <div>
+                    <label class="block text-sm font-medium text-gray-300 mb-2">Project URL</label>
+                    <input type="url" name="project_url" value="{{ project.project_url or '' }}"
+                           class="w-full px-4 py-3 bg-dark-300 border border-gray-700 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent transition"
+                           placeholder="https://your-project.com">
+                    <p class="text-xs text-gray-500 mt-1">Link to the live demo or website</p>
+                </div>
+                
+                <!-- GitHub URL -->
+                <div>
+                    <label class="block text-sm font-medium text-gray-300 mb-2">GitHub Repository</label>
+                    <input type="url" name="github_url" value="{{ project.github_url or '' }}"
+                           class="w-full px-4 py-3 bg-dark-300 border border-gray-700 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent transition"
+                           placeholder="https://github.com/username/repo">
+                </div>
+                
+                <!-- Tags -->
+                <div>
+                    <label class="block text-sm font-medium text-gray-300 mb-2">Tags</label>
+                    <input type="text" name="tags" value="{{ project.tags or '' }}"
+                           class="w-full px-4 py-3 bg-dark-300 border border-gray-700 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent transition"
+                           placeholder="Python, FastAPI, Web (comma separated)">
+                </div>
+                
+                <!-- Analytics Section -->
+                <div class="border-t border-gray-700 pt-6 mt-6">
+                    <h3 class="text-lg font-semibold mb-4 flex items-center gap-2">
+                        <svg class="w-5 h-5 text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path>
+                        </svg>
+                        Analytics (Optional)
+                    </h3>
+                    <p class="text-gray-400 text-sm mb-4">Track visits to your project page</p>
+                    
+                    <div class="space-y-4">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-300 mb-2">Google Analytics ID</label>
+                            <input type="text" name="google_analytics_id" value="{{ project.google_analytics_id or '' }}"
+                                   class="w-full px-4 py-3 bg-dark-300 border border-gray-700 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent transition"
+                                   placeholder="G-XXXXXXXXXX">
+                            <p class="text-xs text-gray-500 mt-1">Your Google Analytics 4 Measurement ID</p>
+                        </div>
+                        
+                        <div>
+                            <label class="block text-sm font-medium text-gray-300 mb-2">Plausible Domain</label>
+                            <input type="text" name="plausible_domain" value="{{ project.plausible_domain or '' }}"
+                                   class="w-full px-4 py-3 bg-dark-300 border border-gray-700 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent transition"
+                                   placeholder="myproject.com">
+                            <p class="text-xs text-gray-500 mt-1">Domain registered in your Plausible account</p>
+                        </div>
+                        
+                        <div>
+                            <label class="block text-sm font-medium text-gray-300 mb-2">Plausible API Key</label>
+                            <input type="password" name="plausible_api_key" value="{{ project.plausible_api_key or '' }}"
+                                   class="w-full px-4 py-3 bg-dark-300 border border-gray-700 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent transition"
+                                   placeholder="••••••••••••••••">
+                            <p class="text-xs text-gray-500 mt-1">
+                                API Key from <a href="https://plausible.io/settings/api-keys" target="_blank" class="text-purple-400 hover:text-purple-300">Plausible Settings</a> 
+                                - needed to display stats on your project page
+                                {% if project.plausible_api_key %}
+                                <span class="text-green-400 ml-2">✓ Key saved</span>
+                                {% endif %}
+                            </p>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Current Image -->
+                {% if project.image %}
+                <div>
+                    <label class="block text-sm font-medium text-gray-300 mb-2">Current Image</label>
+                    <div class="relative">
+                        <img src="{{ project.image }}" class="w-full h-48 object-cover rounded-lg border border-gray-700" alt="Current project image">
+                        <div class="absolute top-2 right-2">
+                            <label class="flex items-center gap-2 px-3 py-1 bg-red-600/80 hover:bg-red-600 text-white text-sm rounded cursor-pointer transition">
+                                <input type="checkbox" name="remove_image" value="1" class="hidden" id="removeImageCheck">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
+                                </svg>
+                                Remove
+                            </label>
+                        </div>
+                    </div>
+                </div>
+                {% endif %}
+                
+                <!-- New Image Upload -->
+                <div>
+                    <label class="block text-sm font-medium text-gray-300 mb-2">
+                        {{ 'Replace Image' if project.image else 'Project Image' }}
+                    </label>
+                    <div class="border-2 border-dashed border-gray-700 rounded-lg p-8 text-center hover:border-purple-500 transition cursor-pointer" 
+                         onclick="document.getElementById('imageInput').click()">
+                        <input type="file" name="image" id="imageInput" accept="image/*" class="hidden" onchange="previewImage(this)">
+                        <div id="imagePreview" class="hidden mb-4">
+                            <img id="previewImg" class="max-h-48 mx-auto rounded-lg">
+                        </div>
+                        <div id="uploadPrompt">
+                            <svg class="w-12 h-12 mx-auto text-gray-500 mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
+                            </svg>
+                            <p class="text-gray-400">Click to upload a new image</p>
+                            <p class="text-xs text-gray-500 mt-1">PNG, JPG, GIF up to 10MB</p>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Submit Buttons -->
+                <div class="flex gap-4 pt-4">
+                    <button type="submit" class="flex-1 py-3 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-500 hover:to-pink-500 rounded-lg font-semibold transition">
+                        Save Changes
+                    </button>
+                    <a href="/project/{{ project.id }}" class="px-6 py-3 border border-gray-700 hover:border-gray-600 rounded-lg text-gray-300 hover:text-white transition text-center">
+                        Cancel
+                    </a>
+                </div>
+            </form>
+        </div>
+    </main>
+</div>
+
+<!-- Footer -->
+<footer class="border-t border-gray-800 bg-gray-950 py-4 px-6 mt-8">
+    <div class="max-w-7xl mx-auto flex justify-between items-center text-xs text-gray-500">
+        <span>© 2026 Xdest</span>
+        <div class="flex gap-4">
+            <a href="mailto:aiandfriends@gmail.com" class="hover:text-gray-300 transition">Contact</a>
+            <a href="https://x.com/karlbeis" target="_blank" class="hover:text-gray-300 transition">𝕏 @karlbeis</a>
+            <a href="/privacy" class="hover:text-gray-300 transition">Privacy</a>
+            <a href="/terms" class="hover:text-gray-300 transition">Terms</a>
+            <a href="https://github.com/koal0308/Xdest" target="_blank" class="hover:text-gray-300 transition">GitHub</a>
+        </div>
+    </div>
+</footer>
+
+<script>
+function previewImage(input) {
+    if (input.files && input.files[0]) {
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            document.getElementById('previewImg').src = e.target.result;
+            document.getElementById('imagePreview').classList.remove('hidden');
+            document.getElementById('uploadPrompt').classList.add('hidden');
+        }
+        reader.readAsDataURL(input.files[0]);
+    }
+}
+
+// Handle remove image checkbox styling
+const removeCheck = document.getElementById('removeImageCheck');
+if (removeCheck) {
+    removeCheck.addEventListener('change', function() {
+        const label = this.parentElement;
+        if (this.checked) {
+            label.classList.add('bg-red-700');
+            label.innerHTML = '<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg> Will be removed';
+        } else {
+            label.classList.remove('bg-red-700');
+            label.innerHTML = '<input type="checkbox" name="remove_image" value="1" class="hidden" id="removeImageCheck"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg> Remove';
+        }
+    });
+}
+</script>
+{% endblock %}

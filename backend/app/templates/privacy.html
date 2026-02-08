@@ -1,0 +1,553 @@
+{% extends "base.html" %}
+
+{% block title %}Privacy & Data Protection - Xdest{% endblock %}
+
+{% block content %}
+<div class="min-h-screen bg-dark-200">
+    <!-- Navigation -->
+    <nav class="border-b border-gray-800 bg-dark-400/80 backdrop-blur-sm fixed w-full z-50">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between h-16 items-center">
+                <a href="/">
+                    <img src="/static/logo.png" alt="Xdest" class="h-48 rounded-lg">
+                </a>
+                <div class="flex items-center gap-4">
+                    <a href="/explore" class="text-gray-400 hover:text-white transition">Explore</a>
+                    <a href="/leaderboard" class="text-gray-400 hover:text-white transition">🏆 Leaderboard</a>
+                    {% if user %}
+                        <a href="/dashboard" class="text-gray-400 hover:text-white transition">Dashboard</a>
+                        <a href="/user/{{ user.username }}">
+                            <img src="{{ user.avatar or '/static/default-avatar.png' }}" class="w-8 h-8 rounded-full" alt="Avatar">
+                        </a>
+                        <a href="/auth/logout" class="text-gray-400 hover:text-red-400 transition" title="Logout">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"></path>
+                            </svg>
+                        </a>
+                    {% else %}
+                        <a href="/auth/github" class="px-4 py-2 rounded-lg bg-gray-800 hover:bg-gray-700 transition">Sign in</a>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <main class="pt-24 pb-12 max-w-4xl mx-auto px-6">
+        <h1 class="text-4xl font-bold mb-8">🔒 Privacy & Data Protection</h1>
+        <p class="text-gray-400 mb-8">Last updated: February 7, 2026</p>
+
+        <!-- Navigation -->
+        <div class="bg-dark-100 rounded-xl border border-gray-800 p-6 mb-8">
+            <h2 class="font-semibold mb-4">Quick Navigation</h2>
+            <div class="grid md:grid-cols-2 gap-3 text-sm">
+                <a href="#data-collection" class="text-purple-400 hover:text-purple-300">📊 What Data We Collect</a>
+                <a href="#data-usage" class="text-purple-400 hover:text-purple-300">🎯 How We Use Your Data</a>
+                <a href="#data-sharing" class="text-purple-400 hover:text-purple-300">🤝 Data Sharing</a>
+                <a href="#your-rights" class="text-purple-400 hover:text-purple-300">⚖️ Your Rights (GDPR)</a>
+                <a href="#cookies" class="text-purple-400 hover:text-purple-300">🍪 Cookies</a>
+                <a href="#platform-analytics" class="text-green-400 hover:text-green-300">📈 Platform Analytics</a>
+                <a href="#analytics" class="text-purple-400 hover:text-purple-300">📊 Project Analytics</a>
+                <a href="#security" class="text-purple-400 hover:text-purple-300">🛡️ Data Security</a>
+                <a href="#contact" class="text-purple-400 hover:text-purple-300">📧 Contact</a>
+                {% if user %}
+                <a href="#manage-data" class="text-green-400 hover:text-green-300 font-semibold">⚙️ Manage Your Data</a>
+                {% endif %}
+            </div>
+        </div>
+
+        {% if user %}
+        <!-- User Data Management Section -->
+        <div id="manage-data" class="bg-gradient-to-r from-purple-900/30 to-pink-900/30 rounded-xl border border-purple-500/30 p-6 mb-8">
+            <h2 class="text-2xl font-bold mb-6 flex items-center gap-3">
+                <span>⚙️</span> Manage Your Data
+            </h2>
+            
+            <div class="grid md:grid-cols-3 gap-4 mb-6">
+                <!-- View Data -->
+                <div class="bg-dark-100 rounded-lg p-4">
+                    <div class="text-2xl mb-2">👁️</div>
+                    <h3 class="font-semibold mb-2">View Your Data</h3>
+                    <p class="text-gray-400 text-sm mb-4">See all personal data we store about you.</p>
+                    <button onclick="viewMyData()" class="w-full px-4 py-2 bg-blue-600 hover:bg-blue-500 rounded-lg transition text-sm font-semibold">
+                        View Data
+                    </button>
+                </div>
+                
+                <!-- Download Data -->
+                <div class="bg-dark-100 rounded-lg p-4">
+                    <div class="text-2xl mb-2">📥</div>
+                    <h3 class="font-semibold mb-2">Download Data</h3>
+                    <p class="text-gray-400 text-sm mb-4">Export all your data as a JSON file.</p>
+                    <a href="/api/privacy/download-data" class="block w-full px-4 py-2 bg-green-600 hover:bg-green-500 rounded-lg transition text-sm font-semibold text-center">
+                        Download JSON
+                    </a>
+                </div>
+                
+                <!-- Delete Account -->
+                <div class="bg-dark-100 rounded-lg p-4">
+                    <div class="text-2xl mb-2">🗑️</div>
+                    <h3 class="font-semibold mb-2">Delete Account</h3>
+                    <p class="text-gray-400 text-sm mb-4">Permanently delete your account and all data.</p>
+                    <button onclick="confirmDeleteAccount()" class="w-full px-4 py-2 bg-red-600 hover:bg-red-500 rounded-lg transition text-sm font-semibold">
+                        Delete Account
+                    </button>
+                </div>
+            </div>
+
+            <!-- Data Summary -->
+            <div class="bg-dark-100 rounded-lg p-4">
+                <h3 class="font-semibold mb-3">📋 Your Data Summary</h3>
+                <div class="grid grid-cols-2 md:grid-cols-4 gap-4 text-center">
+                    <div>
+                        <div class="text-2xl font-bold text-purple-400" id="projects-count">-</div>
+                        <div class="text-gray-400 text-sm">Projects</div>
+                    </div>
+                    <div>
+                        <div class="text-2xl font-bold text-blue-400" id="issues-count">-</div>
+                        <div class="text-gray-400 text-sm">Issues Created</div>
+                    </div>
+                    <div>
+                        <div class="text-2xl font-bold text-green-400" id="responses-count">-</div>
+                        <div class="text-gray-400 text-sm">Responses</div>
+                    </div>
+                    <div>
+                        <div class="text-2xl font-bold text-yellow-400" id="votes-count">-</div>
+                        <div class="text-gray-400 text-sm">Votes Given</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- Privacy Policy Content -->
+        <div class="space-y-8">
+            <!-- Data Collection -->
+            <section id="data-collection" class="bg-dark-100 rounded-xl border border-gray-800 p-6">
+                <h2 class="text-2xl font-bold mb-4 flex items-center gap-3">
+                    <span>📊</span> What Data We Collect
+                </h2>
+                <div class="space-y-4 text-gray-300">
+                    <div>
+                        <h3 class="font-semibold text-white mb-2">Account Information</h3>
+                        <ul class="list-disc list-inside space-y-1 text-gray-400">
+                            <li>Username (from GitHub/Google)</li>
+                            <li>Email address</li>
+                            <li>Profile picture (avatar URL)</li>
+                            <li>OAuth provider ID</li>
+                            <li>Bio (optional, user-provided)</li>
+                        </ul>
+                    </div>
+                    <div>
+                        <h3 class="font-semibold text-white mb-2">Content You Create</h3>
+                        <ul class="list-disc list-inside space-y-1 text-gray-400">
+                            <li>Projects (name, description, images, GitHub URL)</li>
+                            <li>Issues and bug reports</li>
+                            <li>Responses and comments</li>
+                            <li>Votes and ratings</li>
+                            <li>Uploaded screenshots</li>
+                        </ul>
+                    </div>
+                    <div>
+                        <h3 class="font-semibold text-white mb-2">Technical Data</h3>
+                        <ul class="list-disc list-inside space-y-1 text-gray-400">
+                            <li>Session tokens (for authentication)</li>
+                            <li>GitHub OAuth token (for API access, encrypted)</li>
+                            <li>Account creation timestamp</li>
+                        </ul>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Data Usage -->
+            <section id="data-usage" class="bg-dark-100 rounded-xl border border-gray-800 p-6">
+                <h2 class="text-2xl font-bold mb-4 flex items-center gap-3">
+                    <span>🎯</span> How We Use Your Data
+                </h2>
+                <div class="space-y-3 text-gray-300">
+                    <p>We use your data for the following purposes:</p>
+                    <ul class="list-disc list-inside space-y-2 text-gray-400">
+                        <li><strong class="text-white">Authentication:</strong> To verify your identity and maintain your session</li>
+                        <li><strong class="text-white">Platform Features:</strong> To display your projects, issues, and responses</li>
+                        <li><strong class="text-white">GitHub Integration:</strong> To sync issues with GitHub repositories (requires your permission)</li>
+                        <li><strong class="text-white">Leaderboard:</strong> To calculate and display your contribution score</li>
+                        <li><strong class="text-white">Communication:</strong> To notify you about responses to your issues (if implemented)</li>
+                    </ul>
+                    <p class="mt-4 text-yellow-400">⚠️ We do NOT sell your data to third parties or use it for advertising.</p>
+                </div>
+            </section>
+
+            <!-- Data Sharing -->
+            <section id="data-sharing" class="bg-dark-100 rounded-xl border border-gray-800 p-6">
+                <h2 class="text-2xl font-bold mb-4 flex items-center gap-3">
+                    <span>🤝</span> Data Sharing
+                </h2>
+                <div class="space-y-3 text-gray-300">
+                    <p>Your data may be shared in the following ways:</p>
+                    <ul class="list-disc list-inside space-y-2 text-gray-400">
+                        <li><strong class="text-white">Public Profile:</strong> Username, avatar, and bio are visible to other users</li>
+                        <li><strong class="text-white">Public Content:</strong> Projects, issues, and responses you create are public</li>
+                        <li><strong class="text-white">GitHub:</strong> When syncing issues, data is sent to GitHub's API</li>
+                        <li><strong class="text-white">OAuth Providers:</strong> We receive data from GitHub/Google during login</li>
+                    </ul>
+                    <div class="mt-4 p-4 bg-dark-200 rounded-lg">
+                        <p class="text-sm"><strong class="text-green-400">✓ We do NOT share:</strong> Your email address publicly, your OAuth tokens, or any private data with third parties.</p>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Your Rights -->
+            <section id="your-rights" class="bg-dark-100 rounded-xl border border-gray-800 p-6">
+                <h2 class="text-2xl font-bold mb-4 flex items-center gap-3">
+                    <span>⚖️</span> Your Rights (GDPR)
+                </h2>
+                <div class="space-y-3 text-gray-300">
+                    <p>Under the General Data Protection Regulation (GDPR), you have the following rights:</p>
+                    <div class="grid md:grid-cols-2 gap-4 mt-4">
+                        <div class="p-4 bg-dark-200 rounded-lg">
+                            <h4 class="font-semibold text-white mb-2">📖 Right to Access</h4>
+                            <p class="text-sm text-gray-400">You can view and download all data we store about you.</p>
+                        </div>
+                        <div class="p-4 bg-dark-200 rounded-lg">
+                            <h4 class="font-semibold text-white mb-2">✏️ Right to Rectification</h4>
+                            <p class="text-sm text-gray-400">You can edit your profile and correct inaccurate data.</p>
+                        </div>
+                        <div class="p-4 bg-dark-200 rounded-lg">
+                            <h4 class="font-semibold text-white mb-2">🗑️ Right to Erasure</h4>
+                            <p class="text-sm text-gray-400">You can delete your account and all associated data.</p>
+                        </div>
+                        <div class="p-4 bg-dark-200 rounded-lg">
+                            <h4 class="font-semibold text-white mb-2">📦 Right to Portability</h4>
+                            <p class="text-sm text-gray-400">You can export your data in a machine-readable format (JSON).</p>
+                        </div>
+                        <div class="p-4 bg-dark-200 rounded-lg">
+                            <h4 class="font-semibold text-white mb-2">🚫 Right to Object</h4>
+                            <p class="text-sm text-gray-400">You can object to certain processing of your data.</p>
+                        </div>
+                        <div class="p-4 bg-dark-200 rounded-lg">
+                            <h4 class="font-semibold text-white mb-2">⏸️ Right to Restrict</h4>
+                            <p class="text-sm text-gray-400">You can request limitation of data processing.</p>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Cookies -->
+            <section id="cookies" class="bg-dark-100 rounded-xl border border-gray-800 p-6">
+                <h2 class="text-2xl font-bold mb-4 flex items-center gap-3">
+                    <span>🍪</span> Cookies
+                </h2>
+                <div class="space-y-3 text-gray-300">
+                    <p>We use the following cookies:</p>
+                    <table class="w-full mt-4 text-sm">
+                        <thead>
+                            <tr class="border-b border-gray-700">
+                                <th class="text-left py-2 text-white">Cookie</th>
+                                <th class="text-left py-2 text-white">Purpose</th>
+                                <th class="text-left py-2 text-white">Duration</th>
+                            </tr>
+                        </thead>
+                        <tbody class="text-gray-400">
+                            <tr class="border-b border-gray-800">
+                                <td class="py-2 font-mono text-xs">session</td>
+                                <td class="py-2">Authentication & login state</td>
+                                <td class="py-2">Session</td>
+                            </tr>
+                            <tr class="border-b border-gray-800">
+                                <td class="py-2 font-mono text-xs">oauth_state</td>
+                                <td class="py-2">OAuth security (CSRF protection)</td>
+                                <td class="py-2">10 minutes</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                    <p class="mt-4 text-green-400 text-sm">✓ Xdest does NOT use any tracking or advertising cookies.</p>
+                </div>
+            </section>
+
+            <!-- Platform Analytics -->
+            <section id="platform-analytics" class="bg-dark-100 rounded-xl border border-gray-800 p-6">
+                <h2 class="text-2xl font-bold mb-4 flex items-center gap-3">
+                    <span>📈</span> Platform Analytics (Xdest)
+                </h2>
+                <div class="space-y-4 text-gray-300">
+                    <div class="p-4 bg-green-500/10 border border-green-500/30 rounded-lg">
+                        <h4 class="font-semibold text-green-400 mb-2">🟢 We use Plausible Analytics</h4>
+                        <p class="text-gray-400 text-sm mb-2">Xdest uses Plausible Analytics to understand how our platform is used. Plausible is a privacy-friendly, cookie-free analytics tool:</p>
+                        <ul class="list-disc list-inside text-sm text-gray-500 space-y-1">
+                            <li><strong class="text-white">No cookies</strong> - No cookie banner required</li>
+                            <li><strong class="text-white">No personal data</strong> - We cannot identify individual users</li>
+                            <li><strong class="text-white">No cross-site tracking</strong> - Your browsing stays private</li>
+                            <li><strong class="text-white">GDPR compliant</strong> - No consent required</li>
+                            <li><strong class="text-white">EU-hosted</strong> - Data stays in the European Union</li>
+                        </ul>
+                        <p class="text-xs text-gray-500 mt-3">→ <a href="https://plausible.io/privacy-focused-web-analytics" target="_blank" class="text-green-400 hover:underline">Learn more about Plausible's privacy approach</a></p>
+                    </div>
+                    <div class="p-4 bg-dark-200 rounded-lg">
+                        <p class="text-sm text-gray-400">
+                            <strong class="text-white">What we track:</strong> Page views, referrer sources, country (not city), 
+                            device type (desktop/mobile), and browser. We use this data to improve Xdest and understand 
+                            which features are most popular. We do NOT track individual users or build profiles.
+                        </p>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Project Analytics -->
+            <section id="analytics" class="bg-dark-100 rounded-xl border border-gray-800 p-6">
+                <h2 class="text-2xl font-bold mb-4 flex items-center gap-3">
+                    <span>📊</span> Project Analytics (Third-Party)
+                </h2>
+                <div class="space-y-4 text-gray-300">
+                    <p>Project owners can optionally enable analytics services for their projects:</p>
+                    
+                    <div class="p-4 bg-orange-500/10 border border-orange-500/30 rounded-lg">
+                        <h4 class="font-semibold text-orange-400 mb-2">🔶 Google Analytics</h4>
+                        <p class="text-gray-400 text-sm mb-2">When a project has Google Analytics enabled, data is sent to Google on the project page:</p>
+                        <ul class="list-disc list-inside text-sm text-gray-500 space-y-1">
+                            <li>IP address (anonymized)</li>
+                            <li>Browser and device information</li>
+                            <li>Pages visited and time spent</li>
+                            <li>Referrer (where you came from)</li>
+                        </ul>
+                        <p class="text-xs text-gray-500 mt-2">→ <a href="https://policies.google.com/privacy" target="_blank" class="text-orange-400 hover:underline">Google Privacy Policy</a></p>
+                    </div>
+                    
+                    <div class="p-4 bg-green-500/10 border border-green-500/30 rounded-lg">
+                        <h4 class="font-semibold text-green-400 mb-2">🟢 Plausible Analytics</h4>
+                        <p class="text-gray-400 text-sm mb-2">Plausible is a privacy-friendly alternative:</p>
+                        <ul class="list-disc list-inside text-sm text-gray-500 space-y-1">
+                            <li>No cookies required</li>
+                            <li>No personal data stored</li>
+                            <li>GDPR-compliant without cookie banner</li>
+                            <li>EU-hosted servers</li>
+                        </ul>
+                        <p class="text-xs text-gray-500 mt-2">→ <a href="https://plausible.io/privacy-focused-web-analytics" target="_blank" class="text-green-400 hover:underline">Plausible Privacy Policy</a></p>
+                    </div>
+                    
+                    <div class="p-4 bg-dark-200 rounded-lg">
+                        <p class="text-sm text-gray-400">
+                            <strong class="text-white">Note:</strong> Analytics are only loaded on individual project pages 
+                            when the project owner has enabled them. The Xdest dashboard and all other pages 
+                            do not use any external analytics.
+                        </p>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Security -->
+            <section id="security" class="bg-dark-100 rounded-xl border border-gray-800 p-6">
+                <h2 class="text-2xl font-bold mb-4 flex items-center gap-3">
+                    <span>🛡️</span> Data Security
+                </h2>
+                <div class="space-y-3 text-gray-300">
+                    <p>We take the following measures to protect your data:</p>
+                    <ul class="list-disc list-inside space-y-2 text-gray-400">
+                        <li>OAuth authentication (no passwords stored)</li>
+                        <li>HTTPS encryption for all connections</li>
+                        <li>Session-based authentication with secure cookies</li>
+                        <li>Regular security updates</li>
+                        <li>Access controls and authorization checks</li>
+                    </ul>
+                </div>
+            </section>
+
+            <!-- Data Retention -->
+            <section class="bg-dark-100 rounded-xl border border-gray-800 p-6">
+                <h2 class="text-2xl font-bold mb-4 flex items-center gap-3">
+                    <span>⏰</span> Data Retention
+                </h2>
+                <div class="space-y-3 text-gray-300">
+                    <p>We retain your data as follows:</p>
+                    <ul class="list-disc list-inside space-y-2 text-gray-400">
+                        <li><strong class="text-white">Account Data:</strong> Until you delete your account</li>
+                        <li><strong class="text-white">Content (Projects, Issues):</strong> Until you delete them or your account</li>
+                        <li><strong class="text-white">Session Data:</strong> Until logout or session expiry</li>
+                        <li><strong class="text-white">After Account Deletion:</strong> All data is permanently removed within 30 days</li>
+                    </ul>
+                </div>
+            </section>
+
+            <!-- Contact -->
+            <section id="contact" class="bg-dark-100 rounded-xl border border-gray-800 p-6">
+                <h2 class="text-2xl font-bold mb-4 flex items-center gap-3">
+                    <span>📧</span> Contact
+                </h2>
+                <div class="space-y-3 text-gray-300">
+                    <p>For privacy-related inquiries, please contact:</p>
+                    <div class="p-4 bg-dark-200 rounded-lg mt-4 space-y-2">
+                        <p><strong class="text-white">Data Controller:</strong> Xdest Team</p>
+                        <p><strong class="text-white">Email:</strong> <a href="mailto:aiandfriends@gmail.com" class="text-purple-400 hover:text-purple-300">aiandfriends@gmail.com</a></p>
+                        <p><strong class="text-white">X (Twitter):</strong> <a href="https://x.com/karlbeis" target="_blank" class="text-purple-400 hover:text-purple-300">@karlbeis</a></p>
+                        <p><strong class="text-white">GitHub:</strong> <a href="https://github.com/koal0308/Xdest" target="_blank" class="text-purple-400 hover:text-purple-300">github.com/koal0308/Xdest</a></p>
+                    </div>
+                    <p class="text-sm text-gray-400 mt-4">We will respond to your request within 30 days as required by GDPR.</p>
+                </div>
+            </section>
+        </div>
+
+        <!-- Back to Top -->
+        <div class="text-center mt-12">
+            <a href="#" class="text-gray-400 hover:text-white transition">↑ Back to Top</a>
+        </div>
+    </main>
+</div>
+
+<!-- Footer -->
+<footer class="border-t border-gray-800 bg-gray-950 py-4 px-6 mt-8">
+    <div class="max-w-7xl mx-auto flex justify-between items-center text-xs text-gray-500">
+        <span>© 2026 Xdest</span>
+        <div class="flex gap-4">
+            <a href="mailto:aiandfriends@gmail.com" class="hover:text-gray-300 transition">Contact</a>
+            <a href="https://x.com/karlbeis" target="_blank" class="hover:text-gray-300 transition">𝕏 @karlbeis</a>
+            <a href="/privacy" class="hover:text-gray-300 transition">Privacy</a>
+            <a href="/terms" class="hover:text-gray-300 transition">Terms</a>
+            <a href="https://github.com/koal0308/Xdest" target="_blank" class="hover:text-gray-300 transition">GitHub</a>
+        </div>
+    </div>
+</footer>
+
+{% if user %}
+<!-- View Data Modal -->
+<div id="dataModal" class="fixed inset-0 bg-black/80 hidden items-center justify-center z-50 p-4">
+    <div class="bg-dark-100 rounded-xl border border-gray-800 max-w-4xl w-full max-h-[80vh] overflow-hidden">
+        <div class="flex justify-between items-center p-6 border-b border-gray-800">
+            <h3 class="text-xl font-bold">Your Personal Data</h3>
+            <button onclick="closeDataModal()" class="text-gray-400 hover:text-white">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                </svg>
+            </button>
+        </div>
+        <div class="p-6 overflow-y-auto max-h-[60vh]">
+            <pre id="userData" class="bg-dark-200 p-4 rounded-lg text-sm overflow-x-auto text-gray-300 font-mono"></pre>
+        </div>
+        <div class="p-6 border-t border-gray-800 flex justify-end gap-4">
+            <button onclick="closeDataModal()" class="px-4 py-2 rounded-lg border border-gray-700 hover:bg-gray-800 transition">
+                Close
+            </button>
+            <a href="/api/privacy/download-data" class="px-4 py-2 rounded-lg bg-green-600 hover:bg-green-500 transition">
+                Download JSON
+            </a>
+        </div>
+    </div>
+</div>
+
+<!-- Delete Confirmation Modal -->
+<div id="deleteModal" class="fixed inset-0 bg-black/80 hidden items-center justify-center z-50 p-4">
+    <div class="bg-dark-100 rounded-xl border border-red-500/50 max-w-md w-full">
+        <div class="p-6 border-b border-gray-800">
+            <h3 class="text-xl font-bold text-red-400">⚠️ Delete Account</h3>
+        </div>
+        <div class="p-6">
+            <p class="text-gray-300 mb-4">Are you sure you want to delete your account? This action is <strong class="text-red-400">permanent and cannot be undone</strong>.</p>
+            <p class="text-gray-400 text-sm mb-4">The following data will be deleted:</p>
+            <ul class="list-disc list-inside text-gray-400 text-sm space-y-1 mb-6">
+                <li>Your profile and account information</li>
+                <li>All your projects</li>
+                <li>All issues you created</li>
+                <li>All your responses and comments</li>
+                <li>All your votes and ratings</li>
+            </ul>
+            <div class="mb-4">
+                <label class="text-sm text-gray-400">Type <strong class="text-white">DELETE</strong> to confirm:</label>
+                <input type="text" id="deleteConfirmInput" class="w-full mt-2 px-4 py-2 bg-dark-200 border border-gray-700 rounded-lg focus:border-red-500 focus:outline-none" placeholder="Type DELETE">
+            </div>
+        </div>
+        <div class="p-6 border-t border-gray-800 flex justify-end gap-4">
+            <button onclick="closeDeleteModal()" class="px-4 py-2 rounded-lg border border-gray-700 hover:bg-gray-800 transition">
+                Cancel
+            </button>
+            <button onclick="deleteAccount()" id="deleteBtn" class="px-4 py-2 rounded-lg bg-red-600 hover:bg-red-500 transition disabled:opacity-50 disabled:cursor-not-allowed" disabled>
+                Delete My Account
+            </button>
+        </div>
+    </div>
+</div>
+
+<script>
+// Load data summary on page load
+document.addEventListener('DOMContentLoaded', loadDataSummary);
+
+async function loadDataSummary() {
+    try {
+        const resp = await fetch('/api/privacy/data-summary');
+        if (resp.ok) {
+            const data = await resp.json();
+            document.getElementById('projects-count').textContent = data.projects || 0;
+            document.getElementById('issues-count').textContent = data.issues || 0;
+            document.getElementById('responses-count').textContent = data.responses || 0;
+            document.getElementById('votes-count').textContent = data.votes || 0;
+        }
+    } catch (e) {
+        console.error('Failed to load data summary:', e);
+    }
+}
+
+async function viewMyData() {
+    try {
+        const resp = await fetch('/api/privacy/my-data');
+        if (resp.ok) {
+            const data = await resp.json();
+            document.getElementById('userData').textContent = JSON.stringify(data, null, 2);
+            document.getElementById('dataModal').classList.remove('hidden');
+            document.getElementById('dataModal').classList.add('flex');
+        }
+    } catch (e) {
+        alert('Failed to load data. Please try again.');
+    }
+}
+
+function closeDataModal() {
+    document.getElementById('dataModal').classList.add('hidden');
+    document.getElementById('dataModal').classList.remove('flex');
+}
+
+function confirmDeleteAccount() {
+    document.getElementById('deleteModal').classList.remove('hidden');
+    document.getElementById('deleteModal').classList.add('flex');
+    document.getElementById('deleteConfirmInput').value = '';
+    document.getElementById('deleteBtn').disabled = true;
+}
+
+function closeDeleteModal() {
+    document.getElementById('deleteModal').classList.add('hidden');
+    document.getElementById('deleteModal').classList.remove('flex');
+}
+
+// Enable delete button only when "DELETE" is typed
+document.getElementById('deleteConfirmInput')?.addEventListener('input', function() {
+    document.getElementById('deleteBtn').disabled = this.value !== 'DELETE';
+});
+
+async function deleteAccount() {
+    const confirmInput = document.getElementById('deleteConfirmInput').value;
+    if (confirmInput !== 'DELETE') {
+        alert('Please type DELETE to confirm');
+        return;
+    }
+    
+    try {
+        const resp = await fetch('/api/privacy/delete-account', {
+            method: 'DELETE'
+        });
+        if (resp.ok) {
+            alert('Your account has been deleted. You will be redirected to the home page.');
+            window.location.href = '/';
+        } else {
+            const err = await resp.json();
+            alert('Failed to delete account: ' + (err.detail || 'Unknown error'));
+        }
+    } catch (e) {
+        alert('Failed to delete account. Please try again.');
+    }
+}
+
+// Close modals on escape key
+document.addEventListener('keydown', function(e) {
+    if (e.key === 'Escape') {
+        closeDataModal();
+        closeDeleteModal();
+    }
+});
+</script>
+{% endif %}
+{% endblock %}

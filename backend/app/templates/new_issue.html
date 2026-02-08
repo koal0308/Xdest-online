@@ -1,0 +1,300 @@
+{% extends "base.html" %}
+
+{% block title %}New Issue - {{ project.name }} - Xdest{% endblock %}
+
+{% block content %}
+<div class="min-h-screen">
+    <!-- Navigation -->
+    <nav class="border-b border-gray-800 bg-dark-400/80 backdrop-blur-sm fixed w-full z-50">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between h-16 items-center">
+                <a href="/">
+                    <img src="/static/logo.png" alt="Xdest" class="h-48 rounded-lg">
+                </a>
+                <div class="flex items-center gap-4">
+                    <a href="/dashboard" class="text-gray-400 hover:text-white transition">Dashboard</a>
+                    <a href="/user/{{ user.username }}">
+                        <img src="{{ user.avatar or '/static/default-avatar.png' }}" class="w-8 h-8 rounded-full" alt="Avatar">
+                    </a>
+                    <a href="/auth/logout" class="text-gray-400 hover:text-red-400 transition" title="Logout">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"></path>
+                        </svg>
+                    </a>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <main class="pt-24 pb-12 px-4 max-w-2xl mx-auto">
+        <!-- Breadcrumb -->
+        <div class="flex items-center gap-2 text-sm text-gray-400 mb-6">
+            <a href="/project/{{ project.id }}" class="hover:text-white transition">{{ project.name }}</a>
+            <span>/</span>
+            <a href="/project/{{ project.id }}/issues" class="hover:text-white transition">Issues</a>
+            <span>/</span>
+            <span class="text-white">New Issue</span>
+        </div>
+
+        <div class="bg-dark-100 rounded-xl border border-gray-800 p-8">
+            <h1 class="text-2xl font-bold mb-2">Report New Issue</h1>
+            <p class="text-gray-400 mb-6">Report a problem or suggest an improvement for <span class="text-white font-medium">{{ project.name }}</span></p>
+            
+            <!-- Source Info -->
+            <div class="bg-dark-300 rounded-lg p-4 mb-6 flex items-center gap-3">
+                <div class="w-10 h-10 bg-gradient-to-br from-purple-600 to-pink-600 rounded-lg flex items-center justify-center">
+                    <span class="text-lg font-bold">d</span>
+                </div>
+                <div>
+                    <p class="text-sm text-gray-400">Reported via</p>
+                    <p class="font-semibold">Xdest.com</p>
+                </div>
+                <div class="ml-auto text-right">
+                    <p class="text-sm text-gray-400">By</p>
+                    <p class="font-semibold flex items-center gap-2">
+                        <img src="{{ user.avatar or '/static/default-avatar.png' }}" class="w-5 h-5 rounded-full" alt="">
+                        {{ user.username }}
+                    </p>
+                </div>
+            </div>
+            
+            <form action="/api/project/{{ project.id }}/issue" method="POST" enctype="multipart/form-data" class="space-y-6">
+                <!-- Issue Type -->
+                <div>
+                    <label class="block text-sm font-medium mb-3">Issue Type *</label>
+                    <div class="grid grid-cols-2 md:grid-cols-3 gap-3">
+                        <label class="cursor-pointer">
+                            <input type="radio" name="issue_type" value="bug" checked class="sr-only peer">
+                            <div class="p-4 bg-dark-300 rounded-lg border-2 border-transparent peer-checked:border-red-500 hover:bg-dark-200 transition text-center">
+                                <span class="text-2xl">🐛</span>
+                                <p class="mt-1 font-medium">Bug</p>
+                                <p class="text-xs text-gray-500">Found an error</p>
+                            </div>
+                        </label>
+                        <label class="cursor-pointer">
+                            <input type="radio" name="issue_type" value="feature" class="sr-only peer">
+                            <div class="p-4 bg-dark-300 rounded-lg border-2 border-transparent peer-checked:border-green-500 hover:bg-dark-200 transition text-center">
+                                <span class="text-2xl">✨</span>
+                                <p class="mt-1 font-medium">Feature</p>
+                                <p class="text-xs text-gray-500">Improvement</p>
+                            </div>
+                        </label>
+                        <label class="cursor-pointer">
+                            <input type="radio" name="issue_type" value="question" class="sr-only peer">
+                            <div class="p-4 bg-dark-300 rounded-lg border-2 border-transparent peer-checked:border-blue-500 hover:bg-dark-200 transition text-center">
+                                <span class="text-2xl">❓</span>
+                                <p class="mt-1 font-medium">Question</p>
+                                <p class="text-xs text-gray-500">Need help</p>
+                            </div>
+                        </label>
+                        <label class="cursor-pointer">
+                            <input type="radio" name="issue_type" value="security" class="sr-only peer">
+                            <div class="p-4 bg-dark-300 rounded-lg border-2 border-transparent peer-checked:border-orange-500 hover:bg-dark-200 transition text-center">
+                                <span class="text-2xl">🔒</span>
+                                <p class="mt-1 font-medium">Security</p>
+                                <p class="text-xs text-gray-500">Security issue</p>
+                            </div>
+                        </label>
+                        <label class="cursor-pointer">
+                            <input type="radio" name="issue_type" value="docs" class="sr-only peer">
+                            <div class="p-4 bg-dark-300 rounded-lg border-2 border-transparent peer-checked:border-cyan-500 hover:bg-dark-200 transition text-center">
+                                <span class="text-2xl">📚</span>
+                                <p class="mt-1 font-medium">Docs</p>
+                                <p class="text-xs text-gray-500">Documentation</p>
+                            </div>
+                        </label>
+                    </div>
+                </div>
+                
+                <!-- Title -->
+                <div>
+                    <label class="block text-sm font-medium mb-2">Title *</label>
+                    <input type="text" name="title" required maxlength="300"
+                        class="w-full bg-dark-300 border border-gray-700 rounded-lg px-4 py-3 text-white placeholder-gray-500 focus:outline-none focus:border-purple-500"
+                        placeholder="Short description of the problem or suggestion">
+                </div>
+                
+                <!-- Description -->
+                <div>
+                    <label class="block text-sm font-medium mb-2">Description *</label>
+                    <textarea name="description" required rows="8"
+                        class="w-full bg-dark-300 border border-gray-700 rounded-lg px-4 py-3 text-white placeholder-gray-500 focus:outline-none focus:border-purple-500 resize-none"
+                        placeholder="Describe the problem or improvement in detail:
+
+- What did you expect?
+- What happened?
+- Steps to reproduce (for bugs)
+- Screenshots or links (if helpful)"></textarea>
+                    <p class="text-xs text-gray-500 mt-1">Tip: The more details, the faster we can help</p>
+                </div>
+                
+                <!-- Screenshot Upload -->
+                <div>
+                    <label class="block text-sm font-medium mb-2">Screenshot (optional)</label>
+                    <div id="screenshot-dropzone" 
+                         class="border-2 border-dashed border-gray-700 rounded-lg p-8 text-center hover:border-purple-500 transition cursor-pointer relative">
+                        <input type="file" name="screenshot" id="screenshot-input" accept="image/*" class="absolute inset-0 w-full h-full opacity-0 cursor-pointer">
+                        <div id="screenshot-placeholder">
+                            <div class="text-4xl mb-3">📸</div>
+                            <p class="text-gray-400">Drop screenshot here or click to select</p>
+                            <p class="text-xs text-gray-500 mt-2">PNG, JPG, GIF or WebP (max. 10MB)</p>
+                        </div>
+                        <div id="screenshot-preview" class="hidden">
+                            <img id="preview-image" src="" alt="Preview" class="max-h-64 mx-auto rounded-lg">
+                            <p id="preview-name" class="text-sm text-gray-400 mt-3"></p>
+                            <button type="button" id="remove-screenshot" class="mt-2 text-red-400 hover:text-red-300 text-sm">
+                                ✕ Remove
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- GitHub Sync Option -->
+                {% if project.github_url and user.github_token %}
+                <div class="bg-dark-300 rounded-lg p-4">
+                    <label class="flex items-center gap-3 cursor-pointer">
+                        <input type="checkbox" name="sync_to_github" value="true" checked
+                               class="w-5 h-5 rounded bg-dark-400 border-gray-600 text-purple-500 focus:ring-purple-500 focus:ring-offset-0">
+                        <div class="flex items-center gap-2">
+                            <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
+                                <path fill-rule="evenodd" d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.531 1.032 1.531 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0112 6.844c.85.004 1.705.115 2.504.337 1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.019 10.019 0 0022 12.017C22 6.484 17.522 2 12 2z" clip-rule="evenodd"/>
+                            </svg>
+                            <span class="font-medium">Also create on GitHub</span>
+                        </div>
+                    </label>
+                    <p class="text-xs text-gray-500 mt-2 ml-8">The issue will be automatically created in the linked GitHub repository</p>
+                </div>
+                {% elif project.github_url and not user.github_token %}
+                <div class="bg-dark-300 rounded-lg p-4 opacity-60">
+                    <div class="flex items-center gap-3">
+                        <svg class="w-5 h-5 text-gray-500" fill="currentColor" viewBox="0 0 24 24">
+                            <path fill-rule="evenodd" d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.531 1.032 1.531 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0112 6.844c.85.004 1.705.115 2.504.337 1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.019 10.019 0 0022 12.017C22 6.484 17.522 2 12 2z" clip-rule="evenodd"/>
+                        </svg>
+                        <span class="text-gray-400">GitHub Sync not available</span>
+                    </div>
+                    <p class="text-xs text-gray-500 mt-2 ml-8">Sign in with GitHub again to sync issues</p>
+                </div>
+                {% endif %}
+                
+                <div class="flex gap-4 pt-4">
+                    <a href="/project/{{ project.id }}/issues" 
+                       class="flex-1 px-6 py-3 rounded-lg border border-gray-700 hover:border-gray-600 text-center transition">
+                        Cancel
+                    </a>
+                    <button type="submit" 
+                            class="flex-1 px-6 py-3 rounded-lg bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-500 hover:to-pink-500 transition font-semibold">
+                        Create Issue
+                    </button>
+                </div>
+            </form>
+        </div>
+    </main>
+</div>
+
+<!-- Footer -->
+<footer class="border-t border-gray-800 bg-gray-950 py-4 px-6 mt-8">
+    <div class="max-w-7xl mx-auto flex justify-between items-center text-xs text-gray-500">
+        <span>© 2026 Xdest</span>
+        <div class="flex gap-4">
+            <a href="mailto:aiandfriends@gmail.com" class="hover:text-gray-300 transition">Contact</a>
+            <a href="https://x.com/karlbeis" target="_blank" class="hover:text-gray-300 transition">𝕏 @karlbeis</a>
+            <a href="/privacy" class="hover:text-gray-300 transition">Privacy</a>
+            <a href="/terms" class="hover:text-gray-300 transition">Terms</a>
+            <a href="https://github.com/koal0308/Xdest" target="_blank" class="hover:text-gray-300 transition">GitHub</a>
+        </div>
+    </div>
+</footer>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const dropzone = document.getElementById('screenshot-dropzone');
+    const input = document.getElementById('screenshot-input');
+    const placeholder = document.getElementById('screenshot-placeholder');
+    const preview = document.getElementById('screenshot-preview');
+    const previewImage = document.getElementById('preview-image');
+    const previewName = document.getElementById('preview-name');
+    const removeBtn = document.getElementById('remove-screenshot');
+    
+    // Drag & Drop Events
+    ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+        dropzone.addEventListener(eventName, preventDefaults, false);
+    });
+    
+    function preventDefaults(e) {
+        e.preventDefault();
+        e.stopPropagation();
+    }
+    
+    ['dragenter', 'dragover'].forEach(eventName => {
+        dropzone.addEventListener(eventName, highlight, false);
+    });
+    
+    ['dragleave', 'drop'].forEach(eventName => {
+        dropzone.addEventListener(eventName, unhighlight, false);
+    });
+    
+    function highlight() {
+        dropzone.classList.add('border-purple-500', 'bg-purple-500/10');
+    }
+    
+    function unhighlight() {
+        dropzone.classList.remove('border-purple-500', 'bg-purple-500/10');
+    }
+    
+    // Handle Drop
+    dropzone.addEventListener('drop', function(e) {
+        const files = e.dataTransfer.files;
+        if (files.length > 0) {
+            handleFile(files[0]);
+        }
+    });
+    
+    // Handle Click/Input
+    input.addEventListener('change', function() {
+        if (this.files.length > 0) {
+            handleFile(this.files[0]);
+        }
+    });
+    
+    function handleFile(file) {
+        // Validate file type
+        const validTypes = ['image/png', 'image/jpeg', 'image/jpg', 'image/gif', 'image/webp'];
+        if (!validTypes.includes(file.type)) {
+            alert('Please upload images only (PNG, JPG, GIF, WebP)');
+            return;
+        }
+        
+        // Validate file size (10MB)
+        if (file.size > 10 * 1024 * 1024) {
+            alert('File too large. Maximum 10MB allowed.');
+            return;
+        }
+        
+        // Create DataTransfer to set files
+        const dataTransfer = new DataTransfer();
+        dataTransfer.items.add(file);
+        input.files = dataTransfer.files;
+        
+        // Show preview
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            previewImage.src = e.target.result;
+            previewName.textContent = file.name;
+            placeholder.classList.add('hidden');
+            preview.classList.remove('hidden');
+        };
+        reader.readAsDataURL(file);
+    }
+    
+    // Remove Screenshot
+    removeBtn.addEventListener('click', function(e) {
+        e.stopPropagation();
+        input.value = '';
+        previewImage.src = '';
+        previewName.textContent = '';
+        placeholder.classList.remove('hidden');
+        preview.classList.add('hidden');
+    });
+});
+</script>
+{% endblock %}

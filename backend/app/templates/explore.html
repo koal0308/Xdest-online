@@ -1,0 +1,258 @@
+{% extends "base.html" %}
+
+{% block title %}Explore - Xdest{% endblock %}
+
+{% block content %}
+<div class="min-h-screen">
+    <!-- Navigation -->
+    <nav class="border-b border-gray-800 bg-dark-400/80 backdrop-blur-sm fixed w-full z-50">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between h-16 items-center">
+                <a href="/">
+                    <img src="/static/logo.png" alt="Xdest" class="h-48 rounded-lg">
+                </a>
+                <div class="flex items-center gap-4">
+                    <a href="/explore" class="text-white font-medium">Explore</a>
+                    <a href="/leaderboard" class="text-gray-400 hover:text-white transition">🏆 Leaderboard</a>
+                    {% if user %}
+                        <a href="/dashboard" class="text-gray-400 hover:text-white transition">Dashboard</a>
+                        <a href="/user/{{ user.username }}">
+                            <img src="{{ user.avatar or '/static/default-avatar.png' }}" class="w-8 h-8 rounded-full" alt="Avatar">
+                        </a>
+                        <a href="/auth/logout" class="text-gray-400 hover:text-red-400 transition" title="Logout">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"></path>
+                            </svg>
+                        </a>
+                    {% else %}
+                        <a href="/auth/github" class="px-4 py-2 rounded-lg bg-gray-800 hover:bg-gray-700 transition">Sign in</a>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <main class="pt-24 pb-12 px-4 max-w-7xl mx-auto">
+        <!-- Header -->
+        <div class="mb-8">
+            <h1 class="text-4xl font-bold mb-2">Explore</h1>
+            <p class="text-gray-400">Discover projects and updates from the developer community</p>
+        </div>
+
+        <!-- Search Bar -->
+        <div class="mb-8">
+            <form action="/explore" method="GET" class="flex gap-4">
+                <div class="relative flex-1">
+                    <svg class="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
+                    </svg>
+                    <input type="text" name="q" value="{{ search_query or '' }}" 
+                           placeholder="Search projects by name, description, or tags..."
+                           class="w-full bg-dark-100 border border-gray-700 rounded-xl pl-12 pr-4 py-3 text-white placeholder-gray-500 focus:outline-none focus:border-purple-500 transition">
+                </div>
+                {% if current_category %}
+                <input type="hidden" name="category" value="{{ current_category }}">
+                {% endif %}
+                <button type="submit" class="px-6 py-3 bg-purple-600 hover:bg-purple-500 rounded-xl font-semibold transition">
+                    Search
+                </button>
+                {% if search_query %}
+                <a href="/explore{% if current_category %}?category={{ current_category }}{% endif %}" class="px-6 py-3 bg-gray-700 hover:bg-gray-600 rounded-xl font-semibold transition">
+                    Clear
+                </a>
+                {% endif %}
+            </form>
+        </div>
+
+        <!-- Category Filters -->
+        <div class="mb-8">
+            <div class="flex flex-wrap gap-3">
+                <a href="/explore" 
+                   class="px-4 py-2 rounded-full text-sm font-medium transition-all
+                          {% if not current_category %}bg-purple-600 text-white{% else %}bg-dark-100 text-gray-400 hover:text-white hover:bg-dark-200{% endif %}">
+                    🌐 All
+                </a>
+                {% for cat in categories %}
+                <a href="/explore?category={{ cat.id }}" 
+                   class="px-4 py-2 rounded-full text-sm font-medium transition-all
+                          {% if current_category == cat.id %}bg-purple-600 text-white{% else %}bg-dark-100 text-gray-400 hover:text-white hover:bg-dark-200{% endif %}">
+                    {{ cat.icon }} {{ cat.name }}
+                </a>
+                {% endfor %}
+            </div>
+        </div>
+
+        <div class="grid lg:grid-cols-3 gap-8">
+            <!-- Posts Feed (Main Column) -->
+            <div class="lg:col-span-2">
+                <div class="flex items-center justify-between mb-6">
+                    <h2 class="text-2xl font-bold">
+                        {% if active_category %}
+                        {{ active_category.icon }} {{ active_category.name }} Updates
+                        {% else %}
+                        Latest Updates
+                        {% endif %}
+                    </h2>
+                </div>
+
+                {% if posts %}
+                <div class="space-y-6">
+                    {% for post in posts %}
+                    <div class="bg-dark-100 rounded-xl border border-gray-800 overflow-hidden card-hover transition-all duration-300">
+                        <!-- Project Header -->
+                        <a href="/project/{{ post.project.id }}" class="block p-4 border-b border-gray-800 hover:bg-dark-200/50 transition">
+                            <div class="flex items-center gap-3">
+                                {% if post.project.image %}
+                                <img src="{{ post.project.image }}" class="w-10 h-10 rounded-lg object-cover" alt="">
+                                {% else %}
+                                <div class="w-10 h-10 rounded-lg bg-gradient-to-br from-purple-600 to-pink-600 flex items-center justify-center">
+                                    <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z"></path>
+                                    </svg>
+                                </div>
+                                {% endif %}
+                                <div>
+                                    <h3 class="font-semibold text-white">{{ post.project.name }}</h3>
+                                    <div class="flex items-center gap-2 text-sm text-gray-500">
+                                        <img src="{{ post.author.avatar or '/static/default-avatar.png' }}" class="w-4 h-4 rounded-full" alt="">
+                                        <span>{{ post.author.username }}</span>
+                                        <span>•</span>
+                                        <span>{{ post.created_at.strftime('%b %d, %Y') }}</span>
+                                    </div>
+                                </div>
+                                {% if post.project.tags %}
+                                <div class="ml-auto flex gap-2">
+                                    {% for tag in post.project.tags.split(',')[:2] %}
+                                    <span class="px-2 py-1 bg-purple-600/20 text-purple-400 text-xs rounded">{{ tag.strip() }}</span>
+                                    {% endfor %}
+                                </div>
+                                {% endif %}
+                            </div>
+                        </a>
+
+                        <!-- Post Content -->
+                        <div class="p-4">
+                            <p class="text-gray-300 whitespace-pre-wrap mb-4">{{ post.content }}</p>
+                            
+                            {% if post.media_url %}
+                                {% if post.media_type == 'image' %}
+                                <img src="{{ post.media_url }}" class="rounded-lg max-h-80 w-full object-cover mb-4" alt="Post media">
+                                {% elif post.media_type == 'video' %}
+                                <video src="{{ post.media_url }}" controls class="rounded-lg max-h-80 w-full mb-4"></video>
+                                {% endif %}
+                            {% endif %}
+
+                            <!-- Interaction Bar -->
+                            <div class="flex items-center gap-6 pt-4 border-t border-gray-800">
+                                <a href="/project/{{ post.project.id }}" class="flex items-center gap-2 text-gray-500 hover:text-purple-400 transition">
+                                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"></path>
+                                    </svg>
+                                    <span class="text-sm">{{ post.comments|length }} comments</span>
+                                </a>
+                                <a href="/project/{{ post.project.id }}" class="flex items-center gap-2 text-gray-500 hover:text-purple-400 transition">
+                                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"></path>
+                                    </svg>
+                                    <span class="text-sm">View project</span>
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+                {% else %}
+                <div class="bg-dark-100 rounded-xl border border-gray-800 p-12 text-center">
+                    <svg class="w-16 h-16 text-gray-600 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 20H5a2 2 0 01-2-2V6a2 2 0 012-2h10a2 2 0 012 2v1m2 13a2 2 0 01-2-2V7m2 13a2 2 0 002-2V9a2 2 0 00-2-2h-2m-4-3H9M7 16h6M7 8h6v4H7V8z"></path>
+                    </svg>
+                    <h3 class="text-xl font-semibold mb-2">
+                        {% if active_category %}
+                        No {{ active_category.name }} updates yet
+                        {% else %}
+                        No updates yet
+                        {% endif %}
+                    </h3>
+                    <p class="text-gray-400 mb-6">Be the first to share something!</p>
+                    {% if user %}
+                    <a href="/create-project" class="px-6 py-3 rounded-lg bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-500 hover:to-pink-500 transition font-semibold inline-block">
+                        Create Project
+                    </a>
+                    {% endif %}
+                </div>
+                {% endif %}
+            </div>
+
+            <!-- Sidebar - Projects -->
+            <div class="lg:col-span-1">
+                <div class="sticky top-24">
+                    <h2 class="text-xl font-bold mb-4">Trending Projects</h2>
+                    
+                    {% if projects %}
+                    <div class="space-y-4">
+                        {% for project in projects[:8] %}
+                        <a href="/project/{{ project.id }}" class="block bg-dark-100 rounded-xl border border-gray-800 p-4 card-hover transition-all duration-300">
+                            <div class="flex items-start gap-3">
+                                {% if project.image %}
+                                <img src="{{ project.image }}" class="w-12 h-12 rounded-lg object-cover" alt="">
+                                {% else %}
+                                <div class="w-12 h-12 rounded-lg bg-gradient-to-br from-purple-600 to-pink-600 flex items-center justify-center flex-shrink-0">
+                                    <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z"></path>
+                                    </svg>
+                                </div>
+                                {% endif %}
+                                <div class="flex-1 min-w-0">
+                                    <h3 class="font-semibold text-white truncate">{{ project.name }}</h3>
+                                    <p class="text-sm text-gray-500 truncate">{{ project.owner.username }}</p>
+                                    {% if project.tags %}
+                                    <div class="flex flex-wrap gap-1 mt-2">
+                                        {% for tag in project.tags.split(',')[:2] %}
+                                        <span class="px-2 py-0.5 bg-gray-800 text-gray-400 text-xs rounded">{{ tag.strip() }}</span>
+                                        {% endfor %}
+                                    </div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </a>
+                        {% endfor %}
+                    </div>
+                    {% else %}
+                    <div class="bg-dark-100 rounded-xl border border-gray-800 p-6 text-center">
+                        <p class="text-gray-400 text-sm">No projects yet</p>
+                    </div>
+                    {% endif %}
+
+                    <!-- Category Info -->
+                    {% if active_category %}
+                    <div class="mt-8 bg-dark-100 rounded-xl border border-gray-800 p-4">
+                        <div class="text-3xl mb-2">{{ active_category.icon }}</div>
+                        <h3 class="font-semibold mb-2">{{ active_category.name }}</h3>
+                        <p class="text-sm text-gray-400 mb-3">Related tags:</p>
+                        <div class="flex flex-wrap gap-2">
+                            {% for tag in active_category.tags[:6] %}
+                            <span class="px-2 py-1 bg-purple-600/20 text-purple-400 text-xs rounded">{{ tag }}</span>
+                            {% endfor %}
+                        </div>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </main>
+</div>
+
+<!-- Footer -->
+<footer class="border-t border-gray-800 bg-gray-950 py-4 px-6 mt-8">
+    <div class="max-w-7xl mx-auto flex justify-between items-center text-xs text-gray-500">
+        <span>© 2026 Xdest</span>
+        <div class="flex gap-4">
+            <a href="mailto:aiandfriends@gmail.com" class="hover:text-gray-300 transition">Contact</a>
+            <a href="https://x.com/karlbeis" target="_blank" class="hover:text-gray-300 transition">𝕏 @karlbeis</a>
+            <a href="/privacy" class="hover:text-gray-300 transition">Privacy</a>
+            <a href="/terms" class="hover:text-gray-300 transition">Terms</a>
+            <a href="https://github.com/koal0308/Xdest" target="_blank" class="hover:text-gray-300 transition">GitHub</a>
+        </div>
+    </div>
+</footer>
+{% endblock %}

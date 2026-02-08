@@ -1,0 +1,309 @@
+Perfekt. Dann machen wir es **sauber Python-first** und nicht halb/halb.
+
+Ich gebe dir jetzt den **ultimativen VS-Code Masterprompt**, damit Copilot/Claude/Cursor dir eine komplette Plattform baut.
+
+Stack wird:
+
+* Python (FastAPI)
+* PostgreSQL
+* OAuth (GitHub + Google)
+* Jinja/HTML Frontend oder optional React später
+* Uploads (Bilder/Videos)
+* Dev-Profile + Projekte + Posts + Kommentare
+* GitHub Repo Anzeige
+
+Alles lokal startbar.
+
+Kopiere das **1:1 in VS Code Copilot Chat** oder Cursor.
+
+---
+
+# MASTER PROMPT — BUILD FULL PYTHON DEV PLATFORM
+
+You are a senior Python full-stack engineer.
+
+Your task is to build a complete developer collaboration web platform using Python only.
+
+Do NOT explain theory.
+Generate full working code step by step.
+
+The result must run locally after copy paste in VS Code.
+
+---
+
+# TECH STACK (MANDATORY)
+
+Backend:
+
+* Python 3.11+
+* FastAPI
+* PostgreSQL
+* SQLAlchemy ORM
+* OAuth via Authlib
+* Jinja2 templates (server rendered)
+* TailwindCSS UI
+* Uvicorn server
+
+Storage:
+
+* Local file storage for images/videos
+* Structured uploads folder
+
+Project must be clean and modular.
+
+---
+
+# PLATFORM IDEA
+
+A developer platform where devs create profiles and project pages.
+
+They can:
+
+* sign in with GitHub or Google
+* create profile
+* upload avatar
+* create projects
+* attach GitHub repo
+* post project updates
+* upload images/videos
+* other devs can comment
+* public project pages
+
+Like mini GitHub + social dev hub.
+
+---
+
+# CORE FEATURES
+
+## 1. Landing Page
+
+Route: /
+
+Clean modern dev landing page.
+
+Sections:
+
+* Hero text
+* Login with GitHub
+* Login with Google
+* Explore projects button
+
+---
+
+## 2. OAuth Login System
+
+Implement OAuth with:
+
+* GitHub OAuth
+* Google OAuth
+
+On first login:
+create user in database.
+
+Store:
+
+* id
+* username
+* email
+* avatar
+* provider
+
+Use secure session cookies.
+
+---
+
+## 3. User Dashboard
+
+After login redirect to:
+
+/dashboard
+
+Show:
+
+* profile info
+* edit profile button
+* create project button
+* list of user projects
+
+---
+
+## 4. User Profile Page (public)
+
+Route:
+/user/{username}
+
+Shows:
+
+* avatar
+* name
+* bio
+* GitHub link
+* projects
+* join date
+
+Editable by owner only.
+
+---
+
+## 5. Create Project
+
+Route:
+/create-project
+
+Fields:
+
+* project name
+* description
+* GitHub repo URL
+* project image
+* tags
+
+Store in database.
+
+---
+
+## 6. Project Page (important)
+
+Route:
+/project/{id}
+
+Show:
+
+* project banner/image
+* name
+* description
+* GitHub repo link
+* creator
+* posts feed
+
+---
+
+## 7. Project Posts
+
+Inside project page creator can post:
+
+* text update
+* image upload
+* video upload
+
+Store media locally.
+
+Show posts timeline style.
+
+---
+
+## 8. Comments System
+
+Logged in users can comment on posts.
+
+Simple threaded comments.
+
+---
+
+## 9. GitHub Repo Preview
+
+When GitHub repo URL added:
+
+Use GitHub API to fetch:
+
+* stars
+* repo name
+* description
+* last update
+
+Display on project page.
+
+---
+
+# DATABASE STRUCTURE
+
+Users table:
+id
+username
+email
+avatar
+bio
+github
+created_at
+
+Projects:
+id
+user_id
+name
+description
+github_url
+image
+created_at
+
+Posts:
+id
+project_id
+user_id
+content
+media_url
+created_at
+
+Comments:
+id
+post_id
+user_id
+content
+created_at
+
+---
+
+# UI DESIGN
+
+Modern dev style:
+
+* dark mode
+* minimal
+* like GitHub/Vercel
+* clean spacing
+* sidebar dashboard
+
+Use Tailwind.
+
+---
+
+# SECURITY
+
+* Only owner can edit profile/project
+* Only logged users can post/comment
+* Validate uploads
+* Secure sessions
+
+---
+
+# PROJECT STRUCTURE REQUIRED
+
+backend/
+app/
+routers/
+models/
+templates/
+static/
+uploads/
+main.py
+requirements.txt
+.env.example
+
+---
+
+# OUTPUT ORDER
+
+Generate in this order:
+
+1. Folder structure
+2. requirements.txt
+3. database models
+4. OAuth setup
+5. FastAPI routes
+6. templates
+7. upload system
+8. GitHub API integration
+9. run instructions
+
+Everything must run locally.
+
+Start building now.

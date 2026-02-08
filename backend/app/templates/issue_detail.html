@@ -1,0 +1,435 @@
+{% extends "base.html" %}
+
+{% block title %}{{ issue.title }} - {{ project.name }} - Xdest{% endblock %}
+
+{% block content %}
+<div class="min-h-screen">
+    <!-- Navigation -->
+    <nav class="border-b border-gray-800 bg-dark-400/80 backdrop-blur-sm fixed w-full z-50">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between h-16 items-center">
+                <a href="/">
+                    <img src="/static/logo.png" alt="Xdest" class="h-48 rounded-lg">
+                </a>
+                <div class="flex items-center gap-4">
+                    <a href="/explore" class="text-gray-400 hover:text-white transition">Explore</a>
+                    {% if user %}
+                        <a href="/dashboard" class="text-gray-400 hover:text-white transition">Dashboard</a>
+                        <a href="/user/{{ user.username }}">
+                            <img src="{{ user.avatar or '/static/default-avatar.png' }}" class="w-8 h-8 rounded-full" alt="Avatar">
+                        </a>
+                        <a href="/auth/logout" class="text-gray-400 hover:text-red-400 transition" title="Logout">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"></path>
+                            </svg>
+                        </a>
+                    {% else %}
+                        <a href="/auth/github" class="px-4 py-2 rounded-lg bg-gray-800 hover:bg-gray-700 transition">Sign in</a>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <main class="pt-24 pb-12 px-4 max-w-4xl mx-auto">
+        <!-- Breadcrumb -->
+        <div class="flex items-center gap-2 text-sm text-gray-400 mb-6">
+            <a href="/project/{{ project.id }}" class="hover:text-white transition">{{ project.name }}</a>
+            <span>/</span>
+            <a href="/project/{{ project.id }}/issues" class="hover:text-white transition">Issues</a>
+            <span>/</span>
+            <span class="text-white">#{{ issue.id }}</span>
+        </div>
+
+        <!-- Issue Header -->
+        <div class="bg-dark-100 rounded-xl border border-gray-800 p-6 mb-6">
+            <div class="flex items-start justify-between mb-4">
+                <div class="flex items-center gap-3">
+                    <!-- Status Badge -->
+                    {% if issue.status == 'open' %}
+                        <span class="px-3 py-1 bg-green-600/20 text-green-400 rounded-full text-sm font-medium">🟢 Open</span>
+                    {% elif issue.status == 'in_progress' %}
+                        <span class="px-3 py-1 bg-yellow-600/20 text-yellow-400 rounded-full text-sm font-medium">🔄 In Progress</span>
+                    {% elif issue.status == 'resolved' %}
+                        <span class="px-3 py-1 bg-blue-600/20 text-blue-400 rounded-full text-sm font-medium">✅ Resolved</span>
+                    {% elif issue.status == 'closed' %}
+                        <span class="px-3 py-1 bg-gray-600/20 text-gray-400 rounded-full text-sm font-medium">⬛ Closed</span>
+                    {% elif issue.status == 'wont_fix' %}
+                        <span class="px-3 py-1 bg-red-600/20 text-red-400 rounded-full text-sm font-medium">🚫 Won't Fix</span>
+                    {% endif %}
+                    
+                    <!-- Type Badge -->
+                    {% if issue.issue_type == 'bug' %}
+                        <span class="px-3 py-1 bg-red-600/20 text-red-400 rounded-full text-sm">🐛 Bug</span>
+                    {% elif issue.issue_type == 'feature' %}
+                        <span class="px-3 py-1 bg-green-600/20 text-green-400 rounded-full text-sm">✨ Feature Request</span>
+                    {% elif issue.issue_type == 'question' %}
+                        <span class="px-3 py-1 bg-blue-600/20 text-blue-400 rounded-full text-sm">❓ Question</span>
+                    {% elif issue.issue_type == 'security' %}
+                        <span class="px-3 py-1 bg-orange-600/20 text-orange-400 rounded-full text-sm">🔒 Security</span>
+                    {% elif issue.issue_type == 'docs' %}
+                        <span class="px-3 py-1 bg-cyan-600/20 text-cyan-400 rounded-full text-sm">📚 Documentation</span>
+                    {% endif %}
+                    
+                    <!-- GitHub Link -->
+                    {% if issue.github_issue_url %}
+                        <a href="{{ issue.github_issue_url }}" target="_blank" 
+                           class="px-3 py-1 bg-gray-700/50 hover:bg-gray-700 text-gray-300 rounded-full text-sm flex items-center gap-1 transition">
+                            <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
+                                <path fill-rule="evenodd" d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.531 1.032 1.531 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0112 6.844c.85.004 1.705.115 2.504.337 1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.019 10.019 0 0022 12.017C22 6.484 17.522 2 12 2z" clip-rule="evenodd"/>
+                            </svg>
+                            #{{ issue.github_issue_number }}
+                        </a>
+                        <!-- GitHub Reactions Container -->
+                        <div id="github-reactions" class="flex items-center gap-2 text-sm"></div>
+                    {% endif %}
+                </div>
+                
+                <!-- Actions für Owner -->
+                {% if is_owner %}
+                <div class="relative" x-data="{ open: false }">
+                    <button onclick="toggleStatusMenu()" class="px-4 py-2 bg-dark-300 hover:bg-dark-200 rounded-lg transition text-sm">
+                        Change Status ▼
+                    </button>
+                    <div id="statusMenu" class="hidden absolute right-0 mt-2 w-48 bg-dark-200 rounded-lg border border-gray-700 shadow-xl z-10">
+                        <form action="/api/issue/{{ issue.id }}/status" method="POST">
+                            <input type="hidden" name="status" value="open">
+                            <button type="submit" class="w-full px-4 py-2 text-left hover:bg-dark-300 transition text-sm flex items-center gap-2">
+                                🟢 Open
+                            </button>
+                        </form>
+                        <form action="/api/issue/{{ issue.id }}/status" method="POST">
+                            <input type="hidden" name="status" value="in_progress">
+                            <button type="submit" class="w-full px-4 py-2 text-left hover:bg-dark-300 transition text-sm flex items-center gap-2">
+                                🔄 In Progress
+                            </button>
+                        </form>
+                        <form action="/api/issue/{{ issue.id }}/status" method="POST">
+                            <input type="hidden" name="status" value="resolved">
+                            <button type="submit" class="w-full px-4 py-2 text-left hover:bg-dark-300 transition text-sm flex items-center gap-2">
+                                ✅ Resolved
+                            </button>
+                        </form>
+                        <form action="/api/issue/{{ issue.id }}/status" method="POST">
+                            <input type="hidden" name="status" value="closed">
+                            <button type="submit" class="w-full px-4 py-2 text-left hover:bg-dark-300 transition text-sm flex items-center gap-2">
+                                ⬛ Closed
+                            </button>
+                        </form>
+                        <form action="/api/issue/{{ issue.id }}/status" method="POST">
+                            <input type="hidden" name="status" value="wont_fix">
+                            <button type="submit" class="w-full px-4 py-2 text-left hover:bg-dark-300 transition text-sm flex items-center gap-2 text-red-400">
+                                🚫 Won't Fix
+                            </button>
+                        </form>
+                    </div>
+                </div>
+                {% endif %}
+            </div>
+            
+            <h1 class="text-2xl font-bold mb-4">{{ issue.title }}</h1>
+            
+            <div class="flex items-center gap-4 text-sm text-gray-400 mb-6">
+                <a href="/user/{{ issue.reporter.username }}" class="flex items-center gap-2 hover:text-white transition">
+                    <img src="{{ issue.reporter.avatar or '/static/default-avatar.png' }}" class="w-6 h-6 rounded-full" alt="">
+                    <span>{{ issue.reporter.username }}</span>
+                </a>
+                <span>•</span>
+                <span>{{ issue.created_at.strftime('%d. %B %Y um %H:%M') }}</span>
+                <span>•</span>
+                <span class="flex items-center gap-1">
+                    <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                        <path d="M10 12a2 2 0 100-4 2 2 0 000 4z"/>
+                        <path fill-rule="evenodd" d="M.458 10C1.732 5.943 5.522 3 10 3s8.268 2.943 9.542 7c-1.274 4.057-5.064 7-9.542 7S1.732 14.057.458 10zM14 10a4 4 0 11-8 0 4 4 0 018 0z" clip-rule="evenodd"/>
+                    </svg>
+                    via {{ issue.source_platform }}
+                </span>
+            </div>
+            
+            <!-- Issue Description -->
+            <div class="bg-dark-300 rounded-lg p-5">
+                <p class="whitespace-pre-wrap text-gray-300">{{ issue.description }}</p>
+            </div>
+            
+            <!-- Issue Vote Button -->
+            <div class="mt-4 flex items-center gap-4">
+                {% if user and user.id != issue.user_id %}
+                <button onclick="voteIssueHelpful({{ issue.id }}, this)" 
+                        class="flex items-center gap-2 px-4 py-2 rounded-lg bg-dark-300 hover:bg-dark-200 transition text-sm issue-vote-btn"
+                        data-issue-id="{{ issue.id }}">
+                    <span class="vote-icon">👍</span>
+                    <span>Helpful Issue</span>
+                    <span class="vote-count text-purple-400 font-medium">({{ issue.helpful_count or 0 }})</span>
+                </button>
+                {% else %}
+                <div class="flex items-center gap-2 px-4 py-2 text-sm text-gray-500">
+                    <span>👍</span>
+                    <span>Helpful Issue</span>
+                    <span class="text-purple-400 font-medium">({{ issue.helpful_count or 0 }})</span>
+                </div>
+                {% endif %}
+            </div>
+            
+            <!-- Screenshot -->
+            {% if issue.screenshot %}
+            <div class="mt-4">
+                <p class="text-sm text-gray-400 mb-2">📎 Attachment:</p>
+                <a href="{{ issue.screenshot }}" target="_blank" class="block">
+                    <img src="{{ issue.screenshot }}" alt="Screenshot" class="rounded-lg max-h-96 border border-gray-700 hover:border-purple-500 transition cursor-pointer">
+                </a>
+            </div>
+            {% endif %}
+        </div>
+
+        <!-- Responses -->
+        <div class="mb-6">
+            <h2 class="text-lg font-semibold mb-4 flex items-center gap-2">
+                💬 Responses ({{ issue.responses|length }})
+            </h2>
+            
+            {% if issue.responses %}
+            <div class="space-y-4">
+                {% for response in issue.responses %}
+                <div class="bg-dark-100 rounded-xl border {% if response.is_solution %}border-green-500/50{% else %}border-gray-800{% endif %} p-5 {% if response.is_solution %}ring-1 ring-green-500/30{% endif %}">
+                    <!-- Solution Badge -->
+                    {% if response.is_solution %}
+                    <div class="flex items-center gap-2 mb-3 text-green-400 text-sm font-medium">
+                        <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                            <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/>
+                        </svg>
+                        Marked as Solution
+                    </div>
+                    {% endif %}
+                    
+                    <div class="flex items-start gap-4">
+                        <img src="{{ response.author.avatar or '/static/default-avatar.png' }}" class="w-10 h-10 rounded-full" alt="">
+                        <div class="flex-1">
+                            <div class="flex items-center gap-2 mb-2">
+                                <a href="/user/{{ response.author.username }}" class="font-semibold hover:text-purple-400 transition">
+                                    {{ response.author.username }}
+                                </a>
+                                {% if response.author.id == project.user_id %}
+                                    <span class="px-2 py-0.5 bg-purple-600/20 text-purple-400 text-xs rounded">Project Owner</span>
+                                {% endif %}
+                                {% if response.author.id == issue.user_id %}
+                                    <span class="px-2 py-0.5 bg-blue-600/20 text-blue-400 text-xs rounded">Reporter</span>
+                                {% endif %}
+                                <span class="text-sm text-gray-500">{{ response.created_at.strftime('%d. %B %Y um %H:%M') }}</span>
+                            </div>
+                            <p class="text-gray-300 whitespace-pre-wrap mb-4">{{ response.content }}</p>
+                            
+                            <!-- Vote & Solution Buttons -->
+                            <div class="flex items-center gap-4">
+                                {% if user and user.id != response.user_id %}
+                                <button onclick="voteHelpful({{ response.id }}, this)" 
+                                        class="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-dark-300 hover:bg-dark-200 transition text-sm vote-btn"
+                                        data-response-id="{{ response.id }}">
+                                    <span class="vote-icon">👍</span>
+                                    <span>Helpful</span>
+                                    <span class="vote-count text-purple-400 font-medium">({{ response.helpful_count }})</span>
+                                </button>
+                                {% else %}
+                                <div class="flex items-center gap-2 px-3 py-1.5 text-sm text-gray-500">
+                                    <span>👍</span>
+                                    <span>Helpful</span>
+                                    <span class="text-purple-400 font-medium">({{ response.helpful_count }})</span>
+                                </div>
+                                {% endif %}
+                                
+                                {% if user and (user.id == issue.user_id or is_owner) and not response.is_solution %}
+                                <form action="/api/response/{{ response.id }}/solution" method="POST" class="inline">
+                                    <button type="submit" 
+                                            class="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-green-600/20 hover:bg-green-600/30 text-green-400 transition text-sm">
+                                        ✅ Mark as Solution
+                                    </button>
+                                </form>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+            {% else %}
+            <div class="bg-dark-100 rounded-xl border border-gray-800 p-8 text-center">
+                <p class="text-gray-400">No responses yet. Be the first!</p>
+            </div>
+            {% endif %}
+        </div>
+
+        <!-- Add Response -->
+        {% if user %}
+        <div class="bg-dark-100 rounded-xl border border-gray-800 p-6">
+            <h3 class="font-semibold mb-4">Add Response</h3>
+            <form action="/api/issue/{{ issue.id }}/respond" method="POST">
+                <textarea name="content" required rows="4"
+                    class="w-full bg-dark-300 border border-gray-700 rounded-lg px-4 py-3 text-white placeholder-gray-500 focus:outline-none focus:border-purple-500 resize-none mb-4"
+                    placeholder="Write a response..."></textarea>
+                <div class="flex justify-end">
+                    <button type="submit" 
+                            class="px-6 py-2 rounded-lg bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-500 hover:to-pink-500 transition font-semibold">
+                        Respond
+                    </button>
+                </div>
+            </form>
+        </div>
+        {% else %}
+        <div class="bg-dark-100 rounded-xl border border-gray-800 p-6 text-center">
+            <p class="text-gray-400 mb-4">Sign in to respond to this issue</p>
+            <a href="/auth/github" class="inline-flex items-center gap-2 px-6 py-2 rounded-lg bg-gray-800 hover:bg-gray-700 transition">
+                <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24"><path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/></svg>
+                Sign in with GitHub
+            </a>
+        </div>
+        {% endif %}
+    </main>
+</div>
+
+<!-- Footer -->
+<footer class="border-t border-gray-800 bg-gray-950 py-4 px-6 mt-8">
+    <div class="max-w-7xl mx-auto flex justify-between items-center text-xs text-gray-500">
+        <span>© 2026 Xdest</span>
+        <div class="flex gap-4">
+            <a href="mailto:aiandfriends@gmail.com" class="hover:text-gray-300 transition">Contact</a>
+            <a href="https://x.com/karlbeis" target="_blank" class="hover:text-gray-300 transition">𝕏 @karlbeis</a>
+            <a href="/privacy" class="hover:text-gray-300 transition">Privacy</a>
+            <a href="/terms" class="hover:text-gray-300 transition">Terms</a>
+            <a href="https://github.com/koal0308/Xdest" target="_blank" class="hover:text-gray-300 transition">GitHub</a>
+        </div>
+    </div>
+</footer>
+
+<script>
+function toggleStatusMenu() {
+    const menu = document.getElementById('statusMenu');
+    menu.classList.toggle('hidden');
+}
+
+// Close menu on outside click
+document.addEventListener('click', function(e) {
+    const menu = document.getElementById('statusMenu');
+    const button = e.target.closest('button');
+    if (menu && !menu.contains(e.target) && (!button || !button.textContent.includes('Status'))) {
+        menu.classList.add('hidden');
+    }
+});
+
+// Vote Helpful Function
+async function voteHelpful(responseId, button) {
+    try {
+        const response = await fetch(`/api/response/${responseId}/vote`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            }
+        });
+        
+        const data = await response.json();
+        
+        if (response.ok) {
+            const countSpan = button.querySelector('.vote-count');
+            countSpan.textContent = `(${data.count})`;
+            
+            if (data.voted) {
+                button.classList.add('bg-purple-600/20', 'text-purple-400');
+                button.classList.remove('bg-dark-300');
+            } else {
+                button.classList.remove('bg-purple-600/20', 'text-purple-400');
+                button.classList.add('bg-dark-300');
+            }
+        } else if (data.error) {
+            alert(data.error);
+        }
+    } catch (error) {
+        console.error('Vote error:', error);
+    }
+}
+
+// Vote Issue Helpful Function
+async function voteIssueHelpful(issueId, button) {
+    try {
+        const response = await fetch(`/api/issue/${issueId}/vote`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            }
+        });
+        
+        const data = await response.json();
+        
+        if (response.ok) {
+            const countSpan = button.querySelector('.vote-count');
+            countSpan.textContent = `(${data.count})`;
+            
+            if (data.voted) {
+                button.classList.add('bg-purple-600/20', 'text-purple-400');
+                button.classList.remove('bg-dark-300');
+            } else {
+                button.classList.remove('bg-purple-600/20', 'text-purple-400');
+                button.classList.add('bg-dark-300');
+            }
+        } else if (data.error) {
+            alert(data.error);
+        }
+    } catch (error) {
+        console.error('Vote error:', error);
+    }
+}
+
+// Load GitHub Reactions
+async function loadGitHubReactions() {
+    const issueId = {{ issue.id }};
+    const reactionsContainer = document.getElementById('github-reactions');
+    if (!reactionsContainer) return;
+    
+    try {
+        const response = await fetch(`/api/issue/${issueId}/github-reactions`);
+        const data = await response.json();
+        
+        if (data.total > 0) {
+            let html = '<span class="text-gray-500">GitHub:</span>';
+            const reactions = data.reactions;
+            
+            if (reactions.thumbs_up > 0) html += `<span class="px-2 py-0.5 bg-green-600/20 text-green-400 rounded">👍 ${reactions.thumbs_up}</span>`;
+            if (reactions.thumbs_down > 0) html += `<span class="px-2 py-0.5 bg-red-600/20 text-red-400 rounded">👎 ${reactions.thumbs_down}</span>`;
+            if (reactions.heart > 0) html += `<span class="px-2 py-0.5 bg-pink-600/20 text-pink-400 rounded">❤️ ${reactions.heart}</span>`;
+            if (reactions.rocket > 0) html += `<span class="px-2 py-0.5 bg-purple-600/20 text-purple-400 rounded">🚀 ${reactions.rocket}</span>`;
+            if (reactions.eyes > 0) html += `<span class="px-2 py-0.5 bg-blue-600/20 text-blue-400 rounded">👀 ${reactions.eyes}</span>`;
+            if (reactions.hooray > 0) html += `<span class="px-2 py-0.5 bg-yellow-600/20 text-yellow-400 rounded">🎉 ${reactions.hooray}</span>`;
+            if (reactions.laugh > 0) html += `<span class="px-2 py-0.5 bg-orange-600/20 text-orange-400 rounded">😄 ${reactions.laugh}</span>`;
+            if (reactions.confused > 0) html += `<span class="px-2 py-0.5 bg-gray-600/20 text-gray-400 rounded">😕 ${reactions.confused}</span>`;
+            
+            reactionsContainer.innerHTML = html;
+        }
+        
+        // Check if GitHub state differs and show warning
+        if (data.github_state === 'closed') {
+            const currentStatus = '{{ issue.status }}';
+            if (currentStatus !== 'closed' && currentStatus !== 'resolved') {
+                // Show sync notification
+                const statusBadge = document.querySelector('.bg-green-600\\/20.text-green-400, .bg-yellow-600\\/20.text-yellow-400');
+                if (statusBadge) {
+                    const syncBadge = document.createElement('span');
+                    syncBadge.className = 'px-3 py-1 bg-orange-600/20 text-orange-400 rounded-full text-sm ml-2 cursor-pointer';
+                    syncBadge.innerHTML = '⚠️ Closed on GitHub - Click to sync';
+                    syncBadge.onclick = async function() {
+                        const resp = await fetch(`/api/project/{{ project.id }}/sync-github-issues`, { method: 'POST' });
+                        if (resp.ok) {
+                            location.reload();
+                        }
+                    };
+                    statusBadge.parentNode.appendChild(syncBadge);
+                }
+            }
+        }
+    } catch (error) {
+        console.error('Error loading GitHub reactions:', error);
+    }
+}
+
+// Load reactions on page load if GitHub issue exists
+{% if issue.github_issue_number %}
+document.addEventListener('DOMContentLoaded', loadGitHubReactions);
+{% endif %}
+</script>
+{% endblock %}

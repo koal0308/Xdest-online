@@ -1,0 +1,1430 @@
+{% extends "base.html" %}
+
+{% block title %}{{ project.name }} - Xdest{% endblock %}
+
+{% block extra_head %}
+{% if project.google_analytics_id %}
+<!-- Google Analytics -->
+<script async src="https://www.googletagmanager.com/gtag/js?id={{ project.google_analytics_id }}"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+  gtag('config', '{{ project.google_analytics_id }}');
+</script>
+{% endif %}
+{% endblock %}
+
+{% block content %}
+<div class="min-h-screen">
+    <!-- Navigation -->
+    <nav class="border-b border-gray-800 bg-dark-400/80 backdrop-blur-sm fixed w-full z-50">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between h-16 items-center">
+                <a href="/">
+                    <img src="/static/logo.png" alt="Xdest" class="h-48 rounded-lg">
+                </a>
+                <div class="flex items-center gap-4">
+                    <a href="/explore" class="text-gray-400 hover:text-white transition">Explore</a>
+                    {% if user %}
+                        <a href="/dashboard" class="text-gray-400 hover:text-white transition">Dashboard</a>
+                        <a href="/user/{{ user.username }}">
+                            <img src="{{ user.avatar or '/static/default-avatar.png' }}" class="w-8 h-8 rounded-full" alt="Avatar">
+                        </a>
+                        <a href="/auth/logout" class="text-gray-400 hover:text-red-400 transition" title="Logout">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"></path>
+                            </svg>
+                        </a>
+                    {% else %}
+                        <a href="/auth/github" class="px-4 py-2 rounded-lg bg-gray-800 hover:bg-gray-700 transition">Sign in</a>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <main class="pt-24 pb-12 px-4 max-w-5xl mx-auto">
+        <!-- Project Header -->
+        <div class="bg-dark-100 rounded-xl border border-gray-800 overflow-hidden mb-8">
+            {% if project.image %}
+            <img src="{{ project.image }}" class="w-full h-64 object-cover" alt="{{ project.name }}">
+            {% else %}
+            <div class="w-full h-64 bg-gradient-to-br from-purple-900/50 to-pink-900/50 flex items-center justify-center">
+                <svg class="w-24 h-24 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z"></path>
+                </svg>
+            </div>
+            {% endif %}
+            <div class="p-6">
+                <div class="flex items-start justify-between mb-4">
+                    <div>
+                        <h1 class="text-3xl font-bold mb-2">{{ project.name }}</h1>
+                        <a href="/user/{{ project.owner.username }}" class="flex items-center gap-2 text-gray-400 hover:text-white transition">
+                            <img src="{{ project.owner.avatar or '/static/default-avatar.png' }}" class="w-6 h-6 rounded-full" alt="">
+                            <span>{{ project.owner.username }}</span>
+                        </a>
+                    </div>
+                    {% if is_owner %}
+                    <div class="flex gap-2">
+                        <a href="/project/{{ project.id }}/edit" class="px-4 py-2 rounded-lg border border-gray-600 text-gray-300 hover:bg-gray-700/50 transition flex items-center gap-2">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path>
+                            </svg>
+                            Edit
+                        </a>
+                        <form action="/api/project/{{ project.id }}/delete" method="POST" onsubmit="return confirm('Delete this project?')">
+                            <button type="submit" class="px-4 py-2 rounded-lg border border-red-700 text-red-400 hover:bg-red-900/30 transition">
+                                Delete
+                            </button>
+                        </form>
+                    </div>
+                    {% endif %}
+                </div>
+                
+                {% if project.description %}
+                <p class="text-gray-300 mb-4">{{ project.description }}</p>
+                {% endif %}
+                
+                {% if project.tags %}
+                <div class="flex flex-wrap gap-2 mb-4">
+                    {% for tag in project.tags.split(',') %}
+                    <span class="px-3 py-1 bg-purple-600/20 text-purple-400 text-sm rounded-full">{{ tag.strip() }}</span>
+                    {% endfor %}
+                </div>
+                {% endif %}
+                
+                <!-- Star Rating -->
+                <div class="flex items-center gap-4 mb-4 p-4 bg-dark-200 rounded-lg border border-gray-700">
+                    <div class="flex items-center gap-2">
+                        <span class="text-gray-400">Bewertung:</span>
+                        <div id="project-star-display" class="flex items-center gap-1">
+                            <!-- Wird per JS gefüllt -->
+                            <span class="text-yellow-400">⭐</span>
+                            <span id="avg-rating" class="font-semibold">-</span>
+                            <span class="text-gray-500 text-sm">(<span id="rating-count">0</span> Bewertungen)</span>
+                        </div>
+                    </div>
+                    
+                    {% if user and user.id != project.user_id %}
+                    <div class="border-l border-gray-600 pl-4">
+                        <span class="text-gray-400 text-sm mr-2">Deine Bewertung:</span>
+                        <div class="star-rating-input inline-flex gap-1" data-project-id="{{ project.id }}">
+                            {% for i in range(1, 6) %}
+                            <button class="star-btn text-2xl text-gray-600 hover:text-yellow-400 transition" data-stars="{{ i }}">★</button>
+                            {% endfor %}
+                        </div>
+                    </div>
+                    {% elif not user %}
+                    <span class="text-gray-500 text-sm border-l border-gray-600 pl-4">
+                        <a href="/auth/github" class="text-purple-400 hover:text-purple-300">Sign in</a> to rate
+                    </span>
+                    {% endif %}
+                </div>
+
+                <!-- Analytics Dashboard (nur für Owner wenn konfiguriert) -->
+                {% if is_owner and project.plausible_domain and project.plausible_api_key %}
+                <div id="analytics-dashboard" class="mb-4 p-4 bg-dark-200 rounded-lg border border-gray-700">
+                    <div class="flex items-center justify-between mb-4">
+                        <h3 class="text-lg font-semibold flex items-center gap-2">
+                            <svg class="w-5 h-5 text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path>
+                            </svg>
+                            Analytics Dashboard
+                        </h3>
+                        <button onclick="refreshAnalytics()" class="text-sm text-gray-400 hover:text-white transition flex items-center gap-1">
+                            <svg id="refresh-icon" class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
+                            </svg>
+                            Aktualisieren
+                        </button>
+                    </div>
+                    
+                    <div id="analytics-loading" class="text-center py-6">
+                        <div class="animate-spin w-8 h-8 border-2 border-green-500 border-t-transparent rounded-full mx-auto"></div>
+                        <p class="text-gray-400 mt-2">Loading analytics...</p>
+                    </div>
+                    
+                    <div id="analytics-error" class="hidden text-center py-6 text-red-400">
+                        <svg class="w-10 h-10 mx-auto mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path>
+                        </svg>
+                        <p id="analytics-error-msg">Error loading analytics</p>
+                    </div>
+                    
+                    <div id="analytics-content" class="hidden">
+                        <!-- Realtime & Aggregate Stats -->
+                        <div class="grid grid-cols-2 md:grid-cols-5 gap-3 mb-4">
+                            <div class="text-center p-3 bg-dark-300 rounded-lg border border-gray-600">
+                                <div id="stat-realtime" class="text-2xl font-bold text-green-400">-</div>
+                                <div class="text-xs text-gray-400">Online now</div>
+                            </div>
+                            <div class="text-center p-3 bg-dark-300 rounded-lg border border-gray-600">
+                                <div id="stat-visitors" class="text-2xl font-bold text-blue-400">-</div>
+                                <div class="text-xs text-gray-400">Visitors (30d)</div>
+                            </div>
+                            <div class="text-center p-3 bg-dark-300 rounded-lg border border-gray-600">
+                                <div id="stat-pageviews" class="text-2xl font-bold text-purple-400">-</div>
+                                <div class="text-xs text-gray-400">Page Views</div>
+                            </div>
+                            <div class="text-center p-3 bg-dark-300 rounded-lg border border-gray-600">
+                                <div id="stat-bounce" class="text-2xl font-bold text-yellow-400">-</div>
+                                <div class="text-xs text-gray-400">Bounce Rate</div>
+                            </div>
+                            <div class="text-center p-3 bg-dark-300 rounded-lg border border-gray-600">
+                                <div id="stat-duration" class="text-2xl font-bold text-pink-400">-</div>
+                                <div class="text-xs text-gray-400">Avg. Duration</div>
+                            </div>
+                        </div>
+                        
+                        <!-- Chart -->
+                        <div class="mb-4 p-4 bg-dark-300 rounded-lg border border-gray-600">
+                            <h4 class="text-sm font-semibold text-gray-400 mb-3">Visitors (last 7 days)</h4>
+                            <div id="visitors-chart" class="h-32 flex items-end justify-between gap-1">
+                                <!-- Filled by JS -->
+                            </div>
+                        </div>
+                        
+                        <!-- Top Pages & Sources -->
+                        <div class="grid md:grid-cols-2 gap-4">
+                            <div class="p-4 bg-dark-300 rounded-lg border border-gray-600">
+                                <h4 class="text-sm font-semibold text-gray-400 mb-3">Top Pages</h4>
+                                <ul id="top-pages" class="space-y-2 text-sm">
+                                    <!-- Filled by JS -->
+                                </ul>
+                            </div>
+                            <div class="p-4 bg-dark-300 rounded-lg border border-gray-600">
+                                <h4 class="text-sm font-semibold text-gray-400 mb-3">Traffic Sources</h4>
+                                <ul id="top-sources" class="space-y-2 text-sm">
+                                    <!-- Filled by JS -->
+                                </ul>
+                            </div>
+                        </div>
+                        
+                        <p class="text-xs text-gray-500 mt-3 text-center">
+                            Powered by <a href="https://plausible.io" target="_blank" class="text-green-400 hover:underline">Plausible Analytics</a> · 
+                            Domain: <span id="analytics-domain">-</span>
+                        </p>
+                    </div>
+                </div>
+                {% endif %}
+
+                <!-- Google Analytics Dashboard (nur für Owner wenn konfiguriert) -->
+                {% if is_owner and project.google_analytics_id %}
+                <div id="ga-dashboard" class="mb-4 p-4 bg-dark-200 rounded-lg border border-gray-700">
+                    <div class="flex items-center justify-between mb-4">
+                        <h3 class="text-lg font-semibold flex items-center gap-2">
+                            <svg class="w-5 h-5 text-orange-400" viewBox="0 0 24 24" fill="currentColor">
+                                <path d="M22.84 2.998c-.648-.162-1.296.162-1.62.648l-6.48 9.72-4.212-4.212c-.486-.486-1.296-.486-1.782 0l-6.48 6.48c-.486.486-.486 1.296 0 1.782.243.243.567.365.891.365s.648-.122.891-.365l5.589-5.589 4.212 4.212c.243.243.567.365.891.365.162 0 .324-.041.486-.081.486-.162.81-.567.972-1.053l6.804-10.206c.324-.486.243-1.134-.162-1.458-.162-.162-.486-.324-.81-.324-.162 0-.324.041-.486.081l-.001-.001zM2 20h20v2H2z"/>
+                            </svg>
+                            Google Analytics
+                            <span class="text-xs text-gray-500 font-normal">({{ project.google_analytics_id }})</span>
+                        </h3>
+                        <a href="https://analytics.google.com/analytics/web/#/report-home/{{ project.google_analytics_id }}" 
+                           target="_blank" 
+                           class="text-sm text-orange-400 hover:text-orange-300 transition flex items-center gap-1">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"></path>
+                            </svg>
+                            Vollständiges Dashboard
+                        </a>
+                    </div>
+                    
+                    <div class="bg-dark-300 rounded-lg border border-gray-600 p-4">
+                        <div class="flex items-center gap-3 mb-3">
+                            <div class="w-10 h-10 bg-orange-500/20 rounded-lg flex items-center justify-center">
+                                <svg class="w-6 h-6 text-orange-400" viewBox="0 0 24 24" fill="currentColor">
+                                    <path d="M22.84 2.998c-.648-.162-1.296.162-1.62.648l-6.48 9.72-4.212-4.212c-.486-.486-1.296-.486-1.782 0l-6.48 6.48c-.486.486-.486 1.296 0 1.782.243.243.567.365.891.365s.648-.122.891-.365l5.589-5.589 4.212 4.212c.243.243.567.365.891.365.162 0 .324-.041.486-.081.486-.162.81-.567.972-1.053l6.804-10.206c.324-.486.243-1.134-.162-1.458-.162-.162-.486-.324-.81-.324-.162 0-.324.041-.486.081l-.001-.001zM2 20h20v2H2z"/>
+                                </svg>
+                            </div>
+                            <div>
+                                <p class="text-sm text-gray-400">Tracking aktiv für</p>
+                                <p class="font-semibold text-white">{{ project.project_url or project.name }}</p>
+                            </div>
+                        </div>
+                        
+                        <p class="text-sm text-gray-400 mb-3">
+                            Google Analytics trackt alle Besucher dieser Projektseite. Die detaillierten Statistiken 
+                            findest du in deinem Google Analytics Dashboard.
+                        </p>
+                        
+                        <div class="flex flex-wrap gap-2">
+                            <a href="https://analytics.google.com/analytics/web/#/realtime/rt-overview/{{ project.google_analytics_id }}" 
+                               target="_blank"
+                               class="px-3 py-1.5 bg-orange-500/20 text-orange-400 text-sm rounded-lg hover:bg-orange-500/30 transition">
+                                🔴 Echtzeit
+                            </a>
+                            <a href="https://analytics.google.com/analytics/web/#/report/visitors-overview/{{ project.google_analytics_id }}" 
+                               target="_blank"
+                               class="px-3 py-1.5 bg-blue-500/20 text-blue-400 text-sm rounded-lg hover:bg-blue-500/30 transition">
+                                👥 Zielgruppe
+                            </a>
+                            <a href="https://analytics.google.com/analytics/web/#/report/trafficsources-overview/{{ project.google_analytics_id }}" 
+                               target="_blank"
+                               class="px-3 py-1.5 bg-green-500/20 text-green-400 text-sm rounded-lg hover:bg-green-500/30 transition">
+                                📊 Akquisition
+                            </a>
+                            <a href="https://analytics.google.com/analytics/web/#/report/content-overview/{{ project.google_analytics_id }}" 
+                               target="_blank"
+                               class="px-3 py-1.5 bg-purple-500/20 text-purple-400 text-sm rounded-lg hover:bg-purple-500/30 transition">
+                                📄 Verhalten
+                            </a>
+                        </div>
+                    </div>
+                    
+                    <p class="text-xs text-gray-500 mt-3 text-center">
+                        Powered by <a href="https://analytics.google.com" target="_blank" class="text-orange-400 hover:underline">Google Analytics</a>
+                    </p>
+                </div>
+                {% endif %}
+
+                <!-- Project Links -->
+                <div class="flex flex-wrap gap-3">
+                    {% if project.project_url %}
+                    <a href="{{ project.project_url }}" target="_blank" class="inline-flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-500 hover:to-cyan-500 rounded-lg transition">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"></path>
+                        </svg>
+                        Visit Project
+                    </a>
+                    {% endif %}
+                    
+                    {% if project.github_url %}
+                    <a href="{{ project.github_url }}" target="_blank" class="inline-flex items-center gap-2 px-4 py-2 bg-gray-800 hover:bg-gray-700 rounded-lg transition">
+                        <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24"><path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/></svg>
+                        View on GitHub
+                    </a>
+                    {% elif is_owner %}
+                    <button onclick="openRepoModal()" class="inline-flex items-center gap-2 px-4 py-2 bg-gray-800 hover:bg-gray-700 rounded-lg transition">
+                        <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24"><path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/></svg>
+                        Connect GitHub Repo
+                    </button>
+                    {% endif %}
+                    
+                    <!-- Issues Link -->
+                    <a href="/project/{{ project.id }}/issues" class="inline-flex items-center gap-2 px-4 py-2 bg-dark-300 hover:bg-dark-200 rounded-lg transition border border-gray-700">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                        </svg>
+                        Issues & Feedback
+                        {% if project.issues %}
+                        <span class="px-2 py-0.5 bg-purple-600/30 text-purple-400 text-xs rounded-full">{{ project.issues|length }}</span>
+                        {% endif %}
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <!-- GitHub Repo Info -->
+        {% if project.github_url %}
+        <div class="bg-dark-100 rounded-xl border border-gray-800 overflow-hidden mb-8" id="repo-info-section">
+            <!-- Tabs -->
+            <div class="border-b border-gray-800 flex overflow-x-auto">
+                <button onclick="showRepoTab('overview')" id="tab-overview" class="repo-tab px-6 py-3 text-sm font-medium border-b-2 border-purple-500 text-white">
+                    📊 Overview
+                </button>
+                <button onclick="showRepoTab('commits')" id="tab-commits" class="repo-tab px-6 py-3 text-sm font-medium border-b-2 border-transparent text-gray-400 hover:text-white">
+                    📝 Commits
+                </button>
+                <button onclick="showRepoTab('contributors')" id="tab-contributors" class="repo-tab px-6 py-3 text-sm font-medium border-b-2 border-transparent text-gray-400 hover:text-white">
+                    👥 Contributors
+                </button>
+                <button onclick="showRepoTab('activity')" id="tab-activity" class="repo-tab px-6 py-3 text-sm font-medium border-b-2 border-transparent text-gray-400 hover:text-white">
+                    ⚡ Activity
+                </button>
+            </div>
+            
+            <!-- Tab Content -->
+            <div class="p-6">
+                <!-- Overview Tab -->
+                <div id="content-overview" class="repo-content">
+                    <div id="repo-overview-loading" class="text-center py-8">
+                        <div class="animate-spin w-8 h-8 border-2 border-purple-500 border-t-transparent rounded-full mx-auto"></div>
+                        <p class="text-gray-400 mt-2">Loading repository info...</p>
+                    </div>
+                    <div id="repo-overview-data" class="hidden">
+                        <!-- Wird per JS gefüllt -->
+                    </div>
+                </div>
+                
+                <!-- Commits Tab -->
+                <div id="content-commits" class="repo-content hidden">
+                    <div id="repo-commits-loading" class="text-center py-8">
+                        <div class="animate-spin w-8 h-8 border-2 border-purple-500 border-t-transparent rounded-full mx-auto"></div>
+                        <p class="text-gray-400 mt-2">Loading commits...</p>
+                    </div>
+                    <div id="repo-commits-data" class="hidden"></div>
+                </div>
+                
+                <!-- Contributors Tab -->
+                <div id="content-contributors" class="repo-content hidden">
+                    <div id="repo-contributors-loading" class="text-center py-8">
+                        <div class="animate-spin w-8 h-8 border-2 border-purple-500 border-t-transparent rounded-full mx-auto"></div>
+                        <p class="text-gray-400 mt-2">Loading contributors...</p>
+                    </div>
+                    <div id="repo-contributors-data" class="hidden"></div>
+                </div>
+                
+                <!-- Activity Tab -->
+                <div id="content-activity" class="repo-content hidden">
+                    <div id="repo-activity-loading" class="text-center py-8">
+                        <div class="animate-spin w-8 h-8 border-2 border-purple-500 border-t-transparent rounded-full mx-auto"></div>
+                        <p class="text-gray-400 mt-2">Loading activity...</p>
+                    </div>
+                    <div id="repo-activity-data" class="hidden"></div>
+                </div>
+            </div>
+        </div>
+        {% elif github_info %}
+        <div class="bg-dark-100 rounded-xl border border-gray-800 p-6 mb-8">
+            <h2 class="text-lg font-semibold mb-4 flex items-center gap-2">
+                <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24"><path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/></svg>
+                Repository Info
+            </h2>
+            <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+                <div class="text-center p-4 bg-dark-300 rounded-lg">
+                    <div class="text-2xl font-bold text-yellow-400">⭐ {{ github_info.stars }}</div>
+                    <div class="text-sm text-gray-400">Stars</div>
+                </div>
+                <div class="text-center p-4 bg-dark-300 rounded-lg">
+                    <div class="text-2xl font-bold text-blue-400">🍴 {{ github_info.forks }}</div>
+                    <div class="text-sm text-gray-400">Forks</div>
+                </div>
+                <div class="text-center p-4 bg-dark-300 rounded-lg">
+                    <div class="text-2xl font-bold text-green-400">🔧 {{ github_info.open_issues }}</div>
+                    <div class="text-sm text-gray-400">Issues</div>
+                </div>
+                <div class="text-center p-4 bg-dark-300 rounded-lg">
+                    <div class="text-2xl font-bold text-purple-400">{{ github_info.language or '—' }}</div>
+                    <div class="text-sm text-gray-400">Language</div>
+                </div>
+            </div>
+            {% if github_info.description %}
+            <p class="mt-4 text-gray-400">{{ github_info.description }}</p>
+            {% endif %}
+        </div>
+        {% endif %}
+
+        <!-- Create Post (Owner only) -->
+        {% if is_owner %}
+        <div class="bg-dark-100 rounded-xl border border-gray-800 p-6 mb-8">
+            <h2 class="text-lg font-semibold mb-4">Post an Update</h2>
+            <form action="/api/project/{{ project.id }}/post" method="POST" enctype="multipart/form-data">
+                <textarea name="content" rows="3" placeholder="Share an update about your project..." 
+                    class="w-full bg-dark-300 border border-gray-700 rounded-lg p-4 text-white placeholder-gray-500 focus:outline-none focus:border-purple-500 resize-none mb-4"></textarea>
+                <div class="flex items-center justify-between">
+                    <label class="flex items-center gap-2 cursor-pointer text-gray-400 hover:text-white transition">
+                        <input type="file" name="media" accept="image/*,video/*" class="hidden">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
+                        </svg>
+                        <span class="text-sm">Add media</span>
+                    </label>
+                    <button type="submit" class="px-6 py-2 rounded-lg bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-500 hover:to-pink-500 transition font-semibold">
+                        Post
+                    </button>
+                </div>
+            </form>
+        </div>
+        {% endif %}
+
+        <!-- Offers Section -->
+        {% if project.offers %}
+        {% set active_offers = project.offers|selectattr('is_active')|selectattr('is_valid')|list %}
+        {% if active_offers %}
+        <div class="mb-8">
+            <div class="flex items-center justify-between mb-6">
+                <h2 class="text-2xl font-bold flex items-center gap-2">
+                    🎁 Special Offers
+                    <span class="px-2 py-1 bg-green-600/20 text-green-400 text-sm rounded-full">{{ active_offers|length }}</span>
+                </h2>
+                {% if is_owner %}
+                <a href="/create-offer?project={{ project.id }}" class="text-sm text-purple-400 hover:text-purple-300 transition">
+                    + Add Offer
+                </a>
+                {% endif %}
+            </div>
+            
+            <div class="grid md:grid-cols-2 gap-4">
+                {% for offer in active_offers %}
+                <div class="bg-gradient-to-br from-dark-100 to-dark-200 rounded-xl border border-gray-800 overflow-hidden hover:border-purple-500/50 transition-all group">
+                    <!-- Offer Header with Type Badge -->
+                    <div class="px-5 py-3 border-b border-gray-800 flex items-center justify-between">
+                        <span class="px-3 py-1 text-xs font-medium rounded-full
+                            {% if offer.offer_type.value == 'discount' %}bg-green-600/20 text-green-400
+                            {% elif offer.offer_type.value == 'free_trial' %}bg-blue-600/20 text-blue-400
+                            {% elif offer.offer_type.value == 'early_bird' %}bg-orange-600/20 text-orange-400
+                            {% elif offer.offer_type.value == 'lifetime' %}bg-purple-600/20 text-purple-400
+                            {% elif offer.offer_type.value == 'bundle' %}bg-pink-600/20 text-pink-400
+                            {% else %}bg-gray-600/20 text-gray-400{% endif %}">
+                            {% if offer.offer_type.value == 'discount' %}💰 Discount
+                            {% elif offer.offer_type.value == 'free_trial' %}🆓 Free Trial
+                            {% elif offer.offer_type.value == 'early_bird' %}🐦 Early Bird
+                            {% elif offer.offer_type.value == 'lifetime' %}♾️ Lifetime Deal
+                            {% elif offer.offer_type.value == 'bundle' %}📦 Bundle
+                            {% else %}🎁 Special{% endif %}
+                        </span>
+                        {% if offer.valid_until %}
+                        <span class="text-xs text-gray-500">
+                            Ends {{ offer.valid_until.strftime('%b %d') }}
+                        </span>
+                        {% endif %}
+                    </div>
+                    
+                    <div class="p-5">
+                        <h3 class="font-bold text-lg mb-2 group-hover:text-purple-400 transition">{{ offer.title }}</h3>
+                        <p class="text-gray-400 text-sm mb-4 line-clamp-2">{{ offer.description }}</p>
+                        
+                        <!-- Pricing -->
+                        <div class="flex items-baseline gap-2 mb-4">
+                            {% if offer.offer_price is not none %}
+                            <span class="text-2xl font-bold text-green-400">${{ "%.2f"|format(offer.offer_price) }}</span>
+                            {% if offer.original_price %}
+                            <span class="text-sm text-gray-500 line-through">${{ "%.2f"|format(offer.original_price) }}</span>
+                            {% endif %}
+                            {% elif offer.discount_percent %}
+                            <span class="text-2xl font-bold text-green-400">{{ offer.discount_percent }}% OFF</span>
+                            {% elif offer.duration %}
+                            <span class="text-2xl font-bold text-blue-400">{{ offer.duration }}</span>
+                            {% endif %}
+                        </div>
+                        
+                        <!-- Coupon Code -->
+                        {% if offer.coupon_code %}
+                        <div class="flex items-center gap-2 mb-4">
+                            <span class="text-xs text-gray-500">Code:</span>
+                            <code class="px-3 py-1 bg-dark-300 rounded text-sm font-mono text-purple-400 select-all">{{ offer.coupon_code }}</code>
+                        </div>
+                        {% endif %}
+                        
+                        <!-- Spots Left -->
+                        {% if offer.spots_left is not none and offer.spots_left <= 10 %}
+                        <p class="text-xs text-orange-400 mb-3">⚡ Only {{ offer.spots_left }} spots left!</p>
+                        {% endif %}
+                        
+                        <!-- CTA Button -->
+                        {% if offer.redemption_url %}
+                        <a href="{{ offer.redemption_url }}" target="_blank" class="block w-full text-center py-2 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-500 hover:to-pink-500 rounded-lg transition font-medium text-sm">
+                            Claim Offer →
+                        </a>
+                        {% endif %}
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+        {% endif %}
+        {% endif %}
+
+        <!-- Posts Feed -->
+        <div>
+            <h2 class="text-2xl font-bold mb-6">Updates</h2>
+            
+            {% if posts %}
+            <div class="space-y-6">
+                {% for post in posts %}
+                <div class="bg-dark-100 rounded-xl border border-gray-800 p-6">
+                    <div class="flex items-center gap-3 mb-4">
+                        <img src="{{ post.author.avatar or '/static/default-avatar.png' }}" class="w-10 h-10 rounded-full" alt="">
+                        <div>
+                            <a href="/user/{{ post.author.username }}" class="font-semibold hover:text-purple-400 transition">{{ post.author.username }}</a>
+                            <p class="text-sm text-gray-500">{{ post.created_at.strftime('%B %d, %Y at %H:%M') }}</p>
+                        </div>
+                    </div>
+                    
+                    <p class="text-gray-300 mb-4 whitespace-pre-wrap">{{ post.content }}</p>
+                    
+                    {% if post.media_url %}
+                        {% if post.media_type == 'image' %}
+                        <img src="{{ post.media_url }}" class="rounded-lg max-h-96 w-auto mb-4" alt="Post media">
+                        {% elif post.media_type == 'video' %}
+                        <video src="{{ post.media_url }}" controls class="rounded-lg max-h-96 w-auto mb-4"></video>
+                        {% endif %}
+                    {% endif %}
+                    
+                    <!-- Comments -->
+                    <div class="border-t border-gray-800 pt-4 mt-4">
+                        <h4 class="text-sm font-semibold text-gray-400 mb-3">Comments ({{ post.comments|length }})</h4>
+                        
+                        {% for comment in post.comments %}
+                        <div class="flex gap-3 mb-3 pl-4 border-l-2 border-gray-700">
+                            <img src="{{ comment.author.avatar or '/static/default-avatar.png' }}" class="w-8 h-8 rounded-full" alt="">
+                            <div>
+                                <div class="flex items-center gap-2">
+                                    <a href="/user/{{ comment.author.username }}" class="font-semibold text-sm hover:text-purple-400 transition">{{ comment.author.username }}</a>
+                                    <span class="text-xs text-gray-500">{{ comment.created_at.strftime('%b %d, %Y') }}</span>
+                                </div>
+                                <p class="text-gray-300 text-sm">{{ comment.content }}</p>
+                            </div>
+                        </div>
+                        {% endfor %}
+                        
+                        {% if user %}
+                        <form action="/api/post/{{ post.id }}/comment" method="POST" class="mt-4 flex gap-2">
+                            <input type="text" name="content" placeholder="Write a comment..." 
+                                class="flex-1 bg-dark-300 border border-gray-700 rounded-lg px-4 py-2 text-sm text-white placeholder-gray-500 focus:outline-none focus:border-purple-500">
+                            <button type="submit" class="px-4 py-2 rounded-lg bg-purple-600 hover:bg-purple-500 transition text-sm">
+                                Comment
+                            </button>
+                        </form>
+                        {% else %}
+                        <p class="text-sm text-gray-500 mt-4">
+                            <a href="/auth/github" class="text-purple-400 hover:text-purple-300">Sign in</a> to comment
+                        </p>
+                        {% endif %}
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+            {% else %}
+            <div class="bg-dark-100 rounded-xl border border-gray-800 p-12 text-center">
+                <p class="text-gray-400">No updates yet</p>
+            </div>
+            {% endif %}
+        </div>
+    </main>
+</div>
+
+<!-- Footer -->
+<footer class="border-t border-gray-800 bg-gray-950 py-4 px-6 mt-8">
+    <div class="max-w-7xl mx-auto flex justify-between items-center text-xs text-gray-500">
+        <span>© 2026 Xdest</span>
+        <div class="flex gap-4">
+            <a href="mailto:aiandfriends@gmail.com" class="hover:text-gray-300 transition">Contact</a>
+            <a href="https://x.com/karlbeis" target="_blank" class="hover:text-gray-300 transition">𝕏 @karlbeis</a>
+            <a href="/privacy" class="hover:text-gray-300 transition">Privacy</a>
+            <a href="/terms" class="hover:text-gray-300 transition">Terms</a>
+            <a href="https://github.com/koal0308/Xdest" target="_blank" class="hover:text-gray-300 transition">GitHub</a>
+        </div>
+    </div>
+</footer>
+
+<!-- GitHub Repo Connection Modal -->
+{% if is_owner and not project.github_url %}
+<div id="repoModal" class="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 hidden items-center justify-center">
+    <div class="bg-dark-100 rounded-2xl border border-gray-800 w-full max-w-2xl mx-4 max-h-[80vh] overflow-hidden">
+        <div class="p-6 border-b border-gray-800">
+            <div class="flex items-center justify-between">
+                <h2 class="text-xl font-bold flex items-center gap-2">
+                    <svg class="w-6 h-6" fill="currentColor" viewBox="0 0 24 24"><path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/></svg>
+                    Connect GitHub Repository
+                </h2>
+                <button onclick="closeRepoModal()" class="text-gray-400 hover:text-white transition">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                    </svg>
+                </button>
+            </div>
+        </div>
+        
+        <div class="p-6">
+            <!-- Search -->
+            <div class="mb-4">
+                <input type="text" id="repoSearch" placeholder="Search your repositories..." 
+                    class="w-full bg-dark-300 border border-gray-700 rounded-lg px-4 py-3 text-white placeholder-gray-500 focus:outline-none focus:border-purple-500"
+                    oninput="filterRepos()">
+            </div>
+            
+            <!-- Loading State -->
+            <div id="repoLoading" class="text-center py-8">
+                <div class="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-purple-500"></div>
+                <p class="text-gray-400 mt-2">Loading your repositories...</p>
+            </div>
+            
+            <!-- Error State -->
+            <div id="repoError" class="hidden text-center py-8">
+                <svg class="w-12 h-12 text-red-400 mx-auto mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path>
+                </svg>
+                <p class="text-red-400" id="repoErrorMsg">Failed to load repositories</p>
+                <p class="text-gray-500 text-sm mt-1">Make sure you're logged in with GitHub</p>
+            </div>
+            
+            <!-- Repo List -->
+            <div id="repoList" class="hidden space-y-2 max-h-96 overflow-y-auto">
+            </div>
+        </div>
+        
+        <!-- Manual URL Input -->
+        <div class="p-6 border-t border-gray-800 bg-dark-200/50">
+            <p class="text-sm text-gray-400 mb-3">Or enter a repository URL manually:</p>
+            <form action="/api/project/{{ project.id }}/connect-repo" method="POST" class="flex gap-2">
+                <input type="url" name="repo_url" placeholder="https://github.com/username/repo" 
+                    class="flex-1 bg-dark-300 border border-gray-700 rounded-lg px-4 py-2 text-white placeholder-gray-500 focus:outline-none focus:border-purple-500">
+                <button type="submit" class="px-4 py-2 rounded-lg bg-purple-600 hover:bg-purple-500 transition">
+                    Connect
+                </button>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+let allRepos = [];
+
+function openRepoModal() {
+    document.getElementById('repoModal').classList.remove('hidden');
+    document.getElementById('repoModal').classList.add('flex');
+    loadRepos();
+}
+
+function closeRepoModal() {
+    document.getElementById('repoModal').classList.add('hidden');
+    document.getElementById('repoModal').classList.remove('flex');
+}
+
+async function loadRepos() {
+    const loading = document.getElementById('repoLoading');
+    const error = document.getElementById('repoError');
+    const list = document.getElementById('repoList');
+    
+    loading.classList.remove('hidden');
+    error.classList.add('hidden');
+    list.classList.add('hidden');
+    
+    try {
+        const resp = await fetch('/api/github/repos');
+        if (!resp.ok) {
+            throw new Error(await resp.text());
+        }
+        allRepos = await resp.json();
+        renderRepos(allRepos);
+        loading.classList.add('hidden');
+        list.classList.remove('hidden');
+    } catch (e) {
+        loading.classList.add('hidden');
+        error.classList.remove('hidden');
+        document.getElementById('repoErrorMsg').textContent = e.message || 'Failed to load repositories';
+    }
+}
+
+function renderRepos(repos) {
+    const list = document.getElementById('repoList');
+    list.innerHTML = repos.map(repo => `
+        <form action="/api/project/{{ project.id }}/connect-repo" method="POST">
+            <input type="hidden" name="repo_url" value="${repo.html_url}">
+            <button type="submit" class="w-full text-left p-4 bg-dark-300 hover:bg-dark-200 rounded-lg border border-gray-700 hover:border-purple-500 transition">
+                <div class="flex items-start justify-between">
+                    <div class="flex-1">
+                        <div class="flex items-center gap-2">
+                            <span class="font-semibold text-white">${repo.name}</span>
+                            ${repo.private ? '<span class="px-2 py-0.5 bg-yellow-600/20 text-yellow-400 text-xs rounded">Private</span>' : ''}
+                        </div>
+                        <p class="text-sm text-gray-400 mt-1">${repo.description || 'No description'}</p>
+                        <div class="flex items-center gap-4 mt-2 text-xs text-gray-500">
+                            ${repo.language ? `<span class="flex items-center gap-1">
+                                <span class="w-2 h-2 rounded-full bg-purple-400"></span>
+                                ${repo.language}
+                            </span>` : ''}
+                            <span>⭐ ${repo.stars}</span>
+                            <span>🍴 ${repo.forks}</span>
+                        </div>
+                    </div>
+                    <svg class="w-5 h-5 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"></path>
+                    </svg>
+                </div>
+            </button>
+        </form>
+    `).join('');
+}
+
+function filterRepos() {
+    const search = document.getElementById('repoSearch').value.toLowerCase();
+    const filtered = allRepos.filter(repo => 
+        repo.name.toLowerCase().includes(search) || 
+        (repo.description && repo.description.toLowerCase().includes(search))
+    );
+    renderRepos(filtered);
+}
+
+// Close modal on escape key
+document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') closeRepoModal();
+});
+
+// Close modal on background click
+document.getElementById('repoModal')?.addEventListener('click', (e) => {
+    if (e.target.id === 'repoModal') closeRepoModal();
+});
+</script>
+{% endif %}
+
+<!-- GitHub Repo Info Scripts -->
+{% if project.github_url %}
+<script>
+const REPO_URL = "{{ project.github_url }}";
+let repoDataCache = {
+    overview: null,
+    commits: null,
+    contributors: null,
+    activity: null
+};
+let currentCommitsPage = 1;
+
+// Tab switching
+function showRepoTab(tabName) {
+    // Update tab buttons
+    document.querySelectorAll('.repo-tab').forEach(tab => {
+        tab.classList.remove('border-purple-500', 'text-white');
+        tab.classList.add('border-transparent', 'text-gray-400');
+    });
+    document.getElementById(`tab-${tabName}`).classList.add('border-purple-500', 'text-white');
+    document.getElementById(`tab-${tabName}`).classList.remove('border-transparent', 'text-gray-400');
+    
+    // Show corresponding content
+    document.querySelectorAll('.repo-content').forEach(content => {
+        content.classList.add('hidden');
+    });
+    document.getElementById(`content-${tabName}`).classList.remove('hidden');
+    
+    // Load data if needed
+    loadRepoData(tabName);
+}
+
+async function loadRepoData(type) {
+    if (repoDataCache[type]) return;
+    
+    const loadingEl = document.getElementById(`repo-${type}-loading`);
+    const dataEl = document.getElementById(`repo-${type}-data`);
+    
+    try {
+        let endpoint;
+        switch(type) {
+            case 'overview':
+                endpoint = `/api/github/repo-info?repo_url=${encodeURIComponent(REPO_URL)}`;
+                break;
+            case 'commits':
+                endpoint = `/api/github/repo-commits?repo_url=${encodeURIComponent(REPO_URL)}&page=${currentCommitsPage}`;
+                break;
+            case 'contributors':
+                endpoint = `/api/github/repo-contributors?repo_url=${encodeURIComponent(REPO_URL)}`;
+                break;
+            case 'activity':
+                endpoint = `/api/github/repo-activity?repo_url=${encodeURIComponent(REPO_URL)}`;
+                break;
+        }
+        
+        const resp = await fetch(endpoint);
+        if (!resp.ok) throw new Error('Failed to load data');
+        
+        const data = await resp.json();
+        repoDataCache[type] = data;
+        
+        renderRepoData(type, data);
+        loadingEl.classList.add('hidden');
+        dataEl.classList.remove('hidden');
+    } catch (e) {
+        loadingEl.innerHTML = `
+            <div class="text-center py-8">
+                <svg class="w-12 h-12 text-red-400 mx-auto mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                </svg>
+                <p class="text-red-400">Failed to load repository data</p>
+                <button onclick="repoDataCache['${type}']=null; loadRepoData('${type}')" class="mt-2 text-purple-400 hover:text-purple-300">Retry</button>
+            </div>
+        `;
+    }
+}
+
+function formatDate(dateStr) {
+    const date = new Date(dateStr);
+    const now = new Date();
+    const diff = now - date;
+    const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+    
+    if (days === 0) return 'today';
+    if (days === 1) return 'yesterday';
+    if (days < 7) return `${days} days ago`;
+    if (days < 30) return `${Math.floor(days/7)} weeks ago`;
+    if (days < 365) return `${Math.floor(days/30)} months ago`;
+    return date.toLocaleDateString();
+}
+
+function formatBytes(bytes) {
+    if (bytes < 1024) return bytes + ' KB';
+    if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' MB';
+    return (bytes / (1024 * 1024)).toFixed(2) + ' GB';
+}
+
+function renderRepoData(type, data) {
+    const dataEl = document.getElementById(`repo-${type}-data`);
+    
+    switch(type) {
+        case 'overview':
+            renderOverview(dataEl, data);
+            break;
+        case 'commits':
+            renderCommits(dataEl, data);
+            break;
+        case 'contributors':
+            renderContributors(dataEl, data);
+            break;
+        case 'activity':
+            renderActivity(dataEl, data);
+            break;
+    }
+}
+
+function renderOverview(el, data) {
+    const langTotal = Object.values(data.languages || {}).reduce((a, b) => a + b, 0);
+    const langBars = Object.entries(data.languages || {}).map(([lang, bytes]) => {
+        const pct = ((bytes / langTotal) * 100).toFixed(1);
+        return `<div class="flex items-center gap-2">
+            <span class="w-24 text-sm">${lang}</span>
+            <div class="flex-1 bg-dark-400 rounded-full h-2">
+                <div class="bg-gradient-to-r from-purple-500 to-pink-500 h-2 rounded-full" style="width: ${pct}%"></div>
+            </div>
+            <span class="text-sm text-gray-400 w-16 text-right">${pct}%</span>
+        </div>`;
+    }).join('');
+    
+    el.innerHTML = `
+        <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+            <div class="text-center p-4 bg-dark-300 rounded-lg">
+                <div class="text-2xl font-bold text-yellow-400">⭐ ${data.stars || 0}</div>
+                <div class="text-sm text-gray-400">Stars</div>
+            </div>
+            <div class="text-center p-4 bg-dark-300 rounded-lg">
+                <div class="text-2xl font-bold text-blue-400">🍴 ${data.forks || 0}</div>
+                <div class="text-sm text-gray-400">Forks</div>
+            </div>
+            <div class="text-center p-4 bg-dark-300 rounded-lg">
+                <div class="text-2xl font-bold text-green-400">👀 ${data.watchers || 0}</div>
+                <div class="text-sm text-gray-400">Watchers</div>
+            </div>
+            <div class="text-center p-4 bg-dark-300 rounded-lg">
+                <div class="text-2xl font-bold text-red-400">🐛 ${data.open_issues || 0}</div>
+                <div class="text-sm text-gray-400">Open Issues</div>
+            </div>
+        </div>
+        
+        <div class="grid md:grid-cols-2 gap-6">
+            <div class="bg-dark-300 rounded-lg p-4">
+                <h3 class="font-semibold mb-3 flex items-center gap-2">
+                    <span>📦</span> Repository Details
+                </h3>
+                <div class="space-y-2 text-sm">
+                    <div class="flex justify-between">
+                        <span class="text-gray-400">Lines of Code</span>
+                        <span class="font-mono">${data.lines_display || '0'}</span>
+                    </div>
+                    <div class="flex justify-between">
+                        <span class="text-gray-400">Default Branch</span>
+                        <span class="px-2 py-0.5 bg-purple-600/20 text-purple-400 rounded">${data.default_branch || 'main'}</span>
+                    </div>
+                    <div class="flex justify-between">
+                        <span class="text-gray-400">License</span>
+                        <span>${data.license || 'None'}</span>
+                    </div>
+                    <div class="flex justify-between">
+                        <span class="text-gray-400">Visibility</span>
+                        <span>${data.visibility || 'public'}</span>
+                    </div>
+                    <div class="flex justify-between">
+                        <span class="text-gray-400">Created</span>
+                        <span>${formatDate(data.created_at)}</span>
+                    </div>
+                    <div class="flex justify-between">
+                        <span class="text-gray-400">Last Push</span>
+                        <span>${formatDate(data.pushed_at)}</span>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="bg-dark-300 rounded-lg p-4">
+                <h3 class="font-semibold mb-3 flex items-center gap-2">
+                    <span>💻</span> Languages
+                </h3>
+                <div class="space-y-3">
+                    ${langBars || '<p class="text-gray-400 text-sm">No language data available</p>'}
+                </div>
+            </div>
+        </div>
+        
+        ${data.description ? `<p class="mt-4 text-gray-400 p-4 bg-dark-300 rounded-lg">${data.description}</p>` : ''}
+        
+        ${data.topics && data.topics.length > 0 ? `
+        <div class="mt-4">
+            <h3 class="font-semibold mb-2">Topics</h3>
+            <div class="flex flex-wrap gap-2">
+                ${data.topics.map(t => `<span class="px-3 py-1 bg-blue-600/20 text-blue-400 text-sm rounded-full">${t}</span>`).join('')}
+            </div>
+        </div>
+        ` : ''}
+    `;
+}
+
+function renderCommits(el, data) {
+    const commits = data.commits || [];
+    
+    el.innerHTML = `
+        <div class="space-y-4">
+            ${commits.map(c => `
+                <a href="${c.url}" target="_blank" class="block p-4 bg-dark-300 rounded-lg hover:bg-dark-200 transition border border-transparent hover:border-gray-700">
+                    <div class="flex items-start gap-3">
+                        ${c.author_avatar ? 
+                            `<img src="${c.author_avatar}" class="w-10 h-10 rounded-full" alt="">` : 
+                            `<div class="w-10 h-10 rounded-full bg-gradient-to-br from-purple-600 to-pink-600 flex items-center justify-center text-sm font-bold">${(c.author_name || '?')[0].toUpperCase()}</div>`
+                        }
+                        <div class="flex-1 min-w-0">
+                            <p class="font-medium truncate">${c.message_short || c.message.split('\\n')[0]}</p>
+                            <div class="flex items-center gap-3 mt-1 text-sm text-gray-400">
+                                <span class="font-mono text-purple-400">${c.sha_short}</span>
+                                <span>${c.author_name}</span>
+                                <span>${formatDate(c.date)}</span>
+                            </div>
+                        </div>
+                    </div>
+                </a>
+            `).join('')}
+        </div>
+        
+        ${data.has_more ? `
+        <div class="mt-4 text-center">
+            <button onclick="loadMoreCommits()" class="px-6 py-2 bg-dark-300 hover:bg-dark-200 rounded-lg transition">
+                Load More Commits
+            </button>
+        </div>
+        ` : ''}
+        
+        ${commits.length === 0 ? '<p class="text-center text-gray-400 py-8">No commits found</p>' : ''}
+    `;
+}
+
+async function loadMoreCommits() {
+    currentCommitsPage++;
+    try {
+        const resp = await fetch(`/api/github/repo-commits?repo_url=${encodeURIComponent(REPO_URL)}&page=${currentCommitsPage}`);
+        const data = await resp.json();
+        
+        if (repoDataCache.commits) {
+            repoDataCache.commits.commits.push(...data.commits);
+            repoDataCache.commits.has_more = data.has_more;
+        }
+        renderCommits(document.getElementById('repo-commits-data'), repoDataCache.commits);
+    } catch (e) {
+        console.error('Failed to load more commits', e);
+    }
+}
+
+function renderContributors(el, data) {
+    const contributors = data.contributors || [];
+    
+    el.innerHTML = `
+        <div class="mb-4 text-gray-400">
+            <span class="text-2xl font-bold text-white">${data.total || 0}</span> contributors
+        </div>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            ${contributors.map((c, i) => `
+                <a href="${c.html_url}" target="_blank" class="flex items-center gap-3 p-4 bg-dark-300 rounded-lg hover:bg-dark-200 transition">
+                    <div class="relative">
+                        <img src="${c.avatar_url}" class="w-12 h-12 rounded-full" alt="${c.login}">
+                        ${i < 3 ? `<span class="absolute -top-1 -right-1 w-6 h-6 bg-gradient-to-r ${i === 0 ? 'from-yellow-400 to-yellow-600' : i === 1 ? 'from-gray-300 to-gray-400' : 'from-amber-600 to-amber-800'} rounded-full flex items-center justify-center text-xs font-bold text-black">${i + 1}</span>` : ''}
+                    </div>
+                    <div class="flex-1">
+                        <div class="font-semibold">${c.login}</div>
+                        <div class="text-sm text-gray-400">${c.contributions} commits</div>
+                    </div>
+                    <div class="text-right">
+                        <div class="w-24 bg-dark-400 rounded-full h-2">
+                            <div class="bg-gradient-to-r from-green-500 to-green-400 h-2 rounded-full" 
+                                style="width: ${Math.min(100, (c.contributions / (contributors[0]?.contributions || 1)) * 100)}%"></div>
+                        </div>
+                    </div>
+                </a>
+            `).join('')}
+        </div>
+        
+        ${contributors.length === 0 ? '<p class="text-center text-gray-400 py-8">No contributors found</p>' : ''}
+    `;
+}
+
+function renderActivity(el, data) {
+    const events = data.events || [];
+    const issues = data.issues || [];
+    const prs = data.pull_requests || [];
+    const comments = data.recent_comments || [];
+    
+    // Count open/closed
+    const openIssues = issues.filter(i => i.state === 'open').length;
+    const closedIssues = issues.filter(i => i.state === 'closed').length;
+    const openPRs = prs.filter(p => p.state === 'open').length;
+    const closedPRs = prs.filter(p => p.state === 'closed').length;
+    const mergedPRs = prs.filter(p => p.merged).length;
+    
+    el.innerHTML = `
+        <div class="grid md:grid-cols-2 gap-6">
+            <!-- Recent Activity -->
+            <div>
+                <h3 class="font-semibold mb-3 flex items-center gap-2">
+                    <span>⚡</span> Recent Activity
+                </h3>
+                <div class="space-y-2 max-h-80 overflow-y-auto">
+                    ${events.slice(0, 15).map(e => `
+                        <div class="flex items-center gap-3 p-3 bg-dark-300 rounded-lg">
+                            ${e.actor_avatar ? `<img src="${e.actor_avatar}" class="w-8 h-8 rounded-full" alt="">` : 
+                            `<div class="w-8 h-8 rounded-full bg-gray-700 flex items-center justify-center text-xs">${(e.actor || '?')[0]}</div>`}
+                            <div class="flex-1 min-w-0">
+                                <p class="text-sm truncate">
+                                    <span class="font-medium">${e.actor}</span>
+                                    <span class="text-gray-400">${e.description}</span>
+                                </p>
+                                <p class="text-xs text-gray-500">${formatDate(e.created_at)}</p>
+                            </div>
+                        </div>
+                    `).join('')}
+                    ${events.length === 0 ? '<p class="text-gray-400 text-sm p-3">No recent activity</p>' : ''}
+                </div>
+            </div>
+            
+            <!-- Pull Requests -->
+            <div>
+                <h3 class="font-semibold mb-3 flex items-center gap-2">
+                    <span>�</span> Pull Requests
+                    <span class="text-xs text-gray-500 ml-auto">${openPRs} open · ${mergedPRs} merged · ${closedPRs - mergedPRs} closed</span>
+                </h3>
+                <div class="space-y-2 max-h-60 overflow-y-auto">
+                    ${prs.length > 0 ? prs.map(pr => `
+                        <a href="${pr.url}" target="_blank" class="block p-3 bg-dark-300 rounded-lg hover:bg-dark-200 transition">
+                            <div class="flex items-center gap-2">
+                                <span class="${pr.merged ? 'text-purple-400' : pr.state === 'open' ? 'text-green-400' : 'text-red-400'}">
+                                    ${pr.merged ? '🔀' : pr.state === 'open' ? '🟢' : '🔴'}
+                                </span>
+                                <span class="text-sm truncate flex-1">${pr.title}</span>
+                                <span class="text-xs px-2 py-0.5 rounded ${pr.merged ? 'bg-purple-600/20 text-purple-400' : pr.state === 'open' ? 'bg-green-600/20 text-green-400' : 'bg-red-600/20 text-red-400'}">${pr.merged ? 'merged' : pr.state}</span>
+                            </div>
+                            <div class="flex items-center gap-2 mt-1 text-xs text-gray-500">
+                                ${pr.user_avatar ? `<img src="${pr.user_avatar}" class="w-4 h-4 rounded-full" alt="">` : ''}
+                                <span>${pr.user}</span>
+                                <span>#${pr.number}</span>
+                                <span class="ml-auto">${formatDate(pr.updated_at)}</span>
+                            </div>
+                        </a>
+                    `).join('') : '<p class="text-gray-400 text-sm p-3">No pull requests</p>'}
+                </div>
+            </div>
+        </div>
+        
+        <!-- Issues -->
+        <div class="mt-6">
+            <h3 class="font-semibold mb-3 flex items-center gap-2">
+                <span>🐛</span> Issues
+                <span class="text-xs text-gray-500 ml-auto">${openIssues} open · ${closedIssues} closed</span>
+            </h3>
+            <div class="grid md:grid-cols-2 gap-2 max-h-80 overflow-y-auto">
+                ${issues.length > 0 ? issues.map(issue => `
+                    <a href="${issue.url}" target="_blank" class="block p-3 bg-dark-300 rounded-lg hover:bg-dark-200 transition">
+                        <div class="flex items-center gap-2">
+                            <span class="${issue.state === 'open' ? 'text-green-400' : 'text-purple-400'}">
+                                ${issue.state === 'open' ? '🟢' : '✅'}
+                            </span>
+                            <span class="text-sm truncate flex-1">${issue.title}</span>
+                            <span class="text-xs px-2 py-0.5 rounded ${issue.state === 'open' ? 'bg-green-600/20 text-green-400' : 'bg-purple-600/20 text-purple-400'}">${issue.state}</span>
+                        </div>
+                        <div class="flex items-center gap-2 mt-1 text-xs text-gray-500">
+                            ${issue.user_avatar ? `<img src="${issue.user_avatar}" class="w-4 h-4 rounded-full" alt="">` : ''}
+                            <span>${issue.user}</span>
+                            <span>#${issue.number}</span>
+                            <span>💬 ${issue.comments}</span>
+                        </div>
+                    </a>
+                `).join('') : '<p class="text-gray-400 text-sm p-3 col-span-2">No issues</p>'}
+            </div>
+        </div>
+        
+        <!-- Recent Comments -->
+        ${comments.length > 0 ? `
+        <div class="mt-6">
+            <h3 class="font-semibold mb-3 flex items-center gap-2">
+                <span>💬</span> Recent Comments
+            </h3>
+            <div class="space-y-3">
+                ${comments.slice(0, 5).map(c => `
+                    <a href="${c.html_url}" target="_blank" class="block p-4 bg-dark-300 rounded-lg hover:bg-dark-200 transition">
+                        <div class="flex items-start gap-3">
+                            ${c.user_avatar ? `<img src="${c.user_avatar}" class="w-8 h-8 rounded-full" alt="">` : ''}
+                            <div class="flex-1">
+                                <div class="flex items-center gap-2 mb-1">
+                                    <span class="font-medium text-sm">${c.user}</span>
+                                    <span class="text-xs text-gray-500">${formatDate(c.created_at)}</span>
+                                </div>
+                                <p class="text-sm text-gray-300">${c.body}</p>
+                            </div>
+                        </div>
+                    </a>
+                `).join('')}
+            </div>
+        </div>
+        ` : ''}
+    `;
+}
+
+// Load overview on page load
+document.addEventListener('DOMContentLoaded', () => {
+    loadRepoData('overview');
+});
+</script>
+{% endif %}
+
+<!-- Star Rating Script -->
+<script>
+document.addEventListener('DOMContentLoaded', async function() {
+    const projectId = {{ project.id }};
+    
+    // Load current rating
+    async function loadProjectRating() {
+        try {
+            const resp = await fetch(`/api/project/${projectId}/rating`);
+            const data = await resp.json();
+            
+            document.getElementById('avg-rating').textContent = data.average_rating > 0 ? data.average_rating : '-';
+            document.getElementById('rating-count').textContent = data.rating_count;
+            
+            // Highlight user's rating
+            if (data.user_rating) {
+                highlightStars(data.user_rating);
+            }
+        } catch (e) {
+            console.error('Error loading rating:', e);
+        }
+    }
+    
+    function highlightStars(count) {
+        const starBtns = document.querySelectorAll('.star-rating-input .star-btn');
+        starBtns.forEach((btn, idx) => {
+            if (idx < count) {
+                btn.classList.remove('text-gray-600');
+                btn.classList.add('text-yellow-400');
+            } else {
+                btn.classList.remove('text-yellow-400');
+                btn.classList.add('text-gray-600');
+            }
+        });
+    }
+    
+    // Handle star clicks
+    const starContainer = document.querySelector('.star-rating-input');
+    if (starContainer) {
+        const starBtns = starContainer.querySelectorAll('.star-btn');
+        
+        // Hover effect
+        starBtns.forEach((btn, idx) => {
+            btn.addEventListener('mouseenter', () => {
+                starBtns.forEach((b, i) => {
+                    if (i <= idx) {
+                        b.classList.remove('text-gray-600');
+                        b.classList.add('text-yellow-400');
+                    } else {
+                        b.classList.remove('text-yellow-400');
+                        b.classList.add('text-gray-600');
+                    }
+                });
+            });
+        });
+        
+        starContainer.addEventListener('mouseleave', async () => {
+            // Reset to current rating on mouse leave
+            const resp = await fetch(`/api/project/${projectId}/rating`);
+            const data = await resp.json();
+            if (data.user_rating) {
+                highlightStars(data.user_rating);
+            } else {
+                starBtns.forEach(btn => {
+                    btn.classList.remove('text-yellow-400');
+                    btn.classList.add('text-gray-600');
+                });
+            }
+        });
+        
+        // Click to rate
+        starBtns.forEach(btn => {
+            btn.addEventListener('click', async (e) => {
+                e.preventDefault();
+                const stars = parseInt(btn.dataset.stars);
+                
+                try {
+                    const resp = await fetch(`/api/project/${projectId}/rate`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ stars })
+                    });
+                    const data = await resp.json();
+                    
+                    if (data.success) {
+                        document.getElementById('avg-rating').textContent = data.average_rating;
+                        document.getElementById('rating-count').textContent = data.rating_count;
+                        highlightStars(stars);
+                    } else if (data.detail) {
+                        alert(data.detail);
+                    }
+                } catch (e) {
+                    console.error('Error rating:', e);
+                }
+            });
+        });
+    }
+    
+    loadProjectRating();
+});
+</script>
+
+<!-- Analytics Dashboard Script -->
+<script>
+const analyticsProjectId = {{ project.id }};
+
+async function loadAnalytics() {
+    const loading = document.getElementById('analytics-loading');
+    const error = document.getElementById('analytics-error');
+    const content = document.getElementById('analytics-content');
+    
+    if (!loading) return; // Dashboard nicht vorhanden
+    
+    loading.classList.remove('hidden');
+    error.classList.add('hidden');
+    content.classList.add('hidden');
+    
+    try {
+        const resp = await fetch(`/api/project/${analyticsProjectId}/analytics`);
+        const data = await resp.json();
+        
+        if (data.error) {
+            throw new Error(data.message || 'Analytics nicht konfiguriert');
+        }
+        
+        // Realtime
+        document.getElementById('stat-realtime').textContent = data.realtime_visitors || '0';
+        
+        // Aggregate Stats
+        const agg = data.aggregate || {};
+        document.getElementById('stat-visitors').textContent = formatNumber(agg.visitors?.value) || '-';
+        document.getElementById('stat-pageviews').textContent = formatNumber(agg.pageviews?.value) || '-';
+        document.getElementById('stat-bounce').textContent = agg.bounce_rate?.value ? `${Math.round(agg.bounce_rate.value)}%` : '-';
+        document.getElementById('stat-duration').textContent = agg.visit_duration?.value ? formatDuration(agg.visit_duration.value) : '-';
+        
+        // Chart
+        renderVisitorsChart(data.timeseries || []);
+        
+        // Top Pages
+        renderTopPages(data.top_pages || []);
+        
+        // Top Sources
+        renderTopSources(data.top_sources || []);
+        
+        // Domain
+        document.getElementById('analytics-domain').textContent = data.domain || '-';
+        
+        loading.classList.add('hidden');
+        content.classList.remove('hidden');
+        
+    } catch (e) {
+        console.error('Analytics error:', e);
+        loading.classList.add('hidden');
+        document.getElementById('analytics-error-msg').textContent = e.message;
+        error.classList.remove('hidden');
+    }
+}
+
+function formatNumber(num) {
+    if (!num && num !== 0) return '-';
+    if (num >= 1000000) return (num / 1000000).toFixed(1) + 'M';
+    if (num >= 1000) return (num / 1000).toFixed(1) + 'K';
+    return num.toString();
+}
+
+function formatDuration(seconds) {
+    if (!seconds) return '-';
+    const mins = Math.floor(seconds / 60);
+    const secs = Math.floor(seconds % 60);
+    return mins > 0 ? `${mins}m ${secs}s` : `${secs}s`;
+}
+
+function renderVisitorsChart(timeseries) {
+    const chart = document.getElementById('visitors-chart');
+    if (!chart || timeseries.length === 0) {
+        if (chart) chart.innerHTML = '<p class="text-gray-500 text-sm">No data available</p>';
+        return;
+    }
+    
+    const maxVisitors = Math.max(...timeseries.map(d => d.visitors || 0)) || 1;
+    
+    chart.innerHTML = timeseries.map(day => {
+        const height = ((day.visitors || 0) / maxVisitors) * 100;
+        const date = new Date(day.date);
+        const dayName = date.toLocaleDateString('en-US', { weekday: 'short' });
+        return `
+            <div class="flex-1 flex flex-col items-center">
+                <div class="w-full bg-green-500/20 rounded-t relative" style="height: ${Math.max(height, 5)}%">
+                    <div class="absolute inset-0 bg-green-500 rounded-t opacity-60"></div>
+                </div>
+                <span class="text-xs text-gray-500 mt-1">${dayName}</span>
+                <span class="text-xs text-green-400">${day.visitors || 0}</span>
+            </div>
+        `;
+    }).join('');
+}
+
+function renderTopPages(pages) {
+    const list = document.getElementById('top-pages');
+    if (!list) return;
+    
+    if (pages.length === 0) {
+        list.innerHTML = '<li class="text-gray-500">No data</li>';
+        return;
+    }
+    
+    const maxViews = Math.max(...pages.map(p => p.visitors || 0)) || 1;
+    
+    list.innerHTML = pages.map(page => {
+        const percent = ((page.visitors || 0) / maxViews) * 100;
+        return `
+            <li class="relative">
+                <div class="absolute inset-0 bg-purple-500/10 rounded" style="width: ${percent}%"></div>
+                <div class="relative flex justify-between items-center p-2">
+                    <span class="text-gray-300 truncate flex-1">${page.page || '/'}</span>
+                    <span class="text-purple-400 ml-2">${page.visitors || 0}</span>
+                </div>
+            </li>
+        `;
+    }).join('');
+}
+
+function renderTopSources(sources) {
+    const list = document.getElementById('top-sources');
+    if (!list) return;
+    
+    if (sources.length === 0) {
+        list.innerHTML = '<li class="text-gray-500">No data</li>';
+        return;
+    }
+    
+    const maxVisitors = Math.max(...sources.map(s => s.visitors || 0)) || 1;
+    
+    list.innerHTML = sources.map(source => {
+        const percent = ((source.visitors || 0) / maxVisitors) * 100;
+        const sourceName = source.source || 'Direct / None';
+        return `
+            <li class="relative">
+                <div class="absolute inset-0 bg-blue-500/10 rounded" style="width: ${percent}%"></div>
+                <div class="relative flex justify-between items-center p-2">
+                    <span class="text-gray-300 truncate flex-1">${sourceName}</span>
+                    <span class="text-blue-400 ml-2">${source.visitors || 0}</span>
+                </div>
+            </li>
+        `;
+    }).join('');
+}
+
+function refreshAnalytics() {
+    const icon = document.getElementById('refresh-icon');
+    if (icon) icon.classList.add('animate-spin');
+    
+    loadAnalytics().finally(() => {
+        if (icon) icon.classList.remove('animate-spin');
+    });
+}
+
+// Load analytics on page load
+document.addEventListener('DOMContentLoaded', loadAnalytics);
+</script>
+{% endblock %}

@@ -1,0 +1,240 @@
+{% extends "base.html" %}
+
+{% block title %}Terms of Service - Xdest{% endblock %}
+
+{% block content %}
+<div class="min-h-screen bg-dark-200">
+    <!-- Navigation -->
+    <nav class="border-b border-gray-800 bg-dark-400/80 backdrop-blur-sm fixed w-full z-50">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between h-16 items-center">
+                <a href="/">
+                    <img src="/static/logo.png" alt="Xdest" class="h-48 rounded-lg">
+                </a>
+                <div class="flex items-center gap-4">
+                    <a href="/explore" class="text-gray-400 hover:text-white transition">Explore</a>
+                    <a href="/leaderboard" class="text-gray-400 hover:text-white transition">🏆 Leaderboard</a>
+                    {% if user %}
+                        <a href="/dashboard" class="text-gray-400 hover:text-white transition">Dashboard</a>
+                        <a href="/user/{{ user.username }}">
+                            <img src="{{ user.avatar or '/static/default-avatar.png' }}" class="w-8 h-8 rounded-full" alt="Avatar">
+                        </a>
+                        <a href="/auth/logout" class="text-gray-400 hover:text-red-400 transition" title="Logout">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"></path>
+                            </svg>
+                        </a>
+                    {% else %}
+                        <a href="/auth/github" class="px-4 py-2 rounded-lg bg-gray-800 hover:bg-gray-700 transition">Sign in</a>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <main class="pt-24 pb-12 max-w-4xl mx-auto px-6">
+        <h1 class="text-4xl font-bold mb-8">📜 Terms of Service</h1>
+        <p class="text-gray-400 mb-8">Last updated: February 7, 2026</p>
+
+        <div class="space-y-8">
+            <!-- Introduction -->
+            <section class="bg-dark-100 rounded-xl border border-gray-800 p-6">
+                <h2 class="text-2xl font-bold mb-4">1. Introduction</h2>
+                <div class="text-gray-300 space-y-3">
+                    <p>Welcome to Xdest ("Platform", "Service", "we", "us", "our"). By accessing or using our platform, you agree to be bound by these Terms of Service.</p>
+                    <p>Xdest is a developer collaboration platform for sharing projects, reporting issues, and building a community of developers and testers.</p>
+                </div>
+            </section>
+
+            <!-- Eligibility -->
+            <section class="bg-dark-100 rounded-xl border border-gray-800 p-6">
+                <h2 class="text-2xl font-bold mb-4">2. Eligibility</h2>
+                <div class="text-gray-300 space-y-3">
+                    <p>To use Xdest, you must:</p>
+                    <ul class="list-disc list-inside space-y-1 text-gray-400">
+                        <li>Be at least 13 years of age</li>
+                        <li>Have a valid GitHub or Google account</li>
+                        <li>Agree to these Terms of Service</li>
+                        <li>Not be prohibited from using the service under applicable laws</li>
+                    </ul>
+                </div>
+            </section>
+
+            <!-- Account Types -->
+            <section class="bg-dark-100 rounded-xl border border-gray-800 p-6">
+                <h2 class="text-2xl font-bold mb-4">3. Account Types</h2>
+                <div class="text-gray-300 space-y-4">
+                    <div class="p-4 bg-dark-200 rounded-lg">
+                        <h3 class="font-semibold text-purple-400 mb-2">🔧 Developer Account (GitHub Login)</h3>
+                        <p class="text-gray-400">Full access to all features: create projects, connect GitHub repositories, report issues, respond to issues, and earn leaderboard points.</p>
+                    </div>
+                    <div class="p-4 bg-dark-200 rounded-lg">
+                        <h3 class="font-semibold text-blue-400 mb-2">🧪 Tester Account (Google Login)</h3>
+                        <p class="text-gray-400">Testing access: explore projects, report issues, provide feedback, vote on content, and earn leaderboard points. Cannot create projects.</p>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Acceptable Use -->
+            <section class="bg-dark-100 rounded-xl border border-gray-800 p-6">
+                <h2 class="text-2xl font-bold mb-4">4. Acceptable Use</h2>
+                <div class="text-gray-300 space-y-3">
+                    <p>You agree NOT to:</p>
+                    <ul class="list-disc list-inside space-y-2 text-gray-400">
+                        <li>Upload malicious code, malware, or security exploits</li>
+                        <li>Harass, abuse, or threaten other users</li>
+                        <li>Post illegal, offensive, or harmful content</li>
+                        <li>Spam, flood, or abuse the platform</li>
+                        <li>Attempt to bypass security measures or gain unauthorized access</li>
+                        <li>Impersonate other users or entities</li>
+                        <li>Violate intellectual property rights of others</li>
+                        <li>Use automated tools to scrape or abuse the service</li>
+                    </ul>
+                </div>
+            </section>
+
+            <!-- Content Ownership -->
+            <section class="bg-dark-100 rounded-xl border border-gray-800 p-6">
+                <h2 class="text-2xl font-bold mb-4">5. Content Ownership</h2>
+                <div class="text-gray-300 space-y-3">
+                    <p><strong class="text-white">Your Content:</strong> You retain ownership of all content you create (projects, issues, responses). By posting content, you grant Xdest a non-exclusive license to display and distribute it on the platform.</p>
+                    <p><strong class="text-white">Open Source:</strong> Projects linked to GitHub repositories inherit the licensing of those repositories.</p>
+                    <p><strong class="text-white">Platform Content:</strong> Xdest and its original content are protected by copyright. The Xdest platform is open source under the MIT license.</p>
+                </div>
+            </section>
+
+            <!-- GitHub Integration -->
+            <section class="bg-dark-100 rounded-xl border border-gray-800 p-6">
+                <h2 class="text-2xl font-bold mb-4">6. GitHub Integration</h2>
+                <div class="text-gray-300 space-y-3">
+                    <p>When connecting GitHub repositories:</p>
+                    <ul class="list-disc list-inside space-y-1 text-gray-400">
+                        <li>You authorize Xdest to access your GitHub repositories via the OAuth token</li>
+                        <li>Issues may be synced between Xdest and GitHub</li>
+                        <li>You must have permission to connect repositories you don't own</li>
+                        <li>We do not store your GitHub password</li>
+                    </ul>
+                </div>
+            </section>
+
+            <!-- Analytics -->
+            <section class="bg-dark-100 rounded-xl border border-gray-800 p-6">
+                <h2 class="text-2xl font-bold mb-4">7. Analytics</h2>
+                <div class="text-gray-300 space-y-4">
+                    <!-- Platform Analytics -->
+                    <div class="p-4 bg-green-500/10 border border-green-500/30 rounded-lg">
+                        <h3 class="font-semibold text-green-400 mb-2">🟢 Platform Analytics (Xdest)</h3>
+                        <p class="text-gray-400 text-sm">Xdest uses <strong class="text-white">Plausible Analytics</strong> to understand platform usage. Plausible is privacy-friendly, does not use cookies, and is fully GDPR-compliant. No consent is required. See our <a href="/privacy#platform-analytics" class="text-green-400 hover:underline">Privacy Policy</a> for details.</p>
+                    </div>
+                    
+                    <!-- Project Analytics -->
+                    <p class="mt-2">Project owners can integrate third-party analytics services for their projects:</p>
+                    <div class="grid md:grid-cols-2 gap-4">
+                        <div class="p-4 bg-dark-200 rounded-lg">
+                            <h3 class="font-semibold text-orange-400 mb-2">🔶 Google Analytics</h3>
+                            <p class="text-gray-400 text-sm">Tracks visitor statistics on your project page. Requires visitor consent in some jurisdictions.</p>
+                        </div>
+                        <div class="p-4 bg-dark-200 rounded-lg">
+                            <h3 class="font-semibold text-green-400 mb-2">🟢 Plausible Analytics</h3>
+                            <p class="text-gray-400 text-sm">Privacy-friendly analytics without cookies. GDPR-compliant by design.</p>
+                        </div>
+                    </div>
+                    <p class="mt-4 text-yellow-400 text-sm">⚠️ By enabling analytics on your project, you are responsible for compliance with applicable privacy laws (GDPR, CCPA, etc.) for your project visitors.</p>
+                </div>
+            </section>
+
+            <!-- Leaderboard & Points -->
+            <section class="bg-dark-100 rounded-xl border border-gray-800 p-6">
+                <h2 class="text-2xl font-bold mb-4">8. Leaderboard & Points</h2>
+                <div class="text-gray-300 space-y-3">
+                    <p>Points are earned through legitimate contributions:</p>
+                    <ul class="list-disc list-inside space-y-1 text-gray-400">
+                        <li>Providing helpful responses and solutions</li>
+                        <li>Receiving upvotes from other users</li>
+                        <li>Receiving positive ratings</li>
+                    </ul>
+                    <p class="text-yellow-400">⚠️ Manipulation of the leaderboard (fake accounts, self-voting, etc.) is prohibited and may result in account termination.</p>
+                </div>
+            </section>
+
+            <!-- Termination -->
+            <section class="bg-dark-100 rounded-xl border border-gray-800 p-6">
+                <h2 class="text-2xl font-bold mb-4">9. Termination</h2>
+                <div class="text-gray-300 space-y-3">
+                    <p><strong class="text-white">By You:</strong> You may delete your account at any time through the Privacy settings.</p>
+                    <p><strong class="text-white">By Us:</strong> We reserve the right to suspend or terminate accounts that violate these terms without prior notice.</p>
+                    <p><strong class="text-white">Effect:</strong> Upon termination, your access to the platform will be revoked and your data will be deleted according to our Privacy Policy.</p>
+                </div>
+            </section>
+
+            <!-- Disclaimers -->
+            <section class="bg-dark-100 rounded-xl border border-gray-800 p-6">
+                <h2 class="text-2xl font-bold mb-4">10. Disclaimers</h2>
+                <div class="text-gray-300 space-y-3">
+                    <p>The platform is provided "AS IS" without warranties of any kind. We do not guarantee:</p>
+                    <ul class="list-disc list-inside space-y-1 text-gray-400">
+                        <li>Uninterrupted or error-free service</li>
+                        <li>Accuracy of user-generated content</li>
+                        <li>Security of third-party linked content</li>
+                        <li>Compatibility with your systems</li>
+                    </ul>
+                </div>
+            </section>
+
+            <!-- Limitation of Liability -->
+            <section class="bg-dark-100 rounded-xl border border-gray-800 p-6">
+                <h2 class="text-2xl font-bold mb-4">11. Limitation of Liability</h2>
+                <div class="text-gray-300 space-y-3">
+                    <p>To the maximum extent permitted by law, Xdest shall not be liable for any indirect, incidental, special, consequential, or punitive damages resulting from:</p>
+                    <ul class="list-disc list-inside space-y-1 text-gray-400">
+                        <li>Your use or inability to use the service</li>
+                        <li>Any unauthorized access to your data</li>
+                        <li>Content posted by other users</li>
+                        <li>Interruptions or errors in the service</li>
+                    </ul>
+                </div>
+            </section>
+
+            <!-- Changes to Terms -->
+            <section class="bg-dark-100 rounded-xl border border-gray-800 p-6">
+                <h2 class="text-2xl font-bold mb-4">12. Changes to Terms</h2>
+                <div class="text-gray-300 space-y-3">
+                    <p>We may update these Terms of Service from time to time. We will notify users of significant changes through the platform. Continued use of the service after changes constitutes acceptance of the new terms.</p>
+                </div>
+            </section>
+
+            <!-- Contact -->
+            <section class="bg-dark-100 rounded-xl border border-gray-800 p-6">
+                <h2 class="text-2xl font-bold mb-4">13. Contact</h2>
+                <div class="text-gray-300">
+                    <p>For questions about these Terms, please contact:</p>
+                    <div class="p-4 bg-dark-200 rounded-lg mt-4 space-y-2">
+                        <p><strong class="text-white">Email:</strong> <a href="mailto:aiandfriends@gmail.com" class="text-purple-400 hover:text-purple-300">aiandfriends@gmail.com</a></p>
+                        <p><strong class="text-white">X (Twitter):</strong> <a href="https://x.com/karlbeis" target="_blank" class="text-purple-400 hover:text-purple-300">@karlbeis</a></p>
+                        <p><strong class="text-white">GitHub:</strong> <a href="https://github.com/koal0308/Xdest" target="_blank" class="text-purple-400 hover:text-purple-300">github.com/koal0308/Xdest</a></p>
+                    </div>
+                </div>
+            </section>
+        </div>
+
+        <!-- Back to Top -->
+        <div class="text-center mt-12">
+            <a href="#" class="text-gray-400 hover:text-white transition">↑ Back to Top</a>
+        </div>
+    </main>
+</div>
+
+<!-- Footer -->
+<footer class="border-t border-gray-800 bg-gray-950 py-4 px-6 mt-8">
+    <div class="max-w-7xl mx-auto flex justify-between items-center text-xs text-gray-500">
+        <span>© 2026 Xdest</span>
+        <div class="flex gap-4">
+            <a href="mailto:aiandfriends@gmail.com" class="hover:text-gray-300 transition">Contact</a>
+            <a href="https://x.com/karlbeis" target="_blank" class="hover:text-gray-300 transition">𝕏 @karlbeis</a>
+            <a href="/privacy" class="hover:text-gray-300 transition">Privacy</a>
+            <a href="/terms" class="hover:text-gray-300 transition">Terms</a>
+            <a href="https://github.com/koal0308/Xdest" target="_blank" class="hover:text-gray-300 transition">GitHub</a>
+        </div>
+    </div>
+</footer>
+{% endblock %}
