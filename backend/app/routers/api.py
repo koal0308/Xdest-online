@@ -1916,7 +1916,7 @@ async def create_offer(
     return RedirectResponse(url="/offers", status_code=302)
 
 
-@router.delete("/offers/{offer_id}")
+@router.get("/offers/{offer_id}/delete")
 async def delete_offer(
     offer_id: int,
     request: Request,
@@ -1937,7 +1937,64 @@ async def delete_offer(
     db.delete(offer)
     db.commit()
     
-    return JSONResponse({"message": "Offer deleted"})
+    return RedirectResponse(url="/dashboard", status_code=302)
+
+
+@router.post("/offers/{offer_id}/edit")
+async def update_offer(
+    offer_id: int,
+    request: Request,
+    db: Session = Depends(get_db),
+    title: str = Form(...),
+    description: str = Form(...),
+    offer_type: str = Form(...),
+    original_price: str = Form(None),
+    offer_price: str = Form(None),
+    discount_percent: int = Form(None),
+    duration: str = Form(None),
+    coupon_code: str = Form(None),
+    redemption_url: str = Form(None),
+    max_redemptions: int = Form(None),
+    valid_until: str = Form(None),
+    is_active: bool = Form(True)
+):
+    user = await get_current_user(request, db)
+    if not user:
+        raise HTTPException(status_code=401, detail="Not authenticated")
+    
+    offer = db.query(Offer).filter(Offer.id == offer_id).first()
+    if not offer:
+        raise HTTPException(status_code=404, detail="Offer not found")
+    
+    # Verify ownership via project
+    if offer.project.user_id != user.id:
+        raise HTTPException(status_code=403, detail="Not authorized")
+    
+    # Update offer fields
+    offer.title = title
+    offer.description = description
+    offer.offer_type = offer_type
+    offer.original_price = original_price if original_price else None
+    offer.offer_price = offer_price if offer_price else None
+    offer.discount_percent = discount_percent if discount_percent else None
+    offer.duration = duration if duration else None
+    offer.coupon_code = coupon_code if coupon_code else None
+    offer.redemption_url = redemption_url if redemption_url else None
+    offer.max_redemptions = max_redemptions if max_redemptions else None
+    offer.is_active = is_active
+    
+    if valid_until:
+        try:
+            offer.valid_until = datetime.strptime(valid_until, "%Y-%m-%d")
+        except:
+            pass
+    else:
+        offer.valid_until = None
+    
+    offer.updated_at = datetime.utcnow()
+    db.commit()
+    
+    return RedirectResponse(url=f"/offer/{offer_id}/edit", status_code=302)
 
 
 @router.put("/offers/{offer_id}/toggle")

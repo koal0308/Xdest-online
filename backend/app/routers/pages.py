@@ -17,10 +17,12 @@ templates = Jinja2Templates(directory="app/templates")
 async def landing_page(request: Request, db: Session = Depends(get_db)):
     user = await get_current_user_optional(request, db)
     projects = db.query(Project).order_by(Project.created_at.desc()).limit(6).all()
+    offers = db.query(Offer).filter(Offer.is_active == True).order_by(Offer.created_at.desc()).limit(5).all()
     return templates.TemplateResponse("landing.html", {
         "request": request,
         "user": user,
-        "projects": projects
+        "projects": projects,
+        "offers": offers
     })
 
 @router.get("/dashboard", response_class=HTMLResponse)
@@ -30,10 +32,16 @@ async def dashboard(request: Request, db: Session = Depends(get_db)):
         return RedirectResponse(url="/", status_code=302)
     
     projects = db.query(Project).filter(Project.user_id == user.id).order_by(Project.created_at.desc()).all()
+    
+    # Get user's offers (through their projects)
+    project_ids = [p.id for p in projects]
+    offers = db.query(Offer).filter(Offer.project_id.in_(project_ids)).order_by(Offer.created_at.desc()).all() if project_ids else []
+    
     return templates.TemplateResponse("dashboard.html", {
         "request": request,
         "user": user,
-        "projects": projects
+        "projects": projects,
+        "offers": offers
     })
 
 @router.get("/user/{username}", response_class=HTMLResponse)
@@ -410,4 +418,25 @@ async def create_offer_page(request: Request, db: Session = Depends(get_db)):
         "request": request,
         "user": user,
         "projects": projects
+    })
+
+
+@router.get("/offer/{offer_id}/edit", response_class=HTMLResponse)
+async def edit_offer_page(offer_id: int, request: Request, db: Session = Depends(get_db)):
+    user = await get_current_user(request, db)
+    if not user:
+        return RedirectResponse(url="/", status_code=302)
+    
+    offer = db.query(Offer).filter(Offer.id == offer_id).first()
+    if not offer:
+        raise HTTPException(status_code=404, detail="Offer not found")
+    
+    # Verify ownership via project
+    if offer.project.user_id != user.id:
+        raise HTTPException(status_code=403, detail="Not authorized")
+    
+    return templates.TemplateResponse("edit_offer.html", {
+        "request": request,
+        "user": user,
+        "offer": offer
     })

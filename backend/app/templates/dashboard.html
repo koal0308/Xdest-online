@@ -186,8 +186,131 @@
             </div>
             {% endif %}
         </div>
+
+        <!-- Offers -->
+        {% if user.role == 'developer' %}
+        <div class="mt-12">
+            <div class="flex justify-between items-center mb-6">
+                <h2 class="text-2xl font-bold">Your Offers</h2>
+                {% if projects %}
+                <a href="/create-offer" class="px-4 py-2 rounded-lg bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-500 hover:to-emerald-500 transition font-semibold text-sm">
+                    + New Offer
+                </a>
+                {% endif %}
+            </div>
+            
+            {% if offers %}
+            <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {% for offer in offers %}
+                <div class="bg-dark-100 rounded-xl border border-gray-800 p-5 relative">
+                    <!-- Status Badge -->
+                    <div class="absolute top-3 right-3">
+                        {% if offer.is_active %}
+                        <span class="px-2 py-1 bg-green-600/20 text-green-400 text-xs rounded-full">Active</span>
+                        {% else %}
+                        <span class="px-2 py-1 bg-gray-600/20 text-gray-400 text-xs rounded-full">Inactive</span>
+                        {% endif %}
+                    </div>
+                    
+                    <!-- Offer Type -->
+                    <div class="mb-3">
+                        {% if offer.offer_type == 'discount' %}
+                        <span class="text-2xl">💰</span>
+                        {% elif offer.offer_type == 'free_trial' %}
+                        <span class="text-2xl">🎁</span>
+                        {% elif offer.offer_type == 'lifetime' %}
+                        <span class="text-2xl">♾️</span>
+                        {% else %}
+                        <span class="text-2xl">⭐</span>
+                        {% endif %}
+                    </div>
+                    
+                    <h3 class="font-semibold text-lg mb-2 pr-16">{{ offer.title }}</h3>
+                    <p class="text-gray-400 text-sm mb-3 line-clamp-2">{{ offer.description or 'No description' }}</p>
+                    
+                    <!-- Project Link -->
+                    <p class="text-xs text-gray-500 mb-3">
+                        <a href="/project/{{ offer.project_id }}" class="hover:text-purple-400 transition">{{ offer.project.name }}</a>
+                    </p>
+                    
+                    <!-- Stats -->
+                    <div class="flex items-center gap-4 text-xs text-gray-500 mb-4">
+                        {% if offer.max_redemptions %}
+                        <span>{{ offer.current_redemptions }}/{{ offer.max_redemptions }} redeemed</span>
+                        {% else %}
+                        <span>{{ offer.current_redemptions }} redeemed</span>
+                        {% endif %}
+                        {% if offer.coupon_code %}
+                        <span class="font-mono bg-gray-800 px-2 py-0.5 rounded">{{ offer.coupon_code }}</span>
+                        {% endif %}
+                    </div>
+                    
+                    <!-- Actions -->
+                    <div class="flex gap-2">
+                        <a href="/offer/{{ offer.id }}/edit" class="flex-1 text-center px-3 py-2 bg-purple-600/20 text-purple-400 rounded-lg hover:bg-purple-600/30 transition text-sm">
+                            ✏️ Edit
+                        </a>
+                        <button onclick="confirmDelete({{ offer.id }}, '{{ offer.title | e }}')" class="px-3 py-2 bg-red-600/20 text-red-400 rounded-lg hover:bg-red-600/30 transition text-sm">
+                            🗑️
+                        </button>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+            {% else %}
+            <div class="bg-dark-100 rounded-xl border border-gray-800 p-12 text-center">
+                <span class="text-5xl mb-4 block">🎁</span>
+                <h3 class="text-xl font-semibold mb-2">No offers yet</h3>
+                <p class="text-gray-400 mb-6">Create special offers to attract testers to your projects</p>
+                {% if projects %}
+                <a href="/create-offer" class="px-6 py-3 rounded-lg bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-500 hover:to-emerald-500 transition font-semibold inline-block">
+                    Create Offer
+                </a>
+                {% else %}
+                <p class="text-gray-500 text-sm">Create a project first to add offers</p>
+                {% endif %}
+            </div>
+            {% endif %}
+        </div>
+        {% endif %}
     </main>
 </div>
+
+<!-- Delete Confirmation Modal -->
+<div id="deleteModal" class="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50 hidden">
+    <div class="bg-dark-100 rounded-2xl border border-gray-800 p-6 max-w-md w-full mx-4">
+        <h3 class="text-xl font-bold mb-4">🗑️ Delete Offer</h3>
+        <p class="text-gray-400 mb-2">Are you sure you want to delete:</p>
+        <p class="font-semibold mb-6" id="deleteOfferTitle"></p>
+        <div class="flex gap-3">
+            <button onclick="closeDeleteModal()" class="flex-1 px-4 py-2 bg-gray-700 hover:bg-gray-600 rounded-lg transition">
+                Cancel
+            </button>
+            <a id="deleteOfferLink" href="#" class="flex-1 text-center px-4 py-2 bg-red-600 hover:bg-red-500 rounded-lg transition">
+                Delete
+            </a>
+        </div>
+    </div>
+</div>
+
+<script>
+function confirmDelete(offerId, offerTitle) {
+    document.getElementById('deleteOfferTitle').textContent = offerTitle;
+    document.getElementById('deleteOfferLink').href = '/api/offers/' + offerId + '/delete';
+    document.getElementById('deleteModal').classList.remove('hidden');
+}
+
+function closeDeleteModal() {
+    document.getElementById('deleteModal').classList.add('hidden');
+}
+
+// Close modal on backdrop click
+document.getElementById('deleteModal').addEventListener('click', function(e) {
+    if (e.target === this) {
+        closeDeleteModal();
+    }
+});
+</script>
 
 <!-- Footer -->
 <footer class="ml-64 border-t border-gray-800 bg-gray-950 py-4 px-6 mt-auto">
