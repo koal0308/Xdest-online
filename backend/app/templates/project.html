@@ -430,7 +430,12 @@
 
         <!-- Offers Section -->
         {% if project.offers %}
-        {% set active_offers = project.offers|selectattr('is_active')|selectattr('is_valid')|list %}
+        {% set active_offers = [] %}
+        {% for offer in project.offers %}
+            {% if offer.is_active and offer.is_valid %}
+                {% set _ = active_offers.append(offer) %}
+            {% endif %}
+        {% endfor %}
         {% if active_offers %}
         <div class="mb-8">
             <div class="flex items-center justify-between mb-6">
@@ -447,21 +452,33 @@
             
             <div class="grid md:grid-cols-2 gap-4">
                 {% for offer in active_offers %}
-                <div class="bg-gradient-to-br from-dark-100 to-dark-200 rounded-xl border border-gray-800 overflow-hidden hover:border-purple-500/50 transition-all group">
+                <div class="bg-gradient-to-br from-dark-100 to-dark-200 rounded-xl border border-gray-800 overflow-hidden hover:border-purple-500/50 transition-all group cursor-pointer offer-card"
+                     data-id="{{ offer.id }}"
+                     data-title="{{ offer.title }}"
+                     data-description="{{ offer.description or '' }}"
+                     data-type="{{ offer.offer_type or 'other' }}"
+                     data-price="{{ offer.offer_price or '' }}"
+                     data-original-price="{{ offer.original_price or '' }}"
+                     data-discount="{{ offer.discount_percent or '' }}"
+                     data-duration="{{ offer.duration or '' }}"
+                     data-coupon="{{ offer.coupon_code or '' }}"
+                     data-redemption-url="{{ offer.redemption_url or '' }}"
+                     data-spots="{{ offer.spots_left if offer.spots_left is not none else '' }}"
+                     data-valid-until="{{ offer.valid_until.strftime('%d. %B %Y') if offer.valid_until else '' }}">
                     <!-- Offer Header with Type Badge -->
                     <div class="px-5 py-3 border-b border-gray-800 flex items-center justify-between">
                         <span class="px-3 py-1 text-xs font-medium rounded-full
-                            {% if offer.offer_type.value == 'discount' %}bg-green-600/20 text-green-400
-                            {% elif offer.offer_type.value == 'free_trial' %}bg-blue-600/20 text-blue-400
-                            {% elif offer.offer_type.value == 'early_bird' %}bg-orange-600/20 text-orange-400
-                            {% elif offer.offer_type.value == 'lifetime' %}bg-purple-600/20 text-purple-400
-                            {% elif offer.offer_type.value == 'bundle' %}bg-pink-600/20 text-pink-400
+                            {% if offer.offer_type == 'discount' %}bg-green-600/20 text-green-400
+                            {% elif offer.offer_type == 'free_trial' %}bg-blue-600/20 text-blue-400
+                            {% elif offer.offer_type == 'early_bird' %}bg-orange-600/20 text-orange-400
+                            {% elif offer.offer_type == 'lifetime' %}bg-purple-600/20 text-purple-400
+                            {% elif offer.offer_type == 'bundle' %}bg-pink-600/20 text-pink-400
                             {% else %}bg-gray-600/20 text-gray-400{% endif %}">
-                            {% if offer.offer_type.value == 'discount' %}💰 Discount
-                            {% elif offer.offer_type.value == 'free_trial' %}🆓 Free Trial
-                            {% elif offer.offer_type.value == 'early_bird' %}🐦 Early Bird
-                            {% elif offer.offer_type.value == 'lifetime' %}♾️ Lifetime Deal
-                            {% elif offer.offer_type.value == 'bundle' %}📦 Bundle
+                            {% if offer.offer_type == 'discount' %}💰 Discount
+                            {% elif offer.offer_type == 'free_trial' %}🆓 Free Trial
+                            {% elif offer.offer_type == 'early_bird' %}🐦 Early Bird
+                            {% elif offer.offer_type == 'lifetime' %}♾️ Lifetime Deal
+                            {% elif offer.offer_type == 'bundle' %}📦 Bundle
                             {% else %}🎁 Special{% endif %}
                         </span>
                         {% if offer.valid_until %}
@@ -1426,5 +1443,133 @@ function refreshAnalytics() {
 
 // Load analytics on page load
 document.addEventListener('DOMContentLoaded', loadAnalytics);
+
+// Offer Modal functionality
+document.querySelectorAll('.offer-card').forEach(card => {
+    card.addEventListener('click', function(e) {
+        if (e.target.closest('a') || e.target.closest('button')) return;
+        
+        const d = this.dataset;
+        openOfferModal(d.id, d.title, d.description, d.type, d.price, d.originalPrice, 
+                       d.discount, d.duration, d.coupon, d.redemptionUrl, d.spots, d.validUntil);
+    });
+});
+
+function openOfferModal(id, title, desc, type, price, origPrice, discount, duration, coupon, redemptionUrl, spots, validUntil) {
+    document.getElementById('modalOfferTitle').textContent = title;
+    document.getElementById('modalDescription').textContent = desc;
+    
+    const badge = document.getElementById('modalTypeBadge');
+    const types = {
+        'free_trial': ['🆓 Free Trial', 'bg-green-600/20 text-green-400'],
+        'discount': ['💰 Discount', 'bg-yellow-600/20 text-yellow-400'],
+        'early_bird': ['🐦 Early Bird', 'bg-blue-600/20 text-blue-400'],
+        'lifetime': ['♾️ Lifetime Deal', 'bg-pink-600/20 text-pink-400'],
+        'bundle': ['📦 Bundle', 'bg-cyan-600/20 text-cyan-400'],
+        'other': ['🎁 Special Offer', 'bg-gray-600/20 text-gray-400']
+    };
+    const t = types[type] || types['other'];
+    badge.textContent = t[0];
+    badge.className = 'inline-block px-4 py-2 rounded-full text-sm font-medium mb-4 ' + t[1];
+    
+    document.getElementById('modalOfferPrice').textContent = price || (discount ? discount + '% OFF' : 'Free');
+    document.getElementById('modalOriginalPrice').textContent = origPrice;
+    document.getElementById('modalOriginalPrice').style.display = origPrice ? 'inline' : 'none';
+    
+    const durationEl = document.getElementById('modalDuration');
+    if (duration) {
+        document.getElementById('modalDurationValue').textContent = duration;
+        durationEl.classList.remove('hidden');
+    } else {
+        durationEl.classList.add('hidden');
+    }
+    
+    const couponSection = document.getElementById('modalCouponSection');
+    if (coupon) {
+        document.getElementById('modalCouponCode').textContent = coupon;
+        couponSection.classList.remove('hidden');
+    } else {
+        couponSection.classList.add('hidden');
+    }
+    
+    document.getElementById('modalSpots').textContent = spots ? '🔥 ' + spots + ' spots left' : 'Unlimited';
+    document.getElementById('modalValidUntil').textContent = validUntil || 'No expiration';
+    
+    const redemptionBtn = document.getElementById('modalRedemptionBtn');
+    if (redemptionUrl) {
+        redemptionBtn.href = redemptionUrl;
+        redemptionBtn.classList.remove('hidden');
+    } else {
+        redemptionBtn.classList.add('hidden');
+    }
+    
+    document.getElementById('offerModal').classList.remove('hidden');
+    document.getElementById('offerModal').classList.add('flex');
+    document.body.style.overflow = 'hidden';
+}
+
+function closeOfferModal() {
+    document.getElementById('offerModal').classList.add('hidden');
+    document.getElementById('offerModal').classList.remove('flex');
+    document.body.style.overflow = '';
+}
+
+function copyOfferCode() {
+    const code = document.getElementById('modalCouponCode').textContent;
+    navigator.clipboard.writeText(code).then(() => alert('Copied: ' + code));
+}
+
+document.addEventListener('keydown', e => { if (e.key === 'Escape') closeOfferModal(); });
 </script>
+
+<!-- Offer Detail Modal -->
+<div id="offerModal" class="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 hidden items-center justify-center p-4" onclick="if(event.target===this)closeOfferModal()">
+    <div class="bg-dark-100 rounded-2xl border border-gray-800 max-w-lg w-full max-h-[90vh] overflow-y-auto">
+        <div class="sticky top-0 bg-dark-100 border-b border-gray-800 p-6 flex items-center justify-between">
+            <h2 id="modalOfferTitle" class="text-xl font-bold"></h2>
+            <button onclick="closeOfferModal()" class="p-2 hover:bg-dark-300 rounded-lg transition">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+            </button>
+        </div>
+        
+        <div class="p-6">
+            <div id="modalTypeBadge" class="inline-block px-4 py-2 rounded-full text-sm font-medium mb-4"></div>
+            <p id="modalDescription" class="text-gray-300 mb-6"></p>
+            
+            <div class="bg-dark-300 rounded-xl p-6 mb-6">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-sm text-gray-400 mb-1">Special Price</p>
+                        <div class="flex items-baseline gap-3">
+                            <span id="modalOfferPrice" class="text-3xl font-bold text-green-400"></span>
+                            <span id="modalOriginalPrice" class="text-lg text-gray-500 line-through"></span>
+                        </div>
+                    </div>
+                </div>
+                <div id="modalDuration" class="text-gray-400 mt-2 hidden"><span class="text-sm">Duration:</span> <span id="modalDurationValue" class="font-medium text-white"></span></div>
+            </div>
+            
+            <div id="modalCouponSection" class="mb-6 hidden">
+                <p class="text-sm text-gray-400 mb-2">Use this coupon code:</p>
+                <div class="bg-dark-300 rounded-xl p-4 flex items-center justify-between">
+                    <code id="modalCouponCode" class="text-xl font-mono text-purple-400"></code>
+                    <button onclick="copyOfferCode()" class="px-4 py-2 bg-purple-600 hover:bg-purple-500 rounded-lg transition text-sm font-medium">Copy Code</button>
+                </div>
+            </div>
+            
+            <div class="grid grid-cols-2 gap-4 mb-6 text-sm">
+                <div class="bg-dark-300 rounded-lg p-4">
+                    <p class="text-gray-400 mb-1">Availability</p>
+                    <p id="modalSpots" class="font-medium"></p>
+                </div>
+                <div class="bg-dark-300 rounded-lg p-4">
+                    <p class="text-gray-400 mb-1">Valid Until</p>
+                    <p id="modalValidUntil" class="font-medium"></p>
+                </div>
+            </div>
+            
+            <a id="modalRedemptionBtn" href="#" target="_blank" class="block w-full py-4 rounded-xl bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-500 hover:to-pink-500 transition font-semibold text-center text-lg hidden">🎁 Claim This Offer</a>
+        </div>
+    </div>
+</div>
 {% endblock %}
