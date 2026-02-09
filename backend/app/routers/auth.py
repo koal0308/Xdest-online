@@ -38,36 +38,50 @@ async def github_callback(request: Request, db: Session = Depends(get_db)):
         emails = email_resp.json()
         primary_email = next((e['email'] for e in emails if e['primary']), None)
     
-    # Check if user exists
+    # Check if user exists by GitHub ID
     user = db.query(User).filter(
         User.provider == "github",
         User.provider_id == str(github_user['id'])
     ).first()
     
+    email_to_use = primary_email or github_user.get('email', f"{github_user['id']}@github.local")
+    
     if not user:
-        # Create new user
-        username = github_user.get('login', f"user_{github_user['id']}")
-        # Ensure unique username
-        base_username = username
-        counter = 1
-        while db.query(User).filter(User.username == username).first():
-            username = f"{base_username}_{counter}"
-            counter += 1
-        
-        user = User(
-            username=username,
-            email=primary_email or github_user.get('email', f"{github_user['id']}@github.local"),
-            avatar=github_user.get('avatar_url'),
-            github=github_user.get('html_url'),
-            github_token=encrypt_token(token['access_token']),
-            bio=github_user.get('bio'),
-            provider="github",
-            provider_id=str(github_user['id']),
-            role="developer"  # GitHub users are developers
-        )
-        db.add(user)
-        db.commit()
-        db.refresh(user)
+        # Check if email already exists (user registered with different provider)
+        existing_user = db.query(User).filter(User.email == email_to_use).first()
+        if existing_user:
+            # User already registered with different provider - update their GitHub info and log them in
+            existing_user.github_token = encrypt_token(token['access_token'])
+            existing_user.github = github_user.get('html_url')
+            existing_user.role = "developer"  # Upgrade to developer when linking GitHub
+            if not existing_user.avatar:
+                existing_user.avatar = github_user.get('avatar_url')
+            db.commit()
+            user = existing_user
+        else:
+            # Create new user
+            username = github_user.get('login', f"user_{github_user['id']}")
+            # Ensure unique username
+            base_username = username
+            counter = 1
+            while db.query(User).filter(User.username == username).first():
+                username = f"{base_username}_{counter}"
+                counter += 1
+            
+            user = User(
+                username=username,
+                email=email_to_use,
+                avatar=github_user.get('avatar_url'),
+                github=github_user.get('html_url'),
+                github_token=encrypt_token(token['access_token']),
+                bio=github_user.get('bio'),
+                provider="github",
+                provider_id=str(github_user['id']),
+                role="developer"  # GitHub users are developers
+            )
+            db.add(user)
+            db.commit()
+            db.refresh(user)
     else:
         # Update token for existing user
         user.github_token = encrypt_token(token['access_token'])

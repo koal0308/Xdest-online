@@ -779,6 +779,7 @@ document.getElementById('repoModal')?.addEventListener('click', (e) => {
 {% if project.github_url %}
 <script>
 const REPO_URL = "{{ project.github_url }}";
+const PROJECT_ID = {{ project.id }};
 let repoDataCache = {
     overview: null,
     commits: null,
@@ -817,16 +818,16 @@ async function loadRepoData(type) {
         let endpoint;
         switch(type) {
             case 'overview':
-                endpoint = `/api/github/repo-info?repo_url=${encodeURIComponent(REPO_URL)}`;
+                endpoint = `/api/github/repo-info?repo_url=${encodeURIComponent(REPO_URL)}&project_id=${PROJECT_ID}`;
                 break;
             case 'commits':
-                endpoint = `/api/github/repo-commits?repo_url=${encodeURIComponent(REPO_URL)}&page=${currentCommitsPage}`;
+                endpoint = `/api/github/repo-commits?repo_url=${encodeURIComponent(REPO_URL)}&page=${currentCommitsPage}&project_id=${PROJECT_ID}`;
                 break;
             case 'contributors':
-                endpoint = `/api/github/repo-contributors?repo_url=${encodeURIComponent(REPO_URL)}`;
+                endpoint = `/api/github/repo-contributors?repo_url=${encodeURIComponent(REPO_URL)}&project_id=${PROJECT_ID}`;
                 break;
             case 'activity':
-                endpoint = `/api/github/repo-activity?repo_url=${encodeURIComponent(REPO_URL)}`;
+                endpoint = `/api/github/repo-activity?repo_url=${encodeURIComponent(REPO_URL)}&project_id=${PROJECT_ID}`;
                 break;
         }
         

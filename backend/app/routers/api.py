@@ -526,20 +526,34 @@ async def get_project_analytics(project_id: int, request: Request, db: Session =
         return {"error": "api_error", "message": str(e)}
 
 @router.get("/github/repo-info")
-async def get_github_repo_info(repo_url: str, request: Request, db: Session = Depends(get_db)):
+async def get_github_repo_info(repo_url: str, request: Request, db: Session = Depends(get_db), project_id: int = None):
     """Holt detaillierte Repo-Infos"""
     user = await get_current_user(request, db)
     
     # Extract owner/repo from URL
     try:
-        parts = repo_url.rstrip('/').split('/')
+        # Remove .git suffix if present
+        clean_url = repo_url.rstrip('/').replace('.git', '')
+        parts = clean_url.split('/')
         owner = parts[-2]
         repo = parts[-1]
     except:
         raise HTTPException(status_code=400, detail="Invalid repo URL")
     
     headers = {"Accept": "application/vnd.github.v3+json"}
-    github_token = get_decrypted_github_token(user) if user else ""
+    
+    # Try to get token: first from project owner, then from current user
+    github_token = None
+    if project_id:
+        # Get project owner's token for private repos
+        project = db.query(Project).filter(Project.id == project_id).first()
+        if project and project.owner and project.owner.github_token:
+            github_token = get_decrypted_github_token(project.owner)
+    
+    # Fallback to current user's token
+    if not github_token and user:
+        github_token = get_decrypted_github_token(user)
+    
     if github_token:
         headers["Authorization"] = f"Bearer {github_token}"
     
@@ -604,21 +618,32 @@ async def get_github_repo_commits(
     request: Request, 
     page: int = 1,
     per_page: int = 30,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    project_id: int = None
 ):
     """Holt die Commit-History eines Repos"""
     user = await get_current_user(request, db)
     
     # Extract owner/repo from URL
     try:
-        parts = repo_url.rstrip('/').split('/')
+        clean_url = repo_url.rstrip('/').replace('.git', '')
+        parts = clean_url.split('/')
         owner = parts[-2]
         repo = parts[-1]
     except:
         raise HTTPException(status_code=400, detail="Invalid repo URL")
     
     headers = {"Accept": "application/vnd.github.v3+json"}
-    github_token = get_decrypted_github_token(user) if user else ""
+    
+    # Try to get token: first from project owner, then from current user
+    github_token = None
+    if project_id:
+        project = db.query(Project).filter(Project.id == project_id).first()
+        if project and project.owner and project.owner.github_token:
+            github_token = get_decrypted_github_token(project.owner)
+    if not github_token and user:
+        github_token = get_decrypted_github_token(user)
+    
     if github_token:
         headers["Authorization"] = f"Bearer {github_token}"
     
@@ -658,21 +683,32 @@ async def get_github_repo_commits(
 async def get_github_repo_contributors(
     repo_url: str, 
     request: Request,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    project_id: int = None
 ):
     """Holt die Contributors eines Repos mit Statistiken"""
     user = await get_current_user(request, db)
     
     # Extract owner/repo from URL
     try:
-        parts = repo_url.rstrip('/').split('/')
+        clean_url = repo_url.rstrip('/').replace('.git', '')
+        parts = clean_url.split('/')
         owner = parts[-2]
         repo = parts[-1]
     except:
         raise HTTPException(status_code=400, detail="Invalid repo URL")
     
     headers = {"Accept": "application/vnd.github.v3+json"}
-    github_token = get_decrypted_github_token(user) if user else ""
+    
+    # Try to get token: first from project owner, then from current user
+    github_token = None
+    if project_id:
+        project = db.query(Project).filter(Project.id == project_id).first()
+        if project and project.owner and project.owner.github_token:
+            github_token = get_decrypted_github_token(project.owner)
+    if not github_token and user:
+        github_token = get_decrypted_github_token(user)
+    
     if github_token:
         headers["Authorization"] = f"Bearer {github_token}"
     
@@ -704,21 +740,32 @@ async def get_github_repo_contributors(
 async def get_github_repo_activity(
     repo_url: str, 
     request: Request,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    project_id: int = None
 ):
     """Holt die Aktivitäten eines Repos (Issues, PRs, Comments)"""
     user = await get_current_user(request, db)
     
     # Extract owner/repo from URL
     try:
-        parts = repo_url.rstrip('/').split('/')
+        clean_url = repo_url.rstrip('/').replace('.git', '')
+        parts = clean_url.split('/')
         owner = parts[-2]
         repo = parts[-1]
     except:
         raise HTTPException(status_code=400, detail="Invalid repo URL")
     
     headers = {"Accept": "application/vnd.github.v3+json"}
-    github_token = get_decrypted_github_token(user) if user else ""
+    
+    # Try to get token: first from project owner, then from current user
+    github_token = None
+    if project_id:
+        project = db.query(Project).filter(Project.id == project_id).first()
+        if project and project.owner and project.owner.github_token:
+            github_token = get_decrypted_github_token(project.owner)
+    if not github_token and user:
+        github_token = get_decrypted_github_token(user)
+    
     if github_token:
         headers["Authorization"] = f"Bearer {github_token}"
     
