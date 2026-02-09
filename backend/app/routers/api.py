@@ -3,7 +3,7 @@ from fastapi.responses import RedirectResponse, JSONResponse
 from sqlalchemy.orm import Session
 from sqlalchemy import func
 from app.database import get_db
-from app.models import User, Project, Post, Comment, Issue, IssueResponse, ResponseVote, Offer
+from app.models import User, Project, Post, Comment, Issue, IssueResponse, ResponseVote, Offer, Message, MessageReply
 from app.dependencies import get_current_user
 from app.config import settings
 from app.encryption import decrypt_token, encrypt_token
@@ -431,7 +431,20 @@ async def get_project_analytics(project_id: int, request: Request, db: Session =
             
             plausible_domain = str(project.plausible_domain)
             
-            # Aggregate stats (last 30 days)
+            # Aggregate stats - try today first, then 30d
+            # Today's stats
+            aggregate_today_resp = await client.get(
+                f"{base_url}/aggregate",
+                params={
+                    "site_id": plausible_domain,
+                    "period": "day",
+                    "metrics": "visitors,pageviews,bounce_rate,visit_duration"
+                },
+                headers=headers
+            )
+            aggregate_today = aggregate_today_resp.json().get("results", {}) if aggregate_today_resp.status_code == 200 else {}
+            
+            # 30 days stats
             aggregate_resp = await client.get(
                 f"{base_url}/aggregate",
                 params={
@@ -441,9 +454,14 @@ async def get_project_analytics(project_id: int, request: Request, db: Session =
                 },
                 headers=headers
             )
-            aggregate = aggregate_resp.json().get("results", {}) if aggregate_resp.status_code == 200 else {}
+            aggregate_30d = aggregate_resp.json().get("results", {}) if aggregate_resp.status_code == 200 else {}
             
-            # Time series (last 7 days)
+            # Use 30d data if available, otherwise fall back to today
+            aggregate = aggregate_30d
+            if aggregate_30d.get("visitors", {}).get("value", 0) == 0 and aggregate_today.get("visitors", {}).get("value", 0) > 0:
+                aggregate = aggregate_today
+            
+            # Time series (last 7 days, fallback to today)
             timeseries_resp = await client.get(
                 f"{base_url}/timeseries",
                 params={
@@ -455,12 +473,24 @@ async def get_project_analytics(project_id: int, request: Request, db: Session =
             )
             timeseries = timeseries_resp.json().get("results", []) if timeseries_resp.status_code == 200 else []
             
-            # Top pages
+            # Always get today's hourly data for the hourly chart
+            timeseries_hourly_resp = await client.get(
+                f"{base_url}/timeseries",
+                params={
+                    "site_id": plausible_domain,
+                    "period": "day",
+                    "metrics": "visitors,pageviews"
+                },
+                headers=headers
+            )
+            timeseries_hourly = timeseries_hourly_resp.json().get("results", []) if timeseries_hourly_resp.status_code == 200 else []
+            
+            # Top pages (try day if 30d is empty)
             pages_resp = await client.get(
                 f"{base_url}/breakdown",
                 params={
                     "site_id": plausible_domain,
-                    "period": "30d",
+                    "period": "day",
                     "property": "event:page",
                     "limit": "5"
                 },
@@ -468,12 +498,12 @@ async def get_project_analytics(project_id: int, request: Request, db: Session =
             )
             pages = pages_resp.json().get("results", []) if pages_resp.status_code == 200 else []
             
-            # Top sources
+            # Top sources (try day if 30d is empty)
             sources_resp = await client.get(
                 f"{base_url}/breakdown",
                 params={
                     "site_id": plausible_domain,
-                    "period": "30d",
+                    "period": "day",
                     "property": "visit:source",
                     "limit": "5"
                 },
@@ -484,7 +514,9 @@ async def get_project_analytics(project_id: int, request: Request, db: Session =
             return {
                 "realtime_visitors": realtime,
                 "aggregate": aggregate,
+                "aggregate_today": aggregate_today,
                 "timeseries": timeseries,
+                "timeseries_hourly": timeseries_hourly,
                 "top_pages": pages,
                 "top_sources": sources,
                 "domain": plausible_domain
@@ -2019,4 +2051,109 @@ async def toggle_offer(
     db.commit()
     
     return JSONResponse({"message": "Offer toggled", "is_active": offer.is_active})
+
+
+# ============================================
+# Community Messages (for all users including testers)
+# ============================================
+
+@router.post("/messages")
+async def create_message(
+    request: Request,
+    content: str = Form(...),
+    db: Session = Depends(get_db)
+):
+    """Create a new community message - available to all logged in users"""
+    user = await get_current_user(request, db)
+    if not user:
+        raise HTTPException(status_code=401, detail="Not authenticated")
+    
+    if not content.strip():
+        raise HTTPException(status_code=400, detail="Message cannot be empty")
+    
+    message = Message(
+        user_id=user.id,
+        content=content.strip()
+    )
+    db.add(message)
+    db.commit()
+    
+    return RedirectResponse(url="/community", status_code=302)
+
+@router.post("/messages/{message_id}/reply")
+async def reply_to_message(
+    message_id: int,
+    request: Request,
+    content: str = Form(...),
+    db: Session = Depends(get_db)
+):
+    """Reply to a community message - available to all logged in users"""
+    user = await get_current_user(request, db)
+    if not user:
+        raise HTTPException(status_code=401, detail="Not authenticated")
+    
+    message = db.query(Message).filter(Message.id == message_id).first()
+    if not message:
+        raise HTTPException(status_code=404, detail="Message not found")
+    
+    if not content.strip():
+        raise HTTPException(status_code=400, detail="Reply cannot be empty")
+    
+    reply = MessageReply(
+        message_id=message_id,
+        user_id=user.id,
+        content=content.strip()
+    )
+    db.add(reply)
+    db.commit()
+    
+    return RedirectResponse(url="/community", status_code=302)
+
+@router.delete("/messages/{message_id}")
+async def delete_message(
+    message_id: int,
+    request: Request,
+    db: Session = Depends(get_db)
+):
+    """Delete own message"""
+    user = await get_current_user(request, db)
+    if not user:
+        raise HTTPException(status_code=401, detail="Not authenticated")
+    
+    message = db.query(Message).filter(Message.id == message_id).first()
+    if not message:
+        raise HTTPException(status_code=404, detail="Message not found")
+    
+    if message.user_id != user.id:
+        raise HTTPException(status_code=403, detail="Not authorized")
+    
+    # Delete all replies first
+    db.query(MessageReply).filter(MessageReply.message_id == message_id).delete()
+    db.delete(message)
+    db.commit()
+    
+    return JSONResponse({"message": "Deleted"})
+
+@router.delete("/messages/reply/{reply_id}")
+async def delete_reply(
+    reply_id: int,
+    request: Request,
+    db: Session = Depends(get_db)
+):
+    """Delete own reply"""
+    user = await get_current_user(request, db)
+    if not user:
+        raise HTTPException(status_code=401, detail="Not authenticated")
+    
+    reply = db.query(MessageReply).filter(MessageReply.id == reply_id).first()
+    if not reply:
+        raise HTTPException(status_code=404, detail="Reply not found")
+    
+    if reply.user_id != user.id:
+        raise HTTPException(status_code=403, detail="Not authorized")
+    
+    db.delete(reply)
+    db.commit()
+    
+    return JSONResponse({"message": "Deleted"})
 

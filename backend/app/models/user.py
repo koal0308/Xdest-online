@@ -30,3 +30,7 @@ class User(Base):
     project_ratings = relationship("ProjectRating", back_populates="user")
     received_ratings = relationship("UserRating", foreign_keys="UserRating.rated_user_id", back_populates="rated_user")
     given_ratings = relationship("UserRating", foreign_keys="UserRating.rater_user_id", back_populates="rater")
+    
+    # Community Messages
+    messages = relationship("Message", back_populates="author")
+    message_replies = relationship("MessageReply", back_populates="author")

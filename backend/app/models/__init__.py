@@ -5,6 +5,7 @@ from app.models.comment import Comment
 from app.models.issue import Issue, IssueResponse, IssueType, IssueStatus, ResponseVote, IssueVote
 from app.models.rating import ProjectRating, UserRating
 from app.models.offer import Offer, OfferType
+from app.models.message import Message, MessageReply
 
-__all__ = ["User", "Project", "Post", "Comment", "Issue", "IssueResponse", "IssueType", "IssueStatus", "ResponseVote", "IssueVote", "ProjectRating", "UserRating", "Offer", "OfferType"]
+__all__ = ["User", "Project", "Post", "Comment", "Issue", "IssueResponse", "IssueType", "IssueStatus", "ResponseVote", "IssueVote", "ProjectRating", "UserRating", "Offer", "OfferType", "Message", "MessageReply"]
 

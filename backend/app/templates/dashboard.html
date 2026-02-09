@@ -12,11 +12,16 @@
             </a>
         </div>
         <nav class="mt-6">
-            <a href="/dashboard" class="flex items-center gap-3 px-6 py-3 bg-purple-600/20 border-r-2 border-purple-500 text-white">
+            <a href="/dashboard" class="flex items-center gap-3 px-6 py-3 bg-purple-600/20 border-r-2 border-purple-500 text-white relative">
                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"></path>
                 </svg>
                 Dashboard
+                {% if total_notifications > 0 %}
+                <span class="absolute right-4 bg-red-500 text-white text-xs font-bold rounded-full min-w-[20px] h-5 flex items-center justify-center px-1 animate-pulse">
+                    {{ total_notifications }}
+                </span>
+                {% endif %}
             </a>
             <a href="/user/{{ user.username }}" class="flex items-center gap-3 px-6 py-3 text-gray-400 hover:text-white hover:bg-gray-800/50 transition">
                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -102,6 +107,61 @@
             </div>
             {% endif %}
         </div>
+
+        <!-- Notification Banner -->
+        {% if total_notifications > 0 %}
+        <div class="bg-gradient-to-r from-purple-600/20 to-pink-600/20 border border-purple-500/30 rounded-xl p-4 mb-8">
+            <div class="flex items-center gap-4 mb-4">
+                <div class="relative">
+                    <svg class="w-8 h-8 text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"></path>
+                    </svg>
+                    <span class="absolute -top-1 -right-1 bg-red-500 text-white text-xs font-bold rounded-full w-5 h-5 flex items-center justify-center animate-pulse">
+                        {{ total_notifications }}
+                    </span>
+                </div>
+                <div>
+                    <h3 class="font-semibold text-white">New Activity on Your Projects!</h3>
+                    <p class="text-gray-400 text-sm">
+                        {% if unread_issues_count > 0 %}
+                        <span class="text-orange-400">{{ unread_issues_count }} new issue{{ 's' if unread_issues_count > 1 else '' }}</span>
+                        {% endif %}
+                        {% if unread_issues_count > 0 and unread_responses_count > 0 %} · {% endif %}
+                        {% if unread_responses_count > 0 %}
+                        <span class="text-blue-400">{{ unread_responses_count }} new response{{ 's' if unread_responses_count > 1 else '' }}</span>
+                        {% endif %}
+                    </p>
+                </div>
+            </div>
+            
+            <!-- Unread Issues List -->
+            {% if unread_issues %}
+            <div class="space-y-2 mt-4 border-t border-purple-500/20 pt-4">
+                {% for issue in unread_issues %}
+                <a href="/project/{{ issue.project_id }}/issues/{{ issue.id }}" 
+                   class="flex items-center justify-between p-3 bg-dark-100/50 rounded-lg hover:bg-dark-100 transition group">
+                    <div class="flex items-center gap-3">
+                        <span class="w-2 h-2 bg-orange-500 rounded-full animate-pulse"></span>
+                        <div>
+                            <p class="text-white group-hover:text-purple-400 transition font-medium">{{ issue.title }}</p>
+                            <p class="text-gray-500 text-sm">
+                                {{ issue.project.name }} · 
+                                <span class="{% if issue.issue_type == 'bug' %}text-red-400{% elif issue.issue_type == 'feature' %}text-green-400{% elif issue.issue_type == 'security' %}text-yellow-400{% else %}text-blue-400{% endif %}">
+                                    {{ issue.issue_type }}
+                                </span>
+                                · {{ issue.created_at.strftime('%d.%m.%Y %H:%M') }}
+                            </p>
+                        </div>
+                    </div>
+                    <svg class="w-5 h-5 text-gray-500 group-hover:text-purple-400 transition" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
+                    </svg>
+                </a>
+                {% endfor %}
+            </div>
+            {% endif %}
+        </div>
+        {% endif %}
 
         <!-- Tester Badge -->
         {% if user.role == 'tester' %}

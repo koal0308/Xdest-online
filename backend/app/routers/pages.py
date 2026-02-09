@@ -4,7 +4,7 @@ from fastapi.templating import Jinja2Templates
 from sqlalchemy.orm import Session
 from sqlalchemy import or_
 from app.database import get_db
-from app.models import User, Project, Post, Comment, Issue, IssueResponse, Offer
+from app.models import User, Project, Post, Comment, Issue, IssueResponse, Offer, Message, MessageReply
 from app.dependencies import get_current_user_optional, get_current_user
 import httpx
 from typing import Optional
@@ -37,11 +37,35 @@ async def dashboard(request: Request, db: Session = Depends(get_db)):
     project_ids = [p.id for p in projects]
     offers = db.query(Offer).filter(Offer.project_id.in_(project_ids)).order_by(Offer.created_at.desc()).all() if project_ids else []
     
+    # Count unread issues and responses for notifications
+    unread_issues_count = 0
+    unread_responses_count = 0
+    unread_issues = []
+    if project_ids:
+        # Unread issues on user's projects
+        unread_issues = db.query(Issue).filter(
+            Issue.project_id.in_(project_ids),
+            Issue.is_read_by_owner == False
+        ).order_by(Issue.created_at.desc()).limit(10).all()
+        unread_issues_count = len(unread_issues)
+        
+        # Unread responses on issues of user's projects
+        unread_responses_count = db.query(IssueResponse).join(Issue).filter(
+            Issue.project_id.in_(project_ids),
+            IssueResponse.is_read_by_owner == False
+        ).count()
+    
+    total_notifications = unread_issues_count + unread_responses_count
+    
     return templates.TemplateResponse("dashboard.html", {
         "request": request,
         "user": user,
         "projects": projects,
-        "offers": offers
+        "offers": offers,
+        "unread_issues": unread_issues,
+        "unread_issues_count": unread_issues_count,
+        "unread_responses_count": unread_responses_count,
+        "total_notifications": total_notifications
     })
 
 @router.get("/user/{username}", response_class=HTMLResponse)
@@ -135,7 +159,7 @@ async def edit_profile_page(request: Request, db: Session = Depends(get_db)):
     })
 
 @router.get("/explore", response_class=HTMLResponse)
-async def explore_page(request: Request, category: Optional[str] = None, q: Optional[str] = None, db: Session = Depends(get_db)):
+async def explore_page(request: Request, category: Optional[str] = None, q: Optional[str] = None, view: Optional[str] = None, db: Session = Depends(get_db)):
     user = await get_current_user_optional(request, db)
     
     # Developer categories
@@ -152,11 +176,17 @@ async def explore_page(request: Request, category: Optional[str] = None, q: Opti
         {"id": "opensource", "name": "Open Source", "icon": "💚", "tags": ["opensource", "open-source", "community", "contribution"]},
     ]
     
+    # View mode: projects or users
+    current_view = view if view in ["projects", "users"] else "projects"
+    
     # Base query for posts with projects
     posts_query = db.query(Post).join(Project).join(User, Post.user_id == User.id)
     
     # Base query for projects
     projects_query = db.query(Project)
+    
+    # Base query for users
+    users_query = db.query(User)
     
     # Search filter
     search_query = q.strip() if q else None
@@ -168,6 +198,13 @@ async def explore_page(request: Request, category: Optional[str] = None, q: Opti
         )
         posts_query = posts_query.filter(search_filter)
         projects_query = projects_query.filter(search_filter)
+        
+        # Search users by username or bio
+        user_search_filter = or_(
+            User.username.ilike(f"%{search_query}%"),
+            User.bio.ilike(f"%{search_query}%")
+        )
+        users_query = users_query.filter(user_search_filter)
     
     # Filter by category if selected
     active_category = None
@@ -183,16 +220,19 @@ async def explore_page(request: Request, category: Optional[str] = None, q: Opti
     
     posts = posts_query.order_by(Post.created_at.desc()).limit(50).all()
     projects = projects_query.order_by(Project.created_at.desc()).all()
+    all_users = users_query.order_by(User.created_at.desc()).all()
     
     return templates.TemplateResponse("explore.html", {
         "request": request,
         "user": user,
         "projects": projects,
         "posts": posts,
+        "all_users": all_users,
         "categories": categories,
         "active_category": active_category,
         "current_category": category,
-        "search_query": search_query
+        "search_query": search_query,
+        "current_view": current_view
     })
 
 @router.get("/leaderboard", response_class=HTMLResponse)
@@ -201,6 +241,16 @@ async def leaderboard_page(request: Request, db: Session = Depends(get_db)):
     return templates.TemplateResponse("leaderboard.html", {
         "request": request,
         "user": user
+    })
+
+@router.get("/community", response_class=HTMLResponse)
+async def community_page(request: Request, db: Session = Depends(get_db)):
+    user = await get_current_user_optional(request, db)
+    messages = db.query(Message).order_by(Message.created_at.desc()).limit(50).all()
+    return templates.TemplateResponse("community.html", {
+        "request": request,
+        "user": user,
+        "messages": messages
     })
 
 async def fetch_github_repo_info(github_url: str):
@@ -312,6 +362,16 @@ async def issue_detail_page(project_id: int, issue_id: int, request: Request, db
     
     is_owner = user and user.id == project.user_id
     is_reporter = user and user.id == issue.user_id
+    
+    # Mark issue and its responses as read if owner is viewing
+    if is_owner:
+        if not issue.is_read_by_owner:
+            issue.is_read_by_owner = True
+        # Mark all responses as read
+        for response in issue.responses:
+            if not response.is_read_by_owner:
+                response.is_read_by_owner = True
+        db.commit()
     
     return templates.TemplateResponse("issue_detail.html", {
         "request": request,

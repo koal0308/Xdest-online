@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, Text, DateTime, ForeignKey, Enum
+from sqlalchemy import Column, Integer, String, Text, DateTime, ForeignKey, Enum, Boolean
 from sqlalchemy.orm import relationship
 from datetime import datetime
 from app.database import Base
@@ -41,6 +41,9 @@ class Issue(Base):
     # Referenz zur Quelle
     source_platform = Column(String(100), default="Xdest")  # Woher kommt das Issue
     
+    # Notification tracking
+    is_read_by_owner = Column(Boolean, default=False)  # Hat der Projekt-Owner das Issue gelesen?
+    
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     
@@ -60,6 +63,7 @@ class IssueResponse(Base):
     content = Column(Text, nullable=False)
     helpful_count = Column(Integer, default=0)  # Anzahl der "Hilfreich" Votes
     is_solution = Column(Integer, default=0)  # 1 = vom Issue-Ersteller als Lösung markiert
+    is_read_by_owner = Column(Boolean, default=False)  # Hat der Projekt-Owner die Antwort gelesen?
     created_at = Column(DateTime, default=datetime.utcnow)
     
     # Relationships

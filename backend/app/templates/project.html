@@ -177,10 +177,18 @@
                             </div>
                         </div>
                         
-                        <!-- Chart -->
+                        <!-- 7-Day Bar Chart -->
                         <div class="mb-4 p-4 bg-dark-300 rounded-lg border border-gray-600">
-                            <h4 class="text-sm font-semibold text-gray-400 mb-3">Visitors (last 7 days)</h4>
-                            <div id="visitors-chart" class="h-32 flex items-end justify-between gap-1">
+                            <h4 id="visitors-chart-title" class="text-sm font-semibold text-gray-400 mb-3">Visitors (last 7 days)</h4>
+                            <div id="visitors-chart" class="h-48 flex items-end justify-between gap-1">
+                                <!-- Filled by JS -->
+                            </div>
+                        </div>
+                        
+                        <!-- Hourly Line Chart (Today) -->
+                        <div class="mb-4 p-4 bg-dark-300 rounded-lg border border-gray-600">
+                            <h4 class="text-sm font-semibold text-gray-400 mb-3">📈 Today's Traffic (hourly)</h4>
+                            <div id="hourly-line-chart" class="h-40">
                                 <!-- Filled by JS -->
                             </div>
                         </div>
@@ -1322,6 +1330,9 @@ async function loadAnalytics() {
         // Chart
         renderVisitorsChart(data.timeseries || []);
         
+        // Hourly Line Chart
+        renderHourlyLineChart(data.timeseries_hourly || []);
+        
         // Top Pages
         renderTopPages(data.top_pages || []);
         
@@ -1358,27 +1369,201 @@ function formatDuration(seconds) {
 
 function renderVisitorsChart(timeseries) {
     const chart = document.getElementById('visitors-chart');
+    const chartTitle = document.getElementById('visitors-chart-title');
     if (!chart || timeseries.length === 0) {
-        if (chart) chart.innerHTML = '<p class="text-gray-500 text-sm">No data available</p>';
+        if (chart) chart.innerHTML = '<p class="text-gray-500 text-sm text-center py-8">No data available</p>';
         return;
     }
     
-    const maxVisitors = Math.max(...timeseries.map(d => d.visitors || 0)) || 1;
+    // Detect if this is hourly data (same day) or daily data
+    const isHourlyData = timeseries.length > 7 && timeseries[0]?.date?.includes(' ');
     
-    chart.innerHTML = timeseries.map(day => {
-        const height = ((day.visitors || 0) / maxVisitors) * 100;
-        const date = new Date(day.date);
-        const dayName = date.toLocaleDateString('en-US', { weekday: 'short' });
-        return `
-            <div class="flex-1 flex flex-col items-center">
-                <div class="w-full bg-green-500/20 rounded-t relative" style="height: ${Math.max(height, 5)}%">
-                    <div class="absolute inset-0 bg-green-500 rounded-t opacity-60"></div>
-                </div>
-                <span class="text-xs text-gray-500 mt-1">${dayName}</span>
-                <span class="text-xs text-green-400">${day.visitors || 0}</span>
-            </div>
-        `;
+    // Update title based on data type
+    if (chartTitle) {
+        chartTitle.textContent = isHourlyData ? 'Visitors (today by hour)' : 'Visitors (last 7 days)';
+    }
+    
+    // For hourly data, show last 12 hours
+    let displayData = timeseries;
+    if (isHourlyData) {
+        displayData = timeseries.slice(-12);
+    }
+    
+    const maxVisitors = Math.max(...displayData.map(d => d.visitors || 0)) || 1;
+    const totalVisitors = displayData.reduce((sum, d) => sum + (d.visitors || 0), 0);
+    
+    // Build bars HTML - using percentage heights
+    const barsHTML = displayData.map(function(entry) {
+        const visitors = entry.visitors || 0;
+        const heightPercent = Math.max((visitors / maxVisitors) * 100, 5);
+        const date = new Date(entry.date);
+        
+        // Format time label (e.g., "6am", "2pm")
+        let label;
+        if (isHourlyData) {
+            const hour = date.getHours();
+            const ampm = hour >= 12 ? 'pm' : 'am';
+            const hour12 = hour % 12 || 12;
+            label = hour12 + ampm;
+        } else {
+            label = date.toLocaleDateString('en-US', { weekday: 'short' });
+        }
+        
+        // Bar color
+        const hasVisitors = visitors > 0;
+        const barBg = hasVisitors ? 'background: linear-gradient(to top, #10b981, #34d399);' : 'background: #374151;';
+        const shadow = hasVisitors ? 'box-shadow: 0 0 10px rgba(16, 185, 129, 0.4);' : '';
+        const labelColor = hasVisitors ? 'color: #9ca3af;' : 'color: #6b7280;';
+        
+        return '<div style="flex: 1; display: flex; flex-direction: column; align-items: center; min-width: 18px;">' +
+            '<div style="width: 100%; height: 120px; display: flex; align-items: flex-end; justify-content: center; padding: 0 2px;">' +
+                '<div style="width: 100%; height: ' + heightPercent + '%; border-radius: 4px 4px 0 0; ' + barBg + shadow + '" title="' + visitors + ' visitors"></div>' +
+            '</div>' +
+            '<span style="font-size: 10px; margin-top: 4px; ' + labelColor + '">' + label + '</span>' +
+            '<span style="font-size: 10px; color: #10b981; font-weight: 600;">' + visitors + '</span>' +
+        '</div>';
     }).join('');
+    
+    // Build the complete chart HTML
+    const periodLabel = isHourlyData ? 'Last 12 hours' : 'Last 7 days';
+    
+    chart.innerHTML = 
+        '<div style="display: flex; flex-direction: column; height: 100%;">' +
+            '<div style="display: flex; align-items: flex-start; gap: 4px;">' +
+                '<div style="width: 30px; height: 120px; display: flex; flex-direction: column; justify-content: space-between; font-size: 10px; color: #6b7280; text-align: right; padding-right: 4px;">' +
+                    '<span>' + maxVisitors + '</span>' +
+                    '<span>' + Math.round(maxVisitors/2) + '</span>' +
+                    '<span>0</span>' +
+                '</div>' +
+                '<div style="flex: 1; display: flex; gap: 2px; border-left: 1px solid #374151; border-bottom: 1px solid #374151; padding-left: 4px;">' +
+                    barsHTML +
+                '</div>' +
+            '</div>' +
+            '<div style="display: flex; justify-content: space-between; align-items: center; margin-top: 12px; padding-top: 12px; border-top: 1px solid #374151;">' +
+                '<span style="font-size: 12px; color: #6b7280;">' + periodLabel + '</span>' +
+                '<span style="font-size: 14px; font-weight: 600; color: #10b981;">' + totalVisitors + ' total visitors</span>' +
+            '</div>' +
+        '</div>';
+}
+
+function renderHourlyLineChart(hourlyData) {
+    const chart = document.getElementById('hourly-line-chart');
+    if (!chart || hourlyData.length === 0) {
+        if (chart) chart.innerHTML = '<p style="color: #6b7280; font-size: 14px; text-align: center; padding: 20px;">No hourly data available</p>';
+        return;
+    }
+    
+    const data = hourlyData;
+    const maxVisitors = Math.max(...data.map(d => d.visitors || 0)) || 1;
+    const maxPageviews = Math.max(...data.map(d => d.pageviews || 0)) || 1;
+    const totalVisitors = data.reduce((sum, d) => sum + (d.visitors || 0), 0);
+    const totalPageviews = data.reduce((sum, d) => sum + (d.pageviews || 0), 0);
+    
+    const chartHeight = 100;
+    const chartWidth = 100; // percentage
+    
+    // Create SVG path for visitors line
+    const visitorsPoints = data.map(function(entry, index) {
+        const x = (index / (data.length - 1)) * 100;
+        const y = chartHeight - ((entry.visitors || 0) / maxVisitors) * chartHeight;
+        return x + ',' + y;
+    }).join(' ');
+    
+    // Create SVG path for pageviews line
+    const pageviewsPoints = data.map(function(entry, index) {
+        const x = (index / (data.length - 1)) * 100;
+        const y = chartHeight - ((entry.pageviews || 0) / maxPageviews) * chartHeight;
+        return x + ',' + y;
+    }).join(' ');
+    
+    // Create area fill for visitors
+    const visitorsArea = '0,' + chartHeight + ' ' + visitorsPoints + ' 100,' + chartHeight;
+    
+    // Create time labels (every 4 hours)
+    const timeLabels = [];
+    for (var i = 0; i < data.length; i += 4) {
+        var date = new Date(data[i].date);
+        var hour = date.getHours();
+        var ampm = hour >= 12 ? 'pm' : 'am';
+        var hour12 = hour % 12 || 12;
+        timeLabels.push({
+            x: (i / (data.length - 1)) * 100,
+            label: hour12 + ampm
+        });
+    }
+    // Add last label
+    if (data.length > 0) {
+        var lastDate = new Date(data[data.length - 1].date);
+        var lastHour = lastDate.getHours();
+        var lastAmpm = lastHour >= 12 ? 'pm' : 'am';
+        var lastHour12 = lastHour % 12 || 12;
+        timeLabels.push({
+            x: 100,
+            label: lastHour12 + lastAmpm
+        });
+    }
+    
+    var labelsHTML = timeLabels.map(function(t) {
+        return '<span style="position: absolute; left: ' + t.x + '%; transform: translateX(-50%); font-size: 10px; color: #6b7280;">' + t.label + '</span>';
+    }).join('');
+    
+    chart.innerHTML = 
+        '<div style="display: flex; flex-direction: column; height: 100%;">' +
+            // Legend
+            '<div style="display: flex; gap: 16px; margin-bottom: 8px; font-size: 11px;">' +
+                '<span style="display: flex; align-items: center; gap: 4px;">' +
+                    '<span style="width: 12px; height: 3px; background: #10b981; border-radius: 2px;"></span>' +
+                    '<span style="color: #9ca3af;">Visitors</span>' +
+                '</span>' +
+                '<span style="display: flex; align-items: center; gap: 4px;">' +
+                    '<span style="width: 12px; height: 3px; background: #8b5cf6; border-radius: 2px;"></span>' +
+                    '<span style="color: #9ca3af;">Pageviews</span>' +
+                '</span>' +
+            '</div>' +
+            // Chart area
+            '<div style="flex: 1; display: flex; gap: 8px;">' +
+                // Y-Axis
+                '<div style="width: 30px; display: flex; flex-direction: column; justify-content: space-between; font-size: 10px; color: #6b7280; text-align: right;">' +
+                    '<span>' + Math.max(maxVisitors, maxPageviews) + '</span>' +
+                    '<span>' + Math.round(Math.max(maxVisitors, maxPageviews) / 2) + '</span>' +
+                    '<span>0</span>' +
+                '</div>' +
+                // SVG Chart
+                '<div style="flex: 1; position: relative;">' +
+                    '<svg viewBox="0 0 100 ' + chartHeight + '" preserveAspectRatio="none" style="width: 100%; height: 80px; overflow: visible;">' +
+                        // Grid lines
+                        '<line x1="0" y1="0" x2="100" y2="0" stroke="#374151" stroke-width="0.5" stroke-dasharray="2"/>' +
+                        '<line x1="0" y1="50" x2="100" y2="50" stroke="#374151" stroke-width="0.5" stroke-dasharray="2"/>' +
+                        '<line x1="0" y1="100" x2="100" y2="100" stroke="#374151" stroke-width="0.5"/>' +
+                        // Visitors area fill
+                        '<polygon points="' + visitorsArea + '" fill="url(#visitorsGradient)" opacity="0.3"/>' +
+                        // Visitors line
+                        '<polyline points="' + visitorsPoints + '" fill="none" stroke="#10b981" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>' +
+                        // Pageviews line
+                        '<polyline points="' + pageviewsPoints + '" fill="none" stroke="#8b5cf6" stroke-width="1.5" stroke-dasharray="4,2" stroke-linecap="round" stroke-linejoin="round"/>' +
+                        // Gradient definition
+                        '<defs>' +
+                            '<linearGradient id="visitorsGradient" x1="0%" y1="0%" x2="0%" y2="100%">' +
+                                '<stop offset="0%" style="stop-color:#10b981;stop-opacity:0.4"/>' +
+                                '<stop offset="100%" style="stop-color:#10b981;stop-opacity:0"/>' +
+                            '</linearGradient>' +
+                        '</defs>' +
+                    '</svg>' +
+                    // X-Axis labels
+                    '<div style="position: relative; height: 16px; margin-top: 4px;">' +
+                        labelsHTML +
+                    '</div>' +
+                '</div>' +
+            '</div>' +
+            // Summary
+            '<div style="display: flex; justify-content: space-between; align-items: center; margin-top: 8px; padding-top: 8px; border-top: 1px solid #374151; font-size: 12px;">' +
+                '<span style="color: #6b7280;">Today (24h)</span>' +
+                '<div style="display: flex; gap: 16px;">' +
+                    '<span style="color: #10b981; font-weight: 600;">' + totalVisitors + ' visitors</span>' +
+                    '<span style="color: #8b5cf6; font-weight: 600;">' + totalPageviews + ' pageviews</span>' +
+                '</div>' +
+            '</div>' +
+        '</div>';
 }
 
 function renderTopPages(pages) {

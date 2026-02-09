@@ -1,0 +1,247 @@
+{% extends "base.html" %}
+
+{% block title %}Community - Xdest{% endblock %}
+
+{% block content %}
+<div class="min-h-screen">
+    <!-- Navigation -->
+    <nav class="border-b border-gray-800 bg-dark-400/80 backdrop-blur-sm fixed w-full z-50">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between h-16 items-center">
+                <a href="/">
+                    <img src="/static/logo.png" alt="Xdest" class="h-48 rounded-lg">
+                </a>
+                <div class="flex items-center gap-4">
+                    <a href="/explore" class="text-gray-400 hover:text-white transition">Explore</a>
+                    <a href="/community" class="text-white font-medium">💬 Community</a>
+                    <a href="/leaderboard" class="text-gray-400 hover:text-white transition">🏆 Leaderboard</a>
+                    {% if user %}
+                        <a href="/dashboard" class="text-gray-400 hover:text-white transition">Dashboard</a>
+                        <a href="/user/{{ user.username }}">
+                            <img src="{{ user.avatar or '/static/default-avatar.png' }}" class="w-8 h-8 rounded-full" alt="Avatar">
+                        </a>
+                        <a href="/auth/logout" class="text-gray-400 hover:text-red-400 transition" title="Logout">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"></path>
+                            </svg>
+                        </a>
+                    {% else %}
+                        <a href="/auth/github" class="px-4 py-2 rounded-lg bg-gray-800 hover:bg-gray-700 transition">Sign in</a>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <main class="pt-24 pb-12 px-4 max-w-4xl mx-auto">
+        <!-- Header -->
+        <div class="mb-8">
+            <h1 class="text-4xl font-bold mb-2">💬 Community</h1>
+            <p class="text-gray-400">Share thoughts, ask questions, and connect with other developers and testers</p>
+        </div>
+
+        <!-- Post New Message -->
+        {% if user %}
+        <div class="bg-dark-100 rounded-xl border border-gray-800 p-6 mb-8">
+            <div class="flex gap-4">
+                <img src="{{ user.avatar or '/static/default-avatar.png' }}" class="w-12 h-12 rounded-full" alt="Avatar">
+                <form action="/api/messages" method="POST" class="flex-1">
+                    <textarea name="content" rows="3" 
+                              placeholder="What's on your mind? Share updates, ask questions, or start a discussion..."
+                              class="w-full bg-dark-200 border border-gray-700 rounded-xl p-4 text-white placeholder-gray-500 focus:outline-none focus:border-purple-500 transition resize-none"
+                              required></textarea>
+                    <div class="flex justify-between items-center mt-3">
+                        <div class="flex items-center gap-2 text-sm text-gray-500">
+                            {% if user.role == 'creator' or user.role == 'developer' %}
+                            <span class="px-2 py-1 bg-purple-600/20 text-purple-400 rounded-full text-xs">🔧 Developer</span>
+                            {% else %}
+                            <span class="px-2 py-1 bg-green-600/20 text-green-400 rounded-full text-xs">🧪 Tester</span>
+                            {% endif %}
+                        </div>
+                        <button type="submit" class="px-6 py-2 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-500 hover:to-pink-500 rounded-lg font-semibold transition">
+                            Post Message
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+        {% else %}
+        <div class="bg-dark-100 rounded-xl border border-gray-800 p-6 mb-8 text-center">
+            <p class="text-gray-400 mb-4">Sign in to join the conversation</p>
+            <div class="flex gap-4 justify-center">
+                <a href="/auth/github" class="px-6 py-2 rounded-lg bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-500 hover:to-pink-500 transition font-semibold flex items-center gap-2">
+                    <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24"><path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/></svg>
+                    GitHub
+                </a>
+                <a href="/auth/google" class="px-6 py-2 rounded-lg bg-white text-gray-900 hover:bg-gray-100 transition font-semibold flex items-center gap-2">
+                    <svg class="w-5 h-5" viewBox="0 0 24 24"><path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/><path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/><path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/><path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/></svg>
+                    Google
+                </a>
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- Messages Feed -->
+        <div class="space-y-6">
+            {% if messages %}
+            {% for message in messages %}
+            <div class="bg-dark-100 rounded-xl border border-gray-800 overflow-hidden" id="message-{{ message.id }}">
+                <!-- Message Header & Content -->
+                <div class="p-6">
+                    <div class="flex gap-4">
+                        <a href="/user/{{ message.author.username }}">
+                            <img src="{{ message.author.avatar or '/static/default-avatar.png' }}" class="w-12 h-12 rounded-full" alt="Avatar">
+                        </a>
+                        <div class="flex-1">
+                            <div class="flex items-center gap-2 mb-2">
+                                <a href="/user/{{ message.author.username }}" class="font-semibold hover:text-purple-400 transition">{{ message.author.username }}</a>
+                                {% if message.author.role == 'creator' or message.author.role == 'developer' %}
+                                <span class="px-2 py-0.5 bg-purple-600/20 text-purple-400 rounded-full text-xs">🔧 Developer</span>
+                                {% else %}
+                                <span class="px-2 py-0.5 bg-green-600/20 text-green-400 rounded-full text-xs">🧪 Tester</span>
+                                {% endif %}
+                                <span class="text-gray-500 text-sm">• {{ message.created_at.strftime('%b %d, %Y at %H:%M') }}</span>
+                            </div>
+                            <p class="text-gray-300 whitespace-pre-wrap">{{ message.content }}</p>
+                            
+                            <!-- Actions -->
+                            <div class="flex items-center gap-4 mt-4">
+                                <button onclick="toggleReplyForm({{ message.id }})" class="text-gray-500 hover:text-purple-400 transition flex items-center gap-1 text-sm">
+                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6"></path>
+                                    </svg>
+                                    Reply ({{ message.replies|length }})
+                                </button>
+                                {% if user and message.user_id == user.id %}
+                                <button onclick="deleteMessage({{ message.id }})" class="text-gray-500 hover:text-red-400 transition flex items-center gap-1 text-sm">
+                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
+                                    </svg>
+                                    Delete
+                                </button>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Reply Form (hidden by default) -->
+                {% if user %}
+                <div id="reply-form-{{ message.id }}" class="hidden border-t border-gray-800 bg-dark-200/50 p-4">
+                    <form action="/api/messages/{{ message.id }}/reply" method="POST" class="flex gap-3">
+                        <img src="{{ user.avatar or '/static/default-avatar.png' }}" class="w-8 h-8 rounded-full" alt="Avatar">
+                        <input type="text" name="content" placeholder="Write a reply..." 
+                               class="flex-1 bg-dark-100 border border-gray-700 rounded-lg px-4 py-2 text-white placeholder-gray-500 focus:outline-none focus:border-purple-500 transition"
+                               required>
+                        <button type="submit" class="px-4 py-2 bg-purple-600 hover:bg-purple-500 rounded-lg font-semibold transition">
+                            Reply
+                        </button>
+                    </form>
+                </div>
+                {% endif %}
+
+                <!-- Replies -->
+                {% if message.replies %}
+                <div class="border-t border-gray-800 bg-dark-200/30">
+                    {% for reply in message.replies %}
+                    <div class="p-4 pl-16 border-b border-gray-800/50 last:border-b-0" id="reply-{{ reply.id }}">
+                        <div class="flex gap-3">
+                            <a href="/user/{{ reply.author.username }}">
+                                <img src="{{ reply.author.avatar or '/static/default-avatar.png' }}" class="w-8 h-8 rounded-full" alt="Avatar">
+                            </a>
+                            <div class="flex-1">
+                                <div class="flex items-center gap-2 mb-1">
+                                    <a href="/user/{{ reply.author.username }}" class="font-medium text-sm hover:text-purple-400 transition">{{ reply.author.username }}</a>
+                                    {% if reply.author.role == 'creator' or reply.author.role == 'developer' %}
+                                    <span class="px-1.5 py-0.5 bg-purple-600/20 text-purple-400 rounded text-xs">🔧</span>
+                                    {% else %}
+                                    <span class="px-1.5 py-0.5 bg-green-600/20 text-green-400 rounded text-xs">🧪</span>
+                                    {% endif %}
+                                    <span class="text-gray-500 text-xs">• {{ reply.created_at.strftime('%b %d at %H:%M') }}</span>
+                                </div>
+                                <p class="text-gray-300 text-sm">{{ reply.content }}</p>
+                                {% if user and reply.user_id == user.id %}
+                                <button onclick="deleteReply({{ reply.id }})" class="text-gray-500 hover:text-red-400 transition text-xs mt-2 flex items-center gap-1">
+                                    <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
+                                    </svg>
+                                    Delete
+                                </button>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+                {% endif %}
+            </div>
+            {% endfor %}
+            {% else %}
+            <div class="bg-dark-100 rounded-xl border border-gray-800 p-12 text-center">
+                <svg class="w-16 h-16 text-gray-600 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"></path>
+                </svg>
+                <h3 class="text-xl font-semibold mb-2">No messages yet</h3>
+                <p class="text-gray-400">Be the first to start a conversation!</p>
+            </div>
+            {% endif %}
+        </div>
+    </main>
+</div>
+
+<!-- Footer -->
+<footer class="border-t border-gray-800 bg-gray-950 py-4 px-6 mt-8">
+    <div class="max-w-7xl mx-auto flex justify-between items-center text-xs text-gray-500">
+        <span>© 2026 Xdest</span>
+        <div class="flex gap-4">
+            <a href="mailto:aiandfriends@gmail.com" class="hover:text-gray-300 transition">Contact</a>
+            <a href="https://x.com/karlbeis" target="_blank" class="hover:text-gray-300 transition">𝕏 @karlbeis</a>
+            <a href="/privacy" class="hover:text-gray-300 transition">Privacy</a>
+            <a href="/terms" class="hover:text-gray-300 transition">Terms</a>
+            <a href="https://github.com/koal0308/Xdest" target="_blank" class="hover:text-gray-300 transition">GitHub</a>
+        </div>
+    </div>
+</footer>
+
+<script>
+function toggleReplyForm(messageId) {
+    const form = document.getElementById(`reply-form-${messageId}`);
+    form.classList.toggle('hidden');
+    if (!form.classList.contains('hidden')) {
+        form.querySelector('input').focus();
+    }
+}
+
+async function deleteMessage(messageId) {
+    if (!confirm('Delete this message and all replies?')) return;
+    
+    try {
+        const response = await fetch(`/api/messages/${messageId}`, { method: 'DELETE' });
+        if (response.ok) {
+            document.getElementById(`message-${messageId}`).remove();
+        } else {
+            alert('Failed to delete message');
+        }
+    } catch (error) {
+        console.error('Error:', error);
+        alert('Failed to delete message');
+    }
+}
+
+async function deleteReply(replyId) {
+    if (!confirm('Delete this reply?')) return;
+    
+    try {
+        const response = await fetch(`/api/messages/reply/${replyId}`, { method: 'DELETE' });
+        if (response.ok) {
+            document.getElementById(`reply-${replyId}`).remove();
+        } else {
+            alert('Failed to delete reply');
+        }
+    } catch (error) {
+        console.error('Error:', error);
+        alert('Failed to delete reply');
+    }
+}
+</script>
+{% endblock %}
