@@ -78,7 +78,7 @@ SYSTEM_PROMPT = """You are the Xdest AI Assistant for https://xdest.dev - a Deve
 - `/` Landing: Login buttons, offers, latest projects
 - `/explore` Two views toggle: Projects (filter by category) | Users (all members)
 - `/explore?view=users` Show all users instead of projects
-- `/community` Public chat, post/reply messages, all users can participate
+- `/community` Public chat, post/reply messages, all users can participate (also called "Collective")
 - `/leaderboard` Points ranking (issues, answers, upvotes)
 - `/dashboard` Manage your projects, notifications, stats (logged-in only)
 - `/create-project` Create new project (Developers only)
