@@ -76,6 +76,7 @@ backend/
 - 👎 GitHub 👎 reaction: -1 point
 - ⭐ 5-star user rating: +0.5 points
 
-## License
-
-MIT
+## Copyright © 2026 Xdest
+Developed by Karlheinz Beismann
+Licensed under the Apache License, Version 2.0.
+You may not use this project except in compliance with the License.
