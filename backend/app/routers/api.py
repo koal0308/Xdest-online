@@ -158,6 +158,37 @@ async def create_project(
     db.commit()
     db.refresh(project)
     
+    # Check if this is the user's first project - if so, create a welcome issue
+    user_project_count = db.query(func.count(Project.id)).filter(Project.user_id == user.id).scalar()
+    if user_project_count == 1:  # This is their first project
+        welcome_issue = Issue(
+            project_id=project.id,
+            user_id=2,  # koal0308 - Xdest founder
+            title="👋 Welcome to Xdest – First Issue (Demo)",
+            description="""Hi and welcome to Xdest!
+
+This is a small demo issue so you can see how the issue system works in practice.
+
+**Here's what you can try:**
+• Reply to this issue
+• Mark something as helpful
+• Change the status (you're the project owner!)
+• Add feedback or suggestions
+
+**The goal of Xdest is simple:**
+Real projects → real feedback → real iteration.
+
+If anything feels unclear or broken, please reply here.
+We'll improve the flow as fast as possible.
+
+Thanks for being here and building with us! 🚀""",
+            issue_type="docs",
+            status="open",
+            source_platform="Xdest"
+        )
+        db.add(welcome_issue)
+        db.commit()
+    
     return RedirectResponse(url=f"/project/{project.id}", status_code=302)
 
 @router.post("/project/{project_id}/edit")
@@ -1750,7 +1781,7 @@ async def get_my_data(request: Request, db: Session = Depends(get_db)):
             "project_id": i.project_id,
             "title": i.title,
             "description": i.description,
-            "type": i.type,
+            "type": i.issue_type,
             "status": i.status,
             "created_at": i.created_at.isoformat() if i.created_at else None
         })

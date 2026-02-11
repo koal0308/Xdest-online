@@ -148,7 +148,7 @@
             
             <!-- Issue Description -->
             <div class="bg-dark-300 rounded-lg p-5">
-                <p class="whitespace-pre-wrap text-gray-300">{{ issue.description }}</p>
+                <div class="markdown-content text-gray-300" data-markdown="{{ issue.description }}">{{ issue.description }}</div>
             </div>
             
             <!-- Issue Vote Button -->
@@ -216,7 +216,7 @@
                                 {% endif %}
                                 <span class="text-sm text-gray-500">{{ response.created_at.strftime('%d. %B %Y um %H:%M') }}</span>
                             </div>
-                            <p class="text-gray-300 whitespace-pre-wrap mb-4">{{ response.content }}</p>
+                            <div class="markdown-content text-gray-300 mb-4" data-markdown="{{ response.content }}">{{ response.content }}</div>
                             
                             <!-- Vote & Solution Buttons -->
                             <div class="flex items-center gap-4">

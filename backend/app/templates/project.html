@@ -106,7 +106,7 @@
                 </div>
                 
                 {% if project.description %}
-                <p class="text-gray-300 mb-4">{{ project.description }}</p>
+                <div class="markdown-content text-gray-300 mb-4" data-markdown="{{ project.description }}">{{ project.description }}</div>
                 {% endif %}
                 
                 {% if project.tags %}
@@ -1720,7 +1720,13 @@ document.querySelectorAll('.offer-card').forEach(card => {
 
 function openOfferModal(id, title, desc, type, price, origPrice, discount, duration, coupon, redemptionUrl, spots, validUntil) {
     document.getElementById('modalOfferTitle').textContent = title;
-    document.getElementById('modalDescription').textContent = desc;
+    // Render markdown in description
+    const descEl = document.getElementById('modalDescription');
+    if (typeof marked !== 'undefined') {
+        descEl.innerHTML = marked.parse(desc || '');
+    } else {
+        descEl.textContent = desc;
+    }
     
     const badge = document.getElementById('modalTypeBadge');
     const types = {
@@ -1811,7 +1817,7 @@ document.addEventListener('keydown', e => { if (e.key === 'Escape') closeOfferMo
         
         <div class="p-6">
             <div id="modalTypeBadge" class="inline-block px-4 py-2 rounded-full text-sm font-medium mb-4"></div>
-            <p id="modalDescription" class="text-gray-300 mb-6"></p>
+            <div id="modalDescription" class="markdown-content text-gray-300 mb-6"></div>
             
             <div class="bg-dark-300 rounded-xl p-6 mb-6">
                 <div class="flex items-center justify-between">

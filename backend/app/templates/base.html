@@ -12,6 +12,9 @@
     <link rel="icon" type="image/png" sizes="512x512" href="/static/favicon-512.png">
     <meta name="theme-color" content="#0a0a14">
     
+    <!-- Markdown Parser -->
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
         tailwind.config = {
@@ -40,6 +43,81 @@
         .card-hover:hover {
             transform: translateY(-2px);
             box-shadow: 0 10px 40px rgba(102, 126, 234, 0.15);
+        }
+        /* Less rounded corners for frames */
+        .rounded-xl {
+            border-radius: 0.5rem !important; /* 8px instead of 12px */
+        }
+        .rounded-2xl {
+            border-radius: 0.625rem !important; /* 10px instead of 16px */
+        }
+        .rounded-3xl {
+            border-radius: 0.75rem !important; /* 12px instead of 24px */
+        }
+        /* Markdown content styles */
+        .markdown-content strong, .markdown-content b {
+            font-weight: 600;
+            color: #fff;
+        }
+        .markdown-content em, .markdown-content i {
+            font-style: italic;
+        }
+        .markdown-content h1, .markdown-content h2, .markdown-content h3 {
+            font-weight: 700;
+            color: #fff;
+            margin-top: 1rem;
+            margin-bottom: 0.5rem;
+        }
+        .markdown-content h1 { font-size: 1.5rem; }
+        .markdown-content h2 { font-size: 1.25rem; }
+        .markdown-content h3 { font-size: 1.1rem; }
+        .markdown-content ul, .markdown-content ol {
+            margin-left: 1.5rem;
+            margin-top: 0.5rem;
+            margin-bottom: 0.5rem;
+        }
+        .markdown-content ul { list-style-type: disc; }
+        .markdown-content ol { list-style-type: decimal; }
+        .markdown-content li { margin-bottom: 0.25rem; }
+        .markdown-content code {
+            background-color: #1a1a2e;
+            padding: 0.125rem 0.375rem;
+            border-radius: 0.25rem;
+            font-family: monospace;
+            font-size: 0.9em;
+            color: #a78bfa;
+        }
+        .markdown-content pre {
+            background-color: #1a1a2e;
+            padding: 1rem;
+            border-radius: 0.5rem;
+            overflow-x: auto;
+            margin: 0.5rem 0;
+        }
+        .markdown-content pre code {
+            background: none;
+            padding: 0;
+        }
+        .markdown-content blockquote {
+            border-left: 3px solid #a78bfa;
+            padding-left: 1rem;
+            margin: 0.5rem 0;
+            color: #9ca3af;
+            font-style: italic;
+        }
+        .markdown-content a {
+            color: #a78bfa;
+            text-decoration: underline;
+        }
+        .markdown-content a:hover {
+            color: #c4b5fd;
+        }
+        .markdown-content p {
+            margin-bottom: 0.5rem;
+        }
+        .markdown-content hr {
+            border-color: #374151;
+            margin: 1rem 0;
         }
     </style>
     
@@ -365,6 +443,34 @@
             
             btn.disabled = false;
             input.focus();
+        }
+    </script>
+    
+    <!-- Markdown Rendering -->
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Configure marked for security
+            if (typeof marked !== 'undefined') {
+                marked.setOptions({
+                    breaks: true,  // Convert \n to <br>
+                    gfm: true,     // GitHub Flavored Markdown
+                    sanitize: false
+                });
+                
+                // Render all markdown content
+                document.querySelectorAll('.markdown-content').forEach(function(el) {
+                    const rawText = el.getAttribute('data-markdown') || el.textContent;
+                    el.innerHTML = marked.parse(rawText);
+                });
+            }
+        });
+        
+        // Function to render markdown dynamically (for AJAX content)
+        function renderMarkdown(element) {
+            if (typeof marked !== 'undefined' && element) {
+                const rawText = element.getAttribute('data-markdown') || element.textContent;
+                element.innerHTML = marked.parse(rawText);
+            }
         }
     </script>
 </body>
