@@ -24,7 +24,8 @@ GITHUB_LABELS = {
     "feature": {"name": "enhancement", "color": "a2eeef", "description": "New feature or request"},
     "question": {"name": "question", "color": "d876e3", "description": "Further information is requested"},
     "security": {"name": "security", "color": "ff9800", "description": "Security related issue"},
-    "docs": {"name": "documentation", "color": "0075ca", "description": "Improvements or additions to documentation"}
+    "docs": {"name": "documentation", "color": "0075ca", "description": "Improvements or additions to documentation"},
+    "feedback": {"name": "feedback", "color": "9333ea", "description": "General feedback"}
 }
 
 async def ensure_label_exists(
@@ -322,8 +323,13 @@ async def create_comment(
 @router.post("/profile/update")
 async def update_profile(
     request: Request,
+    username: str = Form(""),
     bio: str = Form(""),
     github: str = Form(""),
+    twitter: str = Form(""),
+    linkedin: str = Form(""),
+    website: str = Form(""),
+    email_visible: str = Form(""),
     avatar: UploadFile = File(None),
     db: Session = Depends(get_db)
 ):
@@ -331,8 +337,24 @@ async def update_profile(
     if not user:
         raise HTTPException(status_code=401, detail="Not authenticated")
     
+    # Username Update (nur wenn geändert und verfügbar)
+    if username and username != user.username:
+        # Prüfen ob Username bereits vergeben ist
+        existing_user = db.query(User).filter(User.username == username, User.id != user.id).first()
+        if existing_user:
+            raise HTTPException(status_code=400, detail="Username already taken")
+        # Username validieren (nur alphanumerisch, Unterstriche, Bindestriche)
+        import re
+        if not re.match(r'^[a-zA-Z0-9_-]{3,30}$', username):
+            raise HTTPException(status_code=400, detail="Invalid username. Use 3-30 characters: letters, numbers, _ or -")
+        user.username = username
+    
     user.bio = bio if bio else None
     user.github = github if github else None
+    user.twitter = twitter if twitter else None
+    user.linkedin = linkedin if linkedin else None
+    user.website = website if website else None
+    user.email_visible = email_visible == "on"
     
     if avatar and avatar.filename:
         if avatar.content_type not in ALLOWED_IMAGE_TYPES:
@@ -930,7 +952,7 @@ async def create_issue(
         raise HTTPException(status_code=404, detail="Project not found")
     
     # Validate issue type
-    valid_types = ["bug", "feature", "question", "security", "docs"]
+    valid_types = ["bug", "feature", "question", "security", "docs", "feedback"]
     if issue_type not in valid_types:
         issue_type = "bug"
     

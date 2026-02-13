@@ -4,32 +4,8 @@
 
 {% block content %}
 <div class="min-h-screen">
-    <!-- Navigation -->
-    <nav class="border-b border-gray-800 bg-dark-400/80 backdrop-blur-sm fixed w-full z-50">
-        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div class="flex justify-between h-16 items-center">
-                <a href="/">
-                    <img src="/static/IMG_5015-removebg-preview.png" alt="Xdest" class="h-48 rounded-lg">
-                </a>
-                <div class="flex items-center gap-4">
-                    <a href="/explore" class="text-gray-400 hover:text-white transition">Explore</a>
-                    {% if user %}
-                        <a href="/dashboard" class="text-gray-400 hover:text-white transition">Dashboard</a>
-                        <a href="/user/{{ user.username }}">
-                            <img src="{{ user.avatar or '/static/default-avatar.png' }}" class="w-8 h-8 rounded-full" alt="Avatar">
-                        </a>
-                        <a href="/auth/logout" class="text-gray-400 hover:text-red-400 transition" title="Logout">
-                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"></path>
-                            </svg>
-                        </a>
-                    {% else %}
-                        <a href="/auth/github" class="px-4 py-2 rounded-lg bg-gray-800 hover:bg-gray-700 transition">Sign in</a>
-                    {% endif %}
-                </div>
-            </div>
-        </div>
-    </nav>
+    {% set active_page = 'issues' %}
+    {% include 'partials/nav.html' %}
 
     <main class="pt-24 pb-12 px-4 max-w-5xl mx-auto">
         <!-- Breadcrumb -->
@@ -43,7 +19,7 @@
         <div class="flex items-center justify-between mb-8">
             <div>
                 <h1 class="text-3xl font-bold mb-2">Issues & Feedback</h1>
-                <p class="text-gray-400">Collective feedback für {{ project.name }}</p>
+                <p class="text-gray-400">Community feedback für {{ project.name }}</p>
             </div>
             <div class="flex items-center gap-3">
                 {% if is_owner and project.github_url %}
@@ -61,7 +37,7 @@
                     <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
                     </svg>
-                    New Issue
+                    Issue / Feedback
                 </a>
                 {% endif %}
             </div>
@@ -118,6 +94,10 @@
                class="px-3 py-1.5 rounded-full text-xs font-medium transition {{ 'bg-cyan-600/20 text-cyan-400 border border-cyan-600' if current_type == 'docs' else 'bg-dark-300 text-gray-400 hover:text-white' }}">
                 📚 Documentation
             </a>
+            <a href="/project/{{ project.id }}/issues?issue_type=feedback{{ '&status=' + current_status if current_status else '' }}" 
+               class="px-3 py-1.5 rounded-full text-xs font-medium transition {{ 'bg-purple-600/20 text-purple-400 border border-purple-600' if current_type == 'feedback' else 'bg-dark-300 text-gray-400 hover:text-white' }}">
+                💬 Feedback
+            </a>
         </div>
 
         <!-- Issues List -->
@@ -157,6 +137,8 @@
                                 <span class="px-2 py-0.5 bg-orange-600/20 text-orange-400 text-xs rounded-full">🔒 Security</span>
                             {% elif issue.issue_type == 'docs' %}
                                 <span class="px-2 py-0.5 bg-cyan-600/20 text-cyan-400 text-xs rounded-full">📚 Docs</span>
+                            {% elif issue.issue_type == 'feedback' %}
+                                <span class="px-2 py-0.5 bg-purple-600/20 text-purple-400 text-xs rounded-full">💬 Feedback</span>
                             {% endif %}
                         </div>
                         
@@ -216,9 +198,9 @@
 
 <!-- Footer -->
 <footer class="border-t border-gray-800 bg-gray-950 py-4 px-6 mt-8">
-    <div class="max-w-7xl mx-auto flex justify-between items-center text-xs text-gray-500">
+    <div class="max-w-7xl mx-auto flex flex-col sm:flex-row justify-between items-center gap-2 text-xs text-gray-500">
         <span>© 2026 Xdest</span>
-        <div class="flex gap-4">
+        <div class="flex flex-wrap justify-center gap-4">
             <a href="mailto:aiandfriends@gmail.com" class="hover:text-gray-300 transition">Contact</a>
             <a href="https://x.com/karlbeis" target="_blank" class="hover:text-gray-300 transition">𝕏 @karlbeis</a>
             <a href="/privacy" class="hover:text-gray-300 transition">Privacy</a>

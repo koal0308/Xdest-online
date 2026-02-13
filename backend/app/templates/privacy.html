@@ -4,33 +4,8 @@
 
 {% block content %}
 <div class="min-h-screen bg-dark-200">
-    <!-- Navigation -->
-    <nav class="border-b border-gray-800 bg-dark-400/80 backdrop-blur-sm fixed w-full z-50">
-        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div class="flex justify-between h-16 items-center">
-                <a href="/">
-                    <img src="/static/IMG_5015-removebg-preview.png" alt="Xdest" class="h-48 rounded-lg">
-                </a>
-                <div class="flex items-center gap-4">
-                    <a href="/explore" class="text-gray-400 hover:text-white transition">Explore</a>
-                    <a href="/leaderboard" class="text-gray-400 hover:text-white transition">Leaderboard</a>
-                    {% if user %}
-                        <a href="/dashboard" class="text-gray-400 hover:text-white transition">Dashboard</a>
-                        <a href="/user/{{ user.username }}">
-                            <img src="{{ user.avatar or '/static/default-avatar.png' }}" class="w-8 h-8 rounded-full" alt="Avatar">
-                        </a>
-                        <a href="/auth/logout" class="text-gray-400 hover:text-red-400 transition" title="Logout">
-                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"></path>
-                            </svg>
-                        </a>
-                    {% else %}
-                        <a href="/auth/github" class="px-4 py-2 rounded-lg bg-gray-800 hover:bg-gray-700 transition">Sign in</a>
-                    {% endif %}
-                </div>
-            </div>
-        </div>
-    </nav>
+    {% set active_page = 'privacy' %}
+    {% include 'partials/nav.html' %}
 
     <main class="pt-24 pb-12 max-w-4xl mx-auto px-6">
         <h1 class="text-4xl font-bold mb-8">🔒 Privacy & Data Protection</h1>
@@ -393,9 +368,9 @@
 
 <!-- Footer -->
 <footer class="border-t border-gray-800 bg-gray-950 py-4 px-6 mt-8">
-    <div class="max-w-7xl mx-auto flex justify-between items-center text-xs text-gray-500">
+    <div class="max-w-7xl mx-auto flex flex-col sm:flex-row justify-between items-center gap-2 text-xs text-gray-500">
         <span>© 2026 Xdest</span>
-        <div class="flex gap-4">
+        <div class="flex flex-wrap justify-center gap-4">
             <a href="mailto:aiandfriends@gmail.com" class="hover:text-gray-300 transition">Contact</a>
             <a href="https://x.com/karlbeis" target="_blank" class="hover:text-gray-300 transition">𝕏 @karlbeis</a>
             <a href="/privacy" class="hover:text-gray-300 transition">Privacy</a>

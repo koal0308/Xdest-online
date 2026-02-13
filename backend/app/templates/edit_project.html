@@ -4,25 +4,8 @@
 
 {% block content %}
 <div class="min-h-screen">
-    <!-- Navigation -->
-    <nav class="border-b border-gray-800 bg-dark-400/80 backdrop-blur-sm fixed w-full z-50">
-        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div class="flex justify-between h-16 items-center">
-                <a href="/">
-                    <img src="/static/IMG_5015-removebg-preview.png" alt="Xdest" class="h-48 rounded-lg">
-                </a>
-                <div class="flex items-center gap-4">
-                    <a href="/explore" class="text-gray-400 hover:text-white transition">Explore</a>
-                    {% if user %}
-                        <a href="/dashboard" class="text-gray-400 hover:text-white transition">Dashboard</a>
-                        <a href="/user/{{ user.username }}">
-                            <img src="{{ user.avatar or '/static/default-avatar.png' }}" class="w-8 h-8 rounded-full" alt="Avatar">
-                        </a>
-                    {% endif %}
-                </div>
-            </div>
-        </div>
-    </nav>
+    {% set active_page = 'edit_project' %}
+    {% include 'partials/nav.html' %}
 
     <main class="pt-24 pb-12 px-4 max-w-2xl mx-auto">
         <div class="bg-dark-100 rounded-xl border border-gray-800 p-8">
@@ -173,9 +156,9 @@
 
 <!-- Footer -->
 <footer class="border-t border-gray-800 bg-gray-950 py-4 px-6 mt-8">
-    <div class="max-w-7xl mx-auto flex justify-between items-center text-xs text-gray-500">
+    <div class="max-w-7xl mx-auto flex flex-col sm:flex-row justify-between items-center gap-2 text-xs text-gray-500">
         <span>© 2026 Xdest</span>
-        <div class="flex gap-4">
+        <div class="flex flex-wrap justify-center gap-4">
             <a href="mailto:aiandfriends@gmail.com" class="hover:text-gray-300 transition">Contact</a>
             <a href="https://x.com/karlbeis" target="_blank" class="hover:text-gray-300 transition">𝕏 @karlbeis</a>
             <a href="/privacy" class="hover:text-gray-300 transition">Privacy</a>

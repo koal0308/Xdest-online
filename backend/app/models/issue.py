@@ -10,6 +10,7 @@ class IssueType(str, enum.Enum):
     QUESTION = "question"    # Frage
     SECURITY = "security"    # Sicherheitsproblem
     DOCS = "docs"            # Dokumentation
+    FEEDBACK = "feedback"    # Allgemeines Feedback
 
 class IssueStatus(str, enum.Enum):
     OPEN = "open"

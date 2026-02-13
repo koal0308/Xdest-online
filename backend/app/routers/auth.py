@@ -6,6 +6,7 @@ from app.models.user import User
 from app.auth import oauth
 from app.config import settings
 from app.encryption import encrypt_token
+from datetime import datetime
 import httpx
 
 router = APIRouter(prefix="/auth", tags=["auth"])
@@ -45,6 +46,7 @@ async def github_callback(request: Request, db: Session = Depends(get_db)):
     ).first()
     
     email_to_use = primary_email or github_user.get('email', f"{github_user['id']}@github.local")
+    is_new_user = False
     
     if not user:
         # Check if email already exists (user registered with different provider)
@@ -56,10 +58,14 @@ async def github_callback(request: Request, db: Session = Depends(get_db)):
             existing_user.role = "developer"  # Upgrade to developer when linking GitHub
             if not existing_user.avatar:
                 existing_user.avatar = github_user.get('avatar_url')
+            # Set terms_accepted_at if not already set
+            if not existing_user.terms_accepted_at:
+                existing_user.terms_accepted_at = datetime.utcnow()
             db.commit()
             user = existing_user
         else:
             # Create new user
+            is_new_user = True
             username = github_user.get('login', f"user_{github_user['id']}")
             # Ensure unique username
             base_username = username
@@ -77,7 +83,8 @@ async def github_callback(request: Request, db: Session = Depends(get_db)):
                 bio=github_user.get('bio'),
                 provider="github",
                 provider_id=str(github_user['id']),
-                role="developer"  # GitHub users are developers
+                role="developer",  # GitHub users are developers
+                terms_accepted_at=datetime.utcnow()  # Set when creating new user
             )
             db.add(user)
             db.commit()
@@ -85,6 +92,9 @@ async def github_callback(request: Request, db: Session = Depends(get_db)):
     else:
         # Update token for existing user
         user.github_token = encrypt_token(token['access_token'])
+        # Set terms_accepted_at if not already set (for existing users before this feature)
+        if not user.terms_accepted_at:
+            user.terms_accepted_at = datetime.utcnow()
         db.commit()
     
     # Set session
@@ -120,6 +130,10 @@ async def google_callback(request: Request, db: Session = Depends(get_db)):
         existing_user = db.query(User).filter(User.email == user_info.get('email')).first()
         if existing_user:
             # Link this Google account to existing user by logging them in
+            # Set terms_accepted_at if not already set
+            if not existing_user.terms_accepted_at:
+                existing_user.terms_accepted_at = datetime.utcnow()
+                db.commit()
             user = existing_user
         else:
             # Create new user
@@ -137,11 +151,17 @@ async def google_callback(request: Request, db: Session = Depends(get_db)):
                 avatar=user_info.get('picture'),
                 provider="google",
                 provider_id=str(user_info['sub']),
-                role="tester"  # Google users are testers (cannot create projects)
+                role="tester",  # Google users are testers (cannot create projects)
+                terms_accepted_at=datetime.utcnow()  # Set when creating new user
             )
             db.add(user)
             db.commit()
             db.refresh(user)
+    else:
+        # Set terms_accepted_at if not already set (for existing users before this feature)
+        if not user.terms_accepted_at:
+            user.terms_accepted_at = datetime.utcnow()
+            db.commit()
     
     # Set session
     request.session['user_id'] = user.id

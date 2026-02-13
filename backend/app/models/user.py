@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, Text, DateTime
+from sqlalchemy import Column, Integer, String, Text, DateTime, Boolean
 from sqlalchemy.orm import relationship
 from datetime import datetime
 from app.database import Base
@@ -9,13 +9,18 @@ class User(Base):
     id = Column(Integer, primary_key=True, index=True)
     username = Column(String(100), unique=True, index=True, nullable=False)
     email = Column(String(255), unique=True, index=True, nullable=False)
+    email_visible = Column(Boolean, default=False)  # Email sichtbar auf Profil
     avatar = Column(String(500), nullable=True)
     bio = Column(Text, nullable=True)
     github = Column(String(255), nullable=True)
+    twitter = Column(String(255), nullable=True)  # Twitter/X Profil
+    linkedin = Column(String(255), nullable=True)  # LinkedIn Profil
+    website = Column(String(255), nullable=True)  # Persönliche Website
     github_token = Column(String(500), nullable=True)  # GitHub OAuth Token für API Zugriff
     provider = Column(String(50), nullable=False)  # github, google
     provider_id = Column(String(255), nullable=False)
     role = Column(String(50), default="developer")  # developer (GitHub) oder tester (Google)
+    terms_accepted_at = Column(DateTime, nullable=True)  # Wann AGBs akzeptiert wurden
     created_at = Column(DateTime, default=datetime.utcnow)
     
     projects = relationship("Project", back_populates="owner")

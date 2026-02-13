@@ -1,0 +1,155 @@
+<!-- Navigation -->
+<nav class="border-b border-gray-800 bg-dark-400/80 backdrop-blur-sm fixed w-full z-40">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="flex justify-between h-16 items-center">
+            <a href="/">
+                <img src="/static/IMG_5015-removebg-preview.png" alt="Xdest" class="h-48 rounded-lg">
+            </a>
+            <!-- Desktop Navigation -->
+            <div class="hidden md:flex items-center gap-4">
+                <a href="/explore" class="{% if active_page == 'explore' %}text-white font-medium{% else %}text-gray-400 hover:text-white transition{% endif %}">Explore</a>
+                <a href="/community" class="{% if active_page == 'community' %}text-white font-medium{% else %}text-gray-400 hover:text-white transition{% endif %}">Community</a>
+                <a href="/leaderboard" class="{% if active_page == 'leaderboard' %}text-white font-medium{% else %}text-gray-400 hover:text-white transition{% endif %}">Leaderboard</a>
+                {% if user %}
+                    <a href="/dashboard" class="{% if active_page == 'dashboard' %}text-white font-medium{% else %}text-gray-400 hover:text-white transition{% endif %}">Dashboard</a>
+                    <a href="/user/{{ user.username }}">
+                        <img src="{{ user.avatar or '/static/default-avatar.png' }}" class="w-8 h-8 rounded-full" alt="Avatar">
+                    </a>
+                    <a href="/auth/logout" class="text-gray-400 hover:text-red-400 transition" title="Logout">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"></path>
+                        </svg>
+                    </a>
+                {% else %}
+                    <a href="/auth/github" class="px-4 py-2 rounded-lg bg-gray-800 hover:bg-gray-700 transition">Sign in</a>
+                {% endif %}
+                <!-- Theme Toggle Button Desktop -->
+                <button onclick="toggleTheme()" class="p-2 text-gray-400 hover:text-white transition" title="Toggle theme">
+                    <svg class="w-5 h-5 theme-icon-sun" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"></path>
+                    </svg>
+                    <svg class="w-5 h-5 theme-icon-moon hidden" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"></path>
+                    </svg>
+                    <svg class="w-5 h-5 theme-icon-sand hidden" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 21c.5-4.5 2.5-8 9-9 0 0-3.5 3-3.5 7.5M12 3c5.5 0 9 4.5 9 9 0 6-4.5 9-9 9-1 0-3-.5-4-1"></path>
+                    </svg>
+                </button>
+            </div>
+            <!-- Mobile Menu Button -->
+            <button onclick="toggleMobileNav()" class="md:hidden p-2 text-gray-400 hover:text-white">
+                <svg id="mobileNavOpen" class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path>
+                </svg>
+                <svg id="mobileNavClose" class="w-6 h-6 hidden" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                </svg>
+            </button>
+        </div>
+    </div>
+</nav>
+
+<!-- Mobile Menu Overlay -->
+<div id="mobileNavOverlay" class="md:hidden fixed inset-0 bg-black/80 z-40 hidden touch-none" onclick="toggleMobileNav()"></div>
+
+<!-- Mobile Slide-out Menu -->
+<div id="mobileNavMenu" class="md:hidden fixed top-0 right-0 h-full w-72 bg-dark-100 border-l border-gray-800 z-50 transform translate-x-full transition-transform duration-300 flex flex-col">
+    <div class="p-4 border-b border-gray-800 flex justify-between items-center flex-shrink-0">
+        <span class="text-white font-semibold">Menu</span>
+        <div class="flex items-center gap-2">
+            <!-- Theme Toggle Button Mobile -->
+            <button onclick="toggleTheme()" class="p-2 text-gray-400 hover:text-white transition" title="Toggle theme">
+                <svg class="w-5 h-5 theme-icon-sun" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"></path>
+                </svg>
+                <svg class="w-5 h-5 theme-icon-moon hidden" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"></path>
+                </svg>
+                <svg class="w-5 h-5 theme-icon-sand hidden" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 21c.5-4.5 2.5-8 9-9 0 0-3.5 3-3.5 7.5M12 3c5.5 0 9 4.5 9 9 0 6-4.5 9-9 9-1 0-3-.5-4-1"></path>
+                </svg>
+            </button>
+            <button onclick="toggleMobileNav()" class="p-2 text-gray-400 hover:text-white">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                </svg>
+            </button>
+        </div>
+    </div>
+    <nav class="py-4 flex-1 overflow-y-auto overscroll-contain">
+        <a href="/explore" class="flex items-center gap-3 px-6 py-3 {% if active_page == 'explore' %}bg-purple-600/20 border-r-2 border-purple-500 text-white{% else %}text-gray-400 hover:text-white hover:bg-gray-800/50 transition{% endif %}">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
+            </svg>
+            Explore
+        </a>
+        <a href="/community" class="flex items-center gap-3 px-6 py-3 {% if active_page == 'community' %}bg-purple-600/20 border-r-2 border-purple-500 text-white{% else %}text-gray-400 hover:text-white hover:bg-gray-800/50 transition{% endif %}">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 8h2a2 2 0 012 2v6a2 2 0 01-2 2h-2v4l-4-4H9a1.994 1.994 0 01-1.414-.586m0 0L11 14h4a2 2 0 002-2V6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2v4l.586-.586z"></path>
+            </svg>
+            Community
+        </a>
+        <a href="/leaderboard" class="flex items-center gap-3 px-6 py-3 {% if active_page == 'leaderboard' %}bg-purple-600/20 border-r-2 border-purple-500 text-white{% else %}text-gray-400 hover:text-white hover:bg-gray-800/50 transition{% endif %}">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4M7.835 4.697a3.42 3.42 0 001.946-.806 3.42 3.42 0 014.438 0 3.42 3.42 0 001.946.806 3.42 3.42 0 013.138 3.138 3.42 3.42 0 00.806 1.946 3.42 3.42 0 010 4.438 3.42 3.42 0 00-.806 1.946 3.42 3.42 0 01-3.138 3.138 3.42 3.42 0 00-1.946.806 3.42 3.42 0 01-4.438 0 3.42 3.42 0 00-1.946-.806 3.42 3.42 0 01-3.138-3.138 3.42 3.42 0 00-.806-1.946 3.42 3.42 0 010-4.438 3.42 3.42 0 00.806-1.946 3.42 3.42 0 013.138-3.138z"></path>
+            </svg>
+            Leaderboard
+        </a>
+        <a href="/offers" class="flex items-center gap-3 px-6 py-3 {% if active_page == 'offers' %}bg-purple-600/20 border-r-2 border-purple-500 text-white{% else %}text-gray-400 hover:text-white hover:bg-gray-800/50 transition{% endif %}">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z"></path>
+            </svg>
+            Offers
+        </a>
+        {% if user %}
+        <a href="/dashboard" class="flex items-center gap-3 px-6 py-3 {% if active_page == 'dashboard' %}bg-purple-600/20 border-r-2 border-purple-500 text-white{% else %}text-gray-400 hover:text-white hover:bg-gray-800/50 transition{% endif %}">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"></path>
+            </svg>
+            Dashboard
+        </a>
+        <a href="/user/{{ user.username }}" class="flex items-center gap-3 px-6 py-3 text-gray-400 hover:text-white hover:bg-gray-800/50 transition">
+            <img src="{{ user.avatar or '/static/default-avatar.png' }}" class="w-5 h-5 rounded-full" alt="Avatar">
+            Profile
+        </a>
+        <div class="border-t border-gray-800 mt-4 pt-4">
+            <a href="/auth/logout" class="flex items-center gap-3 px-6 py-3 text-red-400 hover:text-red-300 hover:bg-gray-800/50 transition">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"></path>
+                </svg>
+                Logout
+            </a>
+        </div>
+        {% else %}
+        <div class="border-t border-gray-800 mt-4 pt-4">
+            <a href="/auth/github" class="flex items-center gap-3 px-6 py-3 text-purple-400 hover:text-purple-300 hover:bg-gray-800/50 transition">
+                <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24"><path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/></svg>
+                Sign in
+            </a>
+        </div>
+        {% endif %}
+    </nav>
+</div>
+
+<script>
+function toggleMobileNav() {
+    const menu = document.getElementById('mobileNavMenu');
+    const overlay = document.getElementById('mobileNavOverlay');
+    const openIcon = document.getElementById('mobileNavOpen');
+    const closeIcon = document.getElementById('mobileNavClose');
+    
+    if (menu.classList.contains('translate-x-full')) {
+        menu.classList.remove('translate-x-full');
+        overlay.classList.remove('hidden');
+        openIcon.classList.add('hidden');
+        closeIcon.classList.remove('hidden');
+        document.body.style.overflow = 'hidden';
+    } else {
+        menu.classList.add('translate-x-full');
+        overlay.classList.add('hidden');
+        openIcon.classList.remove('hidden');
+        closeIcon.classList.add('hidden');
+        document.body.style.overflow = '';
+    }
+}
+</script>

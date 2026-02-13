@@ -1,16 +1,32 @@
 <!DOCTYPE html>
-<html lang="en" class="dark">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{% block title %}Xdest{% endblock %}</title>
+    
+    <!-- Theme initialization (prevents flash) -->
+    <script>
+        (function() {
+            const theme = localStorage.getItem('theme') || 'dark';
+            document.documentElement.classList.add(theme);
+        })();
+    </script>
+    
+    <!-- Open Graph / Twitter Meta Tags -->
+    {% block meta_tags %}
+    <meta property="og:type" content="website">
+    <meta property="og:title" content="Xdest - Developer Collaboration Hub">
+    <meta property="og:description" content="The platform for developers to showcase projects, share updates, and connect with the collective.">
+    <meta name="twitter:card" content="summary_large_image">
+    {% endblock %}
     
     <!-- Favicon -->
     <link rel="icon" type="image/png" sizes="32x32" href="/static/favicon.png">
     <link rel="icon" type="image/x-icon" href="/static/favicon.ico">
     <link rel="apple-touch-icon" sizes="192x192" href="/static/favicon-192.png">
     <link rel="icon" type="image/png" sizes="512x512" href="/static/favicon-512.png">
-    <meta name="theme-color" content="#0a0a14">
+    <meta name="theme-color" content="#0a0a14" id="theme-color-meta">
     
     <!-- Markdown Parser -->
     <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
@@ -27,6 +43,18 @@
                             200: '#16213e',
                             300: '#0f0f23',
                             400: '#0a0a14',
+                        },
+                        light: {
+                            100: '#ffffff',
+                            200: '#f8fafc',
+                            300: '#f1f5f9',
+                            400: '#e2e8f0',
+                        },
+                        sand: {
+                            100: '#faf6f1',
+                            200: '#f5ebe0',
+                            300: '#eddfcc',
+                            400: '#e3d5c3',
                         }
                     }
                 }
@@ -34,9 +62,82 @@
         }
     </script>
     <style>
+        /* Dark Mode (default) */
+        .dark body {
+            background-color: #0a0a14;
+            color: #f3f4f6;
+        }
+        
+        /* Light Mode */
+        .light body {
+            background-color: #f8fafc;
+            color: #1f2937;
+        }
+        .light .bg-dark-100 { background-color: #ffffff; }
+        .light .bg-dark-200 { background-color: #f8fafc; }
+        .light .bg-dark-300 { background-color: #f1f5f9; }
+        .light .bg-dark-400 { background-color: #e2e8f0; }
+        .light .bg-dark-400\/80 { background-color: rgba(226, 232, 240, 0.8); }
+        .light .border-gray-800 { border-color: #e5e7eb; }
+        .light .border-gray-700 { border-color: #d1d5db; }
+        .light .text-gray-100 { color: #1f2937; }
+        .light .text-gray-300 { color: #374151; }
+        .light .text-gray-400 { color: #6b7280; }
+        .light .text-gray-500 { color: #9ca3af; }
+        .light .text-white { color: #111827; }
+        .light .hover\:text-white:hover { color: #111827; }
+        .light .bg-gray-800 { background-color: #e5e7eb; }
+        .light .bg-gray-800\/50 { background-color: rgba(229, 231, 235, 0.5); }
+        .light .hover\:bg-gray-800:hover { background-color: #d1d5db; }
+        .light .hover\:bg-gray-800\/50:hover { background-color: rgba(229, 231, 235, 0.5); }
+        .light .bg-gray-700 { background-color: #d1d5db; }
+        .light .hover\:bg-gray-700:hover { background-color: #9ca3af; }
+        .light .bg-gray-950 { background-color: #f1f5f9; }
+        .light .bg-black\/80 { background-color: rgba(0, 0, 0, 0.5); }
+        .light .markdown-content code { background-color: #e5e7eb; color: #7c3aed; }
+        .light .markdown-content pre { background-color: #f1f5f9; }
+        
+        /* Sand Mode */
+        .sand body {
+            background-color: #f5ebe0;
+            color: #44403c;
+        }
+        .sand .bg-dark-100 { background-color: #faf6f1; }
+        .sand .bg-dark-200 { background-color: #f5ebe0; }
+        .sand .bg-dark-300 { background-color: #eddfcc; }
+        .sand .bg-dark-400 { background-color: #e3d5c3; }
+        .sand .bg-dark-400\/80 { background-color: rgba(227, 213, 195, 0.8); }
+        .sand .border-gray-800 { border-color: #d6cbbf; }
+        .sand .border-gray-700 { border-color: #c7b9a8; }
+        .sand .text-gray-100 { color: #292524; }
+        .sand .text-gray-300 { color: #44403c; }
+        .sand .text-gray-400 { color: #78716c; }
+        .sand .text-gray-500 { color: #a8a29e; }
+        .sand .text-white { color: #1c1917; }
+        .sand .hover\:text-white:hover { color: #1c1917; }
+        .sand .bg-gray-800 { background-color: #e7ddd0; }
+        .sand .bg-gray-800\/50 { background-color: rgba(231, 221, 208, 0.5); }
+        .sand .hover\:bg-gray-800:hover { background-color: #d6cbbf; }
+        .sand .hover\:bg-gray-800\/50:hover { background-color: rgba(231, 221, 208, 0.5); }
+        .sand .bg-gray-700 { background-color: #d6cbbf; }
+        .sand .hover\:bg-gray-700:hover { background-color: #c7b9a8; }
+        .sand .bg-gray-950 { background-color: #eddfcc; }
+        .sand .bg-black\/80 { background-color: rgba(28, 25, 23, 0.5); }
+        .sand .markdown-content code { background-color: #e7ddd0; color: #9333ea; }
+        .sand .markdown-content pre { background-color: #eddfcc; }
+        .sand .markdown-content strong, .sand .markdown-content b { color: #1c1917; }
+        .sand .markdown-content h1, .sand .markdown-content h2, .sand .markdown-content h3 { color: #1c1917; }
+        
         body {
             background-color: #0a0a14;
         }
+        .light body {
+            background-color: #f8fafc;
+        }
+        .sand body {
+            background-color: #f5ebe0;
+        }
+        
         .gradient-border {
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
         }
@@ -472,6 +573,66 @@
                 element.innerHTML = marked.parse(rawText);
             }
         }
+    </script>
+    
+    <!-- Theme Toggle Script -->
+    <script>
+        function toggleTheme() {
+            const html = document.documentElement;
+            const themes = ['dark', 'light', 'sand'];
+            let currentTheme = 'dark';
+            
+            // Find current theme
+            for (const theme of themes) {
+                if (html.classList.contains(theme)) {
+                    currentTheme = theme;
+                    break;
+                }
+            }
+            
+            // Get next theme in cycle: dark → light → sand → dark
+            const currentIndex = themes.indexOf(currentTheme);
+            const newTheme = themes[(currentIndex + 1) % themes.length];
+            
+            // Remove all theme classes and add new one
+            themes.forEach(t => html.classList.remove(t));
+            html.classList.add(newTheme);
+            localStorage.setItem('theme', newTheme);
+            
+            // Update theme color meta tag
+            const themeColorMeta = document.getElementById('theme-color-meta');
+            if (themeColorMeta) {
+                const colors = { dark: '#0a0a14', light: '#f8fafc', sand: '#f5ebe0' };
+                themeColorMeta.content = colors[newTheme];
+            }
+            
+            // Update all theme toggle icons
+            updateThemeIcons(newTheme);
+        }
+        
+        function updateThemeIcons(theme) {
+            // Sun icon - shown in dark mode (click for light)
+            document.querySelectorAll('.theme-icon-sun').forEach(el => {
+                el.classList.toggle('hidden', theme !== 'dark');
+            });
+            // Moon icon - shown in light mode (click for sand)
+            document.querySelectorAll('.theme-icon-moon').forEach(el => {
+                el.classList.toggle('hidden', theme !== 'light');
+            });
+            // Sand icon - shown in sand mode (click for dark)
+            document.querySelectorAll('.theme-icon-sand').forEach(el => {
+                el.classList.toggle('hidden', theme !== 'sand');
+            });
+        }
+        
+        // Initialize icons on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            const html = document.documentElement;
+            let currentTheme = 'dark';
+            if (html.classList.contains('light')) currentTheme = 'light';
+            else if (html.classList.contains('sand')) currentTheme = 'sand';
+            updateThemeIcons(currentTheme);
+        });
     </script>
 </body>
 </html>

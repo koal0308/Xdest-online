@@ -4,37 +4,19 @@
 
 {% block content %}
 <div class="min-h-screen">
-    <!-- Navigation -->
-    <nav class="border-b border-gray-800 bg-dark-400/80 backdrop-blur-sm fixed w-full z-50">
-        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div class="flex justify-between h-16 items-center">
-                <a href="/">
-                    <img src="/static/IMG_5015-removebg-preview.png" alt="Xdest" class="h-48 rounded-lg">
-                </a>
-                <div class="flex items-center gap-4">
-                    <a href="/dashboard" class="text-gray-400 hover:text-white transition">Dashboard</a>
-                    <a href="/user/{{ user.username }}">
-                        <img src="{{ user.avatar or '/static/default-avatar.png' }}" class="w-8 h-8 rounded-full" alt="Avatar">
-                    </a>
-                    <a href="/auth/logout" class="text-gray-400 hover:text-red-400 transition" title="Logout">
-                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"></path>
-                        </svg>
-                    </a>
-                </div>
-            </div>
-        </div>
-    </nav>
+    {% set active_page = 'edit_profile' %}
+    {% include 'partials/nav.html' %}
 
     <main class="pt-24 pb-12 px-4 max-w-2xl mx-auto">
-        <div class="bg-dark-100 rounded-xl border border-gray-800 p-8">
-            <h1 class="text-3xl font-bold mb-2">Edit Profile</h1>
-            <p class="text-gray-400 mb-8">Update your profile information</p>
+        <div class="bg-dark-100 rounded-xl border border-gray-800 p-4 sm:p-8">
+            <h1 class="text-2xl sm:text-3xl font-bold mb-2">Edit Profile</h1>
+            <p class="text-gray-400 mb-8 text-sm sm:text-base">Update your profile information</p>
             
             <form action="/api/profile/update" method="POST" enctype="multipart/form-data" class="space-y-6">
-                <div class="flex items-center gap-6">
+                <!-- Avatar Section -->
+                <div class="flex flex-col sm:flex-row items-center gap-4 sm:gap-6">
                     <div class="relative">
-                        <img src="{{ user.avatar or '/static/default-avatar.png' }}" class="w-24 h-24 rounded-full" id="avatarPreview" alt="Avatar">
+                        <img src="{{ user.avatar or '/static/default-avatar.png' }}" class="w-20 h-20 sm:w-24 sm:h-24 rounded-full" id="avatarPreview" alt="Avatar">
                         <label class="absolute bottom-0 right-0 w-8 h-8 bg-purple-600 rounded-full flex items-center justify-center cursor-pointer hover:bg-purple-500 transition">
                             <input type="file" name="avatar" accept="image/*" class="hidden" id="avatarInput">
                             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -43,27 +25,101 @@
                             </svg>
                         </label>
                     </div>
-                    <div>
-                        <h3 class="font-semibold">{{ user.username }}</h3>
+                    <div class="text-center sm:text-left">
                         <p class="text-sm text-gray-400">{{ user.email }}</p>
+                        <p class="text-xs text-gray-500 mt-1">Member since {{ user.created_at.strftime('%B %Y') }}</p>
                     </div>
                 </div>
                 
+                <!-- Username -->
+                <div>
+                    <label class="block text-sm font-medium mb-2">Username</label>
+                    <input type="text" name="username" value="{{ user.username }}"
+                        class="w-full bg-dark-300 border border-gray-700 rounded-lg px-4 py-3 text-white placeholder-gray-500 focus:outline-none focus:border-purple-500"
+                        placeholder="username" pattern="^[a-zA-Z0-9_-]{3,30}$" required>
+                    <p class="text-xs text-gray-500 mt-1">3-30 characters: letters, numbers, _ or -</p>
+                </div>
+                
+                <!-- Bio -->
                 <div>
                     <label class="block text-sm font-medium mb-2">Bio</label>
-                    <textarea name="bio" rows="4"
+                    <textarea name="bio" rows="3"
                         class="w-full bg-dark-300 border border-gray-700 rounded-lg px-4 py-3 text-white placeholder-gray-500 focus:outline-none focus:border-purple-500 resize-none"
                         placeholder="Tell us about yourself...">{{ user.bio or '' }}</textarea>
                 </div>
                 
-                <div>
-                    <label class="block text-sm font-medium mb-2">GitHub Profile URL</label>
-                    <input type="url" name="github" value="{{ user.github or '' }}"
-                        class="w-full bg-dark-300 border border-gray-700 rounded-lg px-4 py-3 text-white placeholder-gray-500 focus:outline-none focus:border-purple-500"
-                        placeholder="https://github.com/username">
+                <!-- Email Visibility -->
+                <div class="flex items-center justify-between p-4 bg-dark-300 rounded-lg border border-gray-700">
+                    <div>
+                        <label class="text-sm font-medium">Show email on profile</label>
+                        <p class="text-xs text-gray-500 mt-1">Allow others to see your email address</p>
+                    </div>
+                    <label class="relative inline-flex items-center cursor-pointer">
+                        <input type="checkbox" name="email_visible" class="sr-only peer" {{ 'checked' if user.email_visible else '' }}>
+                        <div class="w-11 h-6 bg-gray-700 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-purple-500 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-purple-600"></div>
+                    </label>
                 </div>
                 
-                <div class="flex gap-4 pt-4">
+                <!-- Social Media Section -->
+                <div class="border-t border-gray-800 pt-6">
+                    <h3 class="text-lg font-semibold mb-4 flex items-center gap-2">
+                        <svg class="w-5 h-5 text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"></path>
+                        </svg>
+                        Social Links
+                    </h3>
+                    
+                    <div class="space-y-4">
+                        <!-- GitHub -->
+                        <div>
+                            <label class="block text-sm font-medium mb-2 flex items-center gap-2">
+                                <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/></svg>
+                                GitHub
+                            </label>
+                            <input type="url" name="github" value="{{ user.github or '' }}"
+                                class="w-full bg-dark-300 border border-gray-700 rounded-lg px-4 py-3 text-white placeholder-gray-500 focus:outline-none focus:border-purple-500"
+                                placeholder="https://github.com/username">
+                        </div>
+                        
+                        <!-- Twitter/X -->
+                        <div>
+                            <label class="block text-sm font-medium mb-2 flex items-center gap-2">
+                                <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg>
+                                Twitter / X
+                            </label>
+                            <input type="url" name="twitter" value="{{ user.twitter or '' }}"
+                                class="w-full bg-dark-300 border border-gray-700 rounded-lg px-4 py-3 text-white placeholder-gray-500 focus:outline-none focus:border-purple-500"
+                                placeholder="https://x.com/username">
+                        </div>
+                        
+                        <!-- LinkedIn -->
+                        <div>
+                            <label class="block text-sm font-medium mb-2 flex items-center gap-2">
+                                <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433c-1.144 0-2.063-.926-2.063-2.065 0-1.138.92-2.063 2.063-2.063 1.14 0 2.064.925 2.064 2.063 0 1.139-.925 2.065-2.064 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z"/></svg>
+                                LinkedIn
+                            </label>
+                            <input type="url" name="linkedin" value="{{ user.linkedin or '' }}"
+                                class="w-full bg-dark-300 border border-gray-700 rounded-lg px-4 py-3 text-white placeholder-gray-500 focus:outline-none focus:border-purple-500"
+                                placeholder="https://linkedin.com/in/username">
+                        </div>
+                        
+                        <!-- Website -->
+                        <div>
+                            <label class="block text-sm font-medium mb-2 flex items-center gap-2">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9m-9 9a9 9 0 019-9"></path>
+                                </svg>
+                                Website
+                            </label>
+                            <input type="url" name="website" value="{{ user.website or '' }}"
+                                class="w-full bg-dark-300 border border-gray-700 rounded-lg px-4 py-3 text-white placeholder-gray-500 focus:outline-none focus:border-purple-500"
+                                placeholder="https://yourwebsite.com">
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Buttons -->
+                <div class="flex flex-col sm:flex-row gap-4 pt-4">
                     <a href="/user/{{ user.username }}" class="flex-1 px-6 py-3 rounded-lg border border-gray-700 hover:border-gray-600 text-center transition">
                         Cancel
                     </a>
@@ -78,9 +134,9 @@
 
 <!-- Footer -->
 <footer class="border-t border-gray-800 bg-gray-950 py-4 px-6 mt-8">
-    <div class="max-w-7xl mx-auto flex justify-between items-center text-xs text-gray-500">
+    <div class="max-w-7xl mx-auto flex flex-col sm:flex-row justify-between items-center gap-2 text-xs text-gray-500">
         <span>© 2026 Xdest</span>
-        <div class="flex gap-4">
+        <div class="flex flex-wrap justify-center gap-4">
             <a href="mailto:aiandfriends@gmail.com" class="hover:text-gray-300 transition">Contact</a>
             <a href="https://x.com/karlbeis" target="_blank" class="hover:text-gray-300 transition">𝕏 @karlbeis</a>
             <a href="/privacy" class="hover:text-gray-300 transition">Privacy</a>
