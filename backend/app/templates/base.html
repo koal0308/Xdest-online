@@ -70,32 +70,38 @@
         
         /* Light Mode */
         .light body {
-            background-color: #f8fafc;
+            background-color: #ffffff;
             color: #1f2937;
         }
         .light .bg-dark-100 { background-color: #ffffff; }
-        .light .bg-dark-200 { background-color: #f8fafc; }
-        .light .bg-dark-300 { background-color: #f1f5f9; }
-        .light .bg-dark-400 { background-color: #e2e8f0; }
-        .light .bg-dark-400\/80 { background-color: rgba(226, 232, 240, 0.8); }
-        .light .border-gray-800 { border-color: #e5e7eb; }
-        .light .border-gray-700 { border-color: #d1d5db; }
+        .light .bg-dark-200 { background-color: #fafafa; }
+        .light .bg-dark-300 { background-color: #f5f5f5; }
+        .light .bg-dark-400 { background-color: #f0f0f0; }
+        .light .bg-dark-400\/80 { background-color: rgba(240, 240, 240, 0.8); }
+        .light .border-gray-800 { border-color: #d4d4d4; }
+        .light .border-gray-700 { border-color: #a3a3a3; }
         .light .text-gray-100 { color: #1f2937; }
         .light .text-gray-300 { color: #374151; }
-        .light .text-gray-400 { color: #6b7280; }
-        .light .text-gray-500 { color: #9ca3af; }
+        .light .text-gray-400 { color: #4b5563; }
+        .light .text-gray-500 { color: #6b7280; }
+        .light .text-gray-600 { color: #4b5563; }
         .light .text-white { color: #111827; }
         .light .hover\:text-white:hover { color: #111827; }
-        .light .bg-gray-800 { background-color: #e5e7eb; }
-        .light .bg-gray-800\/50 { background-color: rgba(229, 231, 235, 0.5); }
-        .light .hover\:bg-gray-800:hover { background-color: #d1d5db; }
-        .light .hover\:bg-gray-800\/50:hover { background-color: rgba(229, 231, 235, 0.5); }
-        .light .bg-gray-700 { background-color: #d1d5db; }
-        .light .hover\:bg-gray-700:hover { background-color: #9ca3af; }
-        .light .bg-gray-950 { background-color: #f1f5f9; }
+        .light .bg-gray-800 { background-color: #f0f0f0; }
+        .light .bg-gray-800\/50 { background-color: rgba(240, 240, 240, 0.5); }
+        .light .hover\:bg-gray-800:hover { background-color: #e5e5e5; }
+        .light .hover\:bg-gray-800\/50:hover { background-color: rgba(240, 240, 240, 0.5); }
+        .light .bg-gray-700 { background-color: #e5e5e5; }
+        .light .hover\:bg-gray-700:hover { background-color: #d4d4d4; }
+        .light .bg-gray-950 { background-color: #fafafa; }
         .light .bg-black\/80 { background-color: rgba(0, 0, 0, 0.5); }
-        .light .markdown-content code { background-color: #e5e7eb; color: #7c3aed; }
-        .light .markdown-content pre { background-color: #f1f5f9; }
+        .light .markdown-content { color: #374151; }
+        .light .markdown-content code { background-color: #f0f0f0; color: #7c3aed; }
+        .light .markdown-content pre { background-color: #f5f5f5; }
+        .light .markdown-content strong, .light .markdown-content b { color: #111827; }
+        .light .markdown-content h1, .light .markdown-content h2, .light .markdown-content h3, .light .markdown-content h4 { color: #111827; }
+        .light .markdown-content a { color: #7c3aed; }
+        .light .markdown-content li::marker { color: #6b7280; }
         
         /* Sand Mode */
         .sand body {
@@ -107,12 +113,13 @@
         .sand .bg-dark-300 { background-color: #eddfcc; }
         .sand .bg-dark-400 { background-color: #e3d5c3; }
         .sand .bg-dark-400\/80 { background-color: rgba(227, 213, 195, 0.8); }
-        .sand .border-gray-800 { border-color: #d6cbbf; }
-        .sand .border-gray-700 { border-color: #c7b9a8; }
+        .sand .border-gray-800 { border-color: #b8a994; }
+        .sand .border-gray-700 { border-color: #a89a84; }
         .sand .text-gray-100 { color: #292524; }
         .sand .text-gray-300 { color: #44403c; }
-        .sand .text-gray-400 { color: #78716c; }
-        .sand .text-gray-500 { color: #a8a29e; }
+        .sand .text-gray-400 { color: #57534e; }
+        .sand .text-gray-500 { color: #78716c; }
+        .sand .text-gray-600 { color: #57534e; }
         .sand .text-white { color: #1c1917; }
         .sand .hover\:text-white:hover { color: #1c1917; }
         .sand .bg-gray-800 { background-color: #e7ddd0; }
@@ -123,9 +130,13 @@
         .sand .hover\:bg-gray-700:hover { background-color: #c7b9a8; }
         .sand .bg-gray-950 { background-color: #eddfcc; }
         .sand .bg-black\/80 { background-color: rgba(28, 25, 23, 0.5); }
+        .sand .markdown-content { color: #44403c; }
         .sand .markdown-content code { background-color: #e7ddd0; color: #9333ea; }
         .sand .markdown-content pre { background-color: #eddfcc; }
         .sand .markdown-content strong, .sand .markdown-content b { color: #1c1917; }
+        .sand .markdown-content h1, .sand .markdown-content h2, .sand .markdown-content h3, .sand .markdown-content h4 { color: #1c1917; }
+        .sand .markdown-content a { color: #9333ea; }
+        .sand .markdown-content li::marker { color: #78716c; }
         .sand .markdown-content h1, .sand .markdown-content h2, .sand .markdown-content h3 { color: #1c1917; }
         
         body {

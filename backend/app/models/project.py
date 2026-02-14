@@ -18,6 +18,7 @@ class Project(Base):
     plausible_domain = Column(String(200), nullable=True)  # z.B. myproject.com
     plausible_api_key = Column(String(100), nullable=True)  # Plausible API Key für Stats
     created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     
     owner = relationship("User", back_populates="projects")
     posts = relationship("Post", back_populates="project", cascade="all, delete-orphan")

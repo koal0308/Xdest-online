@@ -247,6 +247,10 @@ async def edit_project(
         # Save new image
         project.image = save_upload(image, "projects")
     
+    # Update timestamp for cache-busting on social media
+    from datetime import datetime
+    project.updated_at = datetime.utcnow()
+    
     db.commit()
     
     return RedirectResponse(url=f"/project/{project.id}", status_code=302)
@@ -291,6 +295,54 @@ async def create_post(
         media_type=media_type
     )
     db.add(post)
+    db.commit()
+    
+    return RedirectResponse(url=f"/project/{project_id}", status_code=302)
+
+@router.post("/post/{post_id}/edit")
+async def edit_post(
+    post_id: int,
+    request: Request,
+    content: str = Form(...),
+    db: Session = Depends(get_db)
+):
+    user = await get_current_user(request, db)
+    if not user:
+        raise HTTPException(status_code=401, detail="Not authenticated")
+    
+    post = db.query(Post).filter(Post.id == post_id).first()
+    if not post:
+        raise HTTPException(status_code=404, detail="Post not found")
+    
+    # Nur der Autor des Posts kann ihn bearbeiten
+    if post.user_id != user.id:
+        raise HTTPException(status_code=403, detail="Not authorized - you can only edit your own posts")
+    
+    post.content = content
+    db.commit()
+    
+    return RedirectResponse(url=f"/project/{post.project_id}", status_code=302)
+
+@router.post("/post/{post_id}/delete")
+async def delete_post(
+    post_id: int,
+    request: Request,
+    db: Session = Depends(get_db)
+):
+    user = await get_current_user(request, db)
+    if not user:
+        raise HTTPException(status_code=401, detail="Not authenticated")
+    
+    post = db.query(Post).filter(Post.id == post_id).first()
+    if not post:
+        raise HTTPException(status_code=404, detail="Post not found")
+    
+    # Nur der Autor des Posts kann ihn löschen
+    if post.user_id != user.id:
+        raise HTTPException(status_code=403, detail="Not authorized - you can only delete your own posts")
+    
+    project_id = post.project_id
+    db.delete(post)
     db.commit()
     
     return RedirectResponse(url=f"/project/{project_id}", status_code=302)
@@ -345,9 +397,11 @@ async def update_profile(
             raise HTTPException(status_code=400, detail="Username already taken")
         # Username validieren (nur alphanumerisch, Unterstriche, Bindestriche)
         import re
-        if not re.match(r'^[a-zA-Z0-9_-]{3,30}$', username):
-            raise HTTPException(status_code=400, detail="Invalid username. Use 3-30 characters: letters, numbers, _ or -")
-        user.username = username
+        # Entferne @ am Anfang falls vorhanden
+        clean_username = username.lstrip('@')
+        if not re.match(r'^[a-zA-Z0-9_-]{3,30}$', clean_username):
+            raise HTTPException(status_code=400, detail="Invalid username. Use 3-30 characters: letters, numbers, _ or - (no @ symbol)")
+        user.username = clean_username
     
     user.bio = bio if bio else None
     user.github = github if github else None
