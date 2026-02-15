@@ -40,7 +40,10 @@ async def dashboard(request: Request, db: Session = Depends(get_db)):
     # Count unread issues and responses for notifications
     unread_issues_count = 0
     unread_responses_count = 0
+    unread_comments_count = 0
     unread_issues = []
+    project_comment_counts = {}  # {project_id: count}
+    
     if project_ids:
         # Unread issues on user's projects
         unread_issues = db.query(Issue).filter(
@@ -54,8 +57,22 @@ async def dashboard(request: Request, db: Session = Depends(get_db)):
             Issue.project_id.in_(project_ids),
             IssueResponse.is_read_by_owner == False
         ).count()
+        
+        # Unread comments on posts of user's projects
+        from app.models.comment import Comment
+        from app.models.post import Post
+        unread_comments = db.query(Comment, Post.project_id).join(Post).filter(
+            Post.project_id.in_(project_ids),
+            Comment.is_read_by_owner == False,
+            Comment.user_id != user.id  # Don't count own comments
+        ).all()
+        unread_comments_count = len(unread_comments)
+        
+        # Group by project for badges
+        for comment, proj_id in unread_comments:
+            project_comment_counts[proj_id] = project_comment_counts.get(proj_id, 0) + 1
     
-    total_notifications = unread_issues_count + unread_responses_count
+    total_notifications = unread_issues_count + unread_responses_count + unread_comments_count
     
     return templates.TemplateResponse("dashboard.html", {
         "request": request,
@@ -65,6 +82,8 @@ async def dashboard(request: Request, db: Session = Depends(get_db)):
         "unread_issues": unread_issues,
         "unread_issues_count": unread_issues_count,
         "unread_responses_count": unread_responses_count,
+        "unread_comments_count": unread_comments_count,
+        "project_comment_counts": project_comment_counts,
         "total_notifications": total_notifications
     })
 
@@ -97,6 +116,16 @@ async def project_page(project_id: int, request: Request, db: Session = Depends(
     
     posts = db.query(Post).filter(Post.project_id == project_id).order_by(Post.created_at.desc()).all()
     is_owner = user and user.id == project.user_id
+    
+    # Mark all comments on this project's posts as read if the owner is viewing
+    if is_owner:
+        post_ids = [post.id for post in posts]
+        if post_ids:
+            db.query(Comment).filter(
+                Comment.post_id.in_(post_ids),
+                Comment.is_read_by_owner == False
+            ).update({Comment.is_read_by_owner: True}, synchronize_session=False)
+            db.commit()
     
     # Fetch GitHub repo info if URL exists
     github_info = None

@@ -20,6 +20,61 @@
             <!-- Wird per JavaScript gefüllt -->
         </div>
 
+        {% if user %}
+        <!-- Personal Stats Section -->
+        <div class="bg-dark-100 rounded-xl border border-gray-800 p-6 mb-8" id="my-stats-section">
+            <div class="flex items-center justify-between mb-4">
+                <h2 class="text-xl font-bold flex items-center gap-2">
+                    <span>👤</span> Your Stats
+                </h2>
+                <div id="my-rank" class="text-lg font-bold text-gray-400">Loading...</div>
+            </div>
+            
+            <!-- Points Breakdown -->
+            <div class="grid grid-cols-2 md:grid-cols-5 gap-3 mb-6" id="my-breakdown">
+                <div class="bg-dark-200 rounded-lg p-3 text-center border border-gray-800">
+                    <div class="text-2xl mb-1">✅</div>
+                    <div class="text-xs text-gray-400">Solutions</div>
+                    <div class="font-bold text-green-400" id="stat-solutions">-</div>
+                </div>
+                <div class="bg-dark-200 rounded-lg p-3 text-center border border-gray-800">
+                    <div class="text-2xl mb-1">👍</div>
+                    <div class="text-xs text-gray-400">Response Votes</div>
+                    <div class="font-bold text-blue-400" id="stat-response-helpful">-</div>
+                </div>
+                <div class="bg-dark-200 rounded-lg p-3 text-center border border-gray-800">
+                    <div class="text-2xl mb-1">📝</div>
+                    <div class="text-xs text-gray-400">Issue Votes</div>
+                    <div class="font-bold text-yellow-400" id="stat-issue-helpful">-</div>
+                </div>
+                <div class="bg-dark-200 rounded-lg p-3 text-center border border-gray-800">
+                    <div class="text-2xl mb-1">🐙</div>
+                    <div class="text-xs text-gray-400">GitHub</div>
+                    <div class="font-bold text-purple-400" id="stat-github">-</div>
+                </div>
+                <div class="bg-dark-200 rounded-lg p-3 text-center border border-gray-800">
+                    <div class="text-2xl mb-1">⭐</div>
+                    <div class="text-xs text-gray-400">5-Star Ratings</div>
+                    <div class="font-bold text-yellow-400" id="stat-five-star">-</div>
+                </div>
+            </div>
+            
+            <!-- Total Score -->
+            <div class="flex items-center justify-between bg-dark-200 rounded-lg p-4 mb-4 border border-gray-800">
+                <span class="text-gray-400">Total Score</span>
+                <span class="text-3xl font-bold bg-gradient-to-r from-purple-400 to-pink-500 bg-clip-text text-transparent" id="my-total-score">-</span>
+            </div>
+            
+            <!-- Recent Activity -->
+            <div>
+                <h3 class="text-sm font-semibold text-gray-400 mb-3">Recent Point Activity</h3>
+                <div id="recent-activities" class="space-y-2">
+                    <div class="text-center text-gray-500 text-sm py-2">Loading...</div>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+
         <!-- Full Leaderboard -->
         <div class="bg-dark-100 rounded-xl border border-gray-800 overflow-hidden">
             <div class="p-4 border-b border-gray-800 bg-dark-200">
@@ -96,7 +151,101 @@
 </footer>
 
 <script>
+{% if user %}
+async function loadMyStats() {
+    try {
+        const response = await fetch('/api/leaderboard/my-stats', {
+            credentials: 'include'
+        });
+        if (!response.ok) {
+            console.log('My stats response not ok:', response.status);
+            return;
+        }
+        
+        const data = await response.json();
+        
+        // Rank
+        const rankEl = document.getElementById('my-rank');
+        if (data.rank) {
+            const rankEmoji = data.rank === 1 ? '🥇' : data.rank === 2 ? '🥈' : data.rank === 3 ? '🥉' : '#';
+            rankEl.innerHTML = `Rank: ${rankEmoji}${data.rank <= 3 ? '' : data.rank}`;
+        } else {
+            rankEl.innerHTML = 'Not ranked yet';
+        }
+        
+        // Breakdown
+        document.getElementById('stat-solutions').textContent = 
+            `${data.breakdown.solutions.count} (${data.breakdown.solutions.points > 0 ? '+' : ''}${data.breakdown.solutions.points})`;
+        document.getElementById('stat-response-helpful').textContent = 
+            `${data.breakdown.response_helpful.count} (${data.breakdown.response_helpful.points > 0 ? '+' : ''}${data.breakdown.response_helpful.points})`;
+        document.getElementById('stat-issue-helpful').textContent = 
+            `${data.breakdown.issue_helpful.count} (${data.breakdown.issue_helpful.points > 0 ? '+' : ''}${data.breakdown.issue_helpful.points})`;
+        
+        const ghPoints = data.breakdown.github_reactions.points;
+        document.getElementById('stat-github').textContent = 
+            `+${data.breakdown.github_reactions.positive}/-${data.breakdown.github_reactions.negative} (${ghPoints >= 0 ? '+' : ''}${ghPoints})`;
+        
+        document.getElementById('stat-five-star').textContent = 
+            `${data.breakdown.five_star_ratings.count} (+${data.breakdown.five_star_ratings.points})`;
+        
+        // Total Score
+        document.getElementById('my-total-score').textContent = data.total_score;
+        
+        // Recent Activities
+        const activitiesEl = document.getElementById('recent-activities');
+        if (data.recent_activities.length === 0) {
+            activitiesEl.innerHTML = `
+                <div class="text-center text-gray-500 text-sm py-4">
+                    <p>No point activity yet</p>
+                    <p class="mt-1">Report issues, give helpful answers!</p>
+                </div>
+            `;
+        } else {
+            activitiesEl.innerHTML = data.recent_activities.map(activity => {
+                const typeIcons = {
+                    'solution': '✅',
+                    'response_helpful': '👍',
+                    'issue_helpful': '📝',
+                    'five_star': '⭐'
+                };
+                const typeColors = {
+                    'solution': 'text-green-400',
+                    'response_helpful': 'text-blue-400',
+                    'issue_helpful': 'text-yellow-400',
+                    'five_star': 'text-yellow-400'
+                };
+                
+                const date = activity.created_at ? new Date(activity.created_at).toLocaleDateString() : '';
+                
+                return `
+                    <div class="flex items-center gap-3 bg-dark-100/30 rounded-lg p-3 text-sm">
+                        <span class="text-xl">${typeIcons[activity.type] || '🎯'}</span>
+                        <div class="flex-1 min-w-0">
+                            <p class="truncate">${activity.description}</p>
+                            ${activity.project ? `<p class="text-xs text-gray-500">${activity.project}</p>` : ''}
+                        </div>
+                        <div class="text-right flex-shrink-0">
+                            <span class="${typeColors[activity.type] || 'text-purple-400'} font-bold">+${activity.points}</span>
+                            <p class="text-xs text-gray-500">${date}</p>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+        
+    } catch (error) {
+        console.error('Error loading my stats:', error);
+    }
+}
+{% endif %}
+
 document.addEventListener('DOMContentLoaded', async function() {
+    // Load personal stats if logged in
+    {% if user %}
+    loadMyStats();
+    {% endif %}
+    
+    // Load leaderboard
     try {
         const response = await fetch('/api/leaderboard');
         const data = await response.json();

@@ -97,7 +97,7 @@
                 <div class="flex items-center gap-3 mb-4">
                     <span class="text-gray-400 text-sm">Share:</span>
                     <!-- X (Twitter) -->
-                    <a href="https://twitter.com/intent/tweet?text={{ project.name | urlencode }}%20-%20Check%20it%20out%20on%20Xdest!&url=https://xdest.dev/project/{{ project.id }}" 
+                    <a href="https://twitter.com/intent/tweet?text={{ project.name | urlencode }}%20-%20Check%20it%20out%20on%20Xdest!{% if project.twitter_handle %}%20via%20%40{{ project.twitter_handle | urlencode }}{% endif %}&url=https://xdest.dev/project/{{ project.id }}" 
                        target="_blank" rel="noopener noreferrer"
                        class="p-2 rounded-lg bg-dark-200 hover:bg-gray-700 border border-gray-700 transition" title="Share on X">
                         <svg class="w-5 h-5" viewBox="0 0 24 24" fill="currentColor">
@@ -129,7 +129,7 @@
                         </svg>
                     </a>
                     <!-- Farcaster -->
-                    <a href="https://warpcast.com/~/compose?text={{ project.name | urlencode }}%20-%20Check%20it%20out!%20https://xdest.dev/project/{{ project.id }}" 
+                    <a href="https://warpcast.com/~/compose?text={{ project.name | urlencode }}%20-%20Check%20it%20out!{% if project.farcaster_handle %}%20via%20%40{{ project.farcaster_handle | urlencode }}{% endif %}%20https://xdest.dev/project/{{ project.id }}" 
                        target="_blank" rel="noopener noreferrer"
                        class="p-2 rounded-lg bg-dark-200 hover:bg-purple-700 border border-gray-700 transition" title="Share on Farcaster">
                         <svg class="w-5 h-5" viewBox="0 0 1000 1000" fill="currentColor">
@@ -175,6 +175,8 @@
                     {% endif %}
                 </div>
 
+                <!-- DEBUG: is_owner={{ is_owner }}, plausible_domain={{ project.plausible_domain }}, has_key={{ project.plausible_api_key|length if project.plausible_api_key else 0 }} -->
+                
                 <!-- Analytics Dashboard (nur für Owner wenn konfiguriert) -->
                 {% if is_owner and project.plausible_domain and project.plausible_api_key %}
                 <div id="analytics-dashboard" class="mb-4 p-4 bg-dark-200 rounded-lg border border-gray-700">
@@ -360,6 +362,27 @@
                         <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24"><path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/></svg>
                         Connect GitHub Repo
                     </button>
+                    {% endif %}
+                    
+                    <!-- Project Social Media Links -->
+                    {% if project.twitter_handle %}
+                    <a href="https://x.com/{{ project.twitter_handle }}" target="_blank" class="inline-flex items-center gap-2 px-4 py-2 bg-dark-300 hover:bg-gray-700 rounded-lg transition border border-gray-700" title="Follow on X">
+                        <svg class="w-5 h-5" viewBox="0 0 24 24" fill="currentColor">
+                            <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/>
+                        </svg>
+                        @{{ project.twitter_handle }}
+                    </a>
+                    {% endif %}
+                    
+                    {% if project.farcaster_handle %}
+                    <a href="https://warpcast.com/{{ project.farcaster_handle }}" target="_blank" class="inline-flex items-center gap-2 px-4 py-2 bg-dark-300 hover:bg-purple-700/30 rounded-lg transition border border-gray-700" title="Follow on Farcaster">
+                        <svg class="w-5 h-5" viewBox="0 0 1000 1000" fill="currentColor">
+                            <path d="M257.778 155.556H742.222V844.444H671.111V528.889H670.414C662.554 441.677 589.258 373.333 500 373.333C410.742 373.333 337.446 441.677 329.586 528.889H328.889V844.444H257.778V155.556Z"/>
+                            <path d="M128.889 253.333L157.778 351.111H182.222V746.667C169.949 746.667 160 756.616 160 768.889V795.556H155.556C143.283 795.556 133.333 805.505 133.333 817.778V844.444H382.222V817.778C382.222 805.505 372.273 795.556 360 795.556H355.556V768.889C355.556 756.616 345.606 746.667 333.333 746.667H306.667V253.333H128.889Z"/>
+                            <path d="M693.333 746.667C681.06 746.667 671.111 756.616 671.111 768.889V795.556H666.667C654.394 795.556 644.444 805.505 644.444 817.778V844.444H893.333V817.778C893.333 805.505 883.384 795.556 871.111 795.556H866.667V768.889C866.667 756.616 856.717 746.667 844.444 746.667V351.111H868.889L897.778 253.333H720V746.667H693.333Z"/>
+                        </svg>
+                        @{{ project.farcaster_handle }}
+                    </a>
                     {% endif %}
                     
                     <!-- Issues Link -->
@@ -644,12 +667,23 @@
                         <h4 class="text-sm font-semibold text-gray-400 mb-3">Comments ({{ post.comments|length }})</h4>
                         
                         {% for comment in post.comments %}
-                        <div class="flex gap-3 mb-3 pl-4 border-l-2 border-gray-700">
+                        <div id="comment-{{ comment.id }}" class="flex gap-3 mb-3 pl-4 border-l-2 border-gray-700">
                             <img src="{{ comment.author.avatar or '/static/default-avatar.png' }}" class="w-8 h-8 rounded-full" alt="">
-                            <div>
+                            <div class="flex-1">
                                 <div class="flex items-center gap-2">
                                     <a href="/user/{{ comment.author.username }}" class="font-semibold text-sm hover:text-purple-400 transition">{{ comment.author.username }}</a>
                                     <span class="text-xs text-gray-500">{{ comment.created_at.strftime('%b %d, %Y') }}</span>
+                                    {% if user and user.id == comment.user_id %}
+                                    <!-- Share Comment Button -->
+                                    <button class="share-comment-btn ml-auto p-1.5 rounded-lg text-gray-500 hover:text-purple-400 hover:bg-gray-800/50 transition" 
+                                            data-comment-id="{{ comment.id }}"
+                                            data-comment-text="{{ comment.content }}"
+                                            title="Share your comment">
+                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z"/>
+                                        </svg>
+                                    </button>
+                                    {% endif %}
                                 </div>
                                 <p class="text-gray-300 text-sm">{{ comment.content }}</p>
                             </div>
@@ -1372,19 +1406,42 @@ document.addEventListener('DOMContentLoaded', async function() {
 const analyticsProjectId = {{ project.id }};
 
 async function loadAnalytics() {
+    console.log('loadAnalytics() called');
     const loading = document.getElementById('analytics-loading');
     const error = document.getElementById('analytics-error');
     const content = document.getElementById('analytics-content');
     
-    if (!loading) return; // Dashboard nicht vorhanden
+    console.log('Analytics elements:', { loading: !!loading, error: !!error, content: !!content });
+    
+    if (!loading) {
+        console.log('Analytics dashboard not found - you might not be the owner');
+        return; // Dashboard nicht vorhanden
+    }
     
     loading.classList.remove('hidden');
     error.classList.add('hidden');
     content.classList.add('hidden');
     
     try {
-        const resp = await fetch(`/api/project/${analyticsProjectId}/analytics`);
+        console.log('Fetching analytics for project:', analyticsProjectId);
+        
+        // Add timeout to fetch
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 35000); // 35 second timeout
+        
+        const resp = await fetch(`/api/project/${analyticsProjectId}/analytics`, {
+            signal: controller.signal
+        });
+        clearTimeout(timeoutId);
+        
+        console.log('Response status:', resp.status, resp.statusText);
+        
+        if (!resp.ok) {
+            throw new Error(`HTTP ${resp.status}: ${resp.statusText}`);
+        }
+        
         const data = await resp.json();
+        console.log('Analytics data received:', data);
         
         if (data.error) {
             throw new Error(data.message || 'Analytics nicht konfiguriert');
@@ -1395,10 +1452,19 @@ async function loadAnalytics() {
         
         // Aggregate Stats
         const agg = data.aggregate || {};
-        document.getElementById('stat-visitors').textContent = formatNumber(agg.visitors?.value) || '-';
-        document.getElementById('stat-pageviews').textContent = formatNumber(agg.pageviews?.value) || '-';
+        const visitors = agg.visitors?.value || 0;
+        const pageviews = agg.pageviews?.value || 0;
+        
+        document.getElementById('stat-visitors').textContent = formatNumber(visitors) || '-';
+        document.getElementById('stat-pageviews').textContent = formatNumber(pageviews) || '-';
         document.getElementById('stat-bounce').textContent = agg.bounce_rate?.value ? `${Math.round(agg.bounce_rate.value)}%` : '-';
         document.getElementById('stat-duration').textContent = agg.visit_duration?.value ? formatDuration(agg.visit_duration.value) : '-';
+        
+        // If no data at all, show a helpful message
+        const hasNoData = visitors === 0 && pageviews === 0 && (!data.timeseries || data.timeseries.length === 0);
+        if (hasNoData) {
+            console.log('Analytics: No data available yet. Data received:', data);
+        }
         
         // Chart
         renderVisitorsChart(data.timeseries || []);
@@ -1443,8 +1509,10 @@ function formatDuration(seconds) {
 function renderVisitorsChart(timeseries) {
     const chart = document.getElementById('visitors-chart');
     const chartTitle = document.getElementById('visitors-chart-title');
-    if (!chart || timeseries.length === 0) {
-        if (chart) chart.innerHTML = '<p class="text-gray-500 text-sm text-center py-8">No data available</p>';
+    if (!chart) return;
+    
+    if (!timeseries || timeseries.length === 0) {
+        chart.innerHTML = '<p class="text-gray-500 text-sm text-center py-8">📊 No visitor data available yet. Data will appear once visitors are tracked.</p>';
         return;
     }
     
@@ -1521,8 +1589,10 @@ function renderVisitorsChart(timeseries) {
 
 function renderHourlyLineChart(hourlyData) {
     const chart = document.getElementById('hourly-line-chart');
-    if (!chart || hourlyData.length === 0) {
-        if (chart) chart.innerHTML = '<p style="color: #6b7280; font-size: 14px; text-align: center; padding: 20px;">No hourly data available</p>';
+    if (!chart) return;
+    
+    if (!hourlyData || hourlyData.length === 0) {
+        chart.innerHTML = '<p style="color: #6b7280; font-size: 14px; text-align: center; padding: 20px;">📈 No hourly data available yet</p>';
         return;
     }
     
@@ -1911,6 +1981,108 @@ document.addEventListener('DOMContentLoaded', function() {
             openEditPostModal(postId, content);
         });
     });
+    
+    // Add click handlers to share comment buttons
+    document.querySelectorAll('.share-comment-btn').forEach(btn => {
+        btn.addEventListener('click', function() {
+            const commentId = this.dataset.commentId;
+            const commentText = this.dataset.commentText;
+            openCommentShareModal(commentId, commentText);
+        });
+    });
+});
+
+// Comment Share Modal
+const projectTwitterHandle = '{{ project.twitter_handle or "" }}';
+const projectFarcasterHandle = '{{ project.farcaster_handle or "" }}';
+
+function openCommentShareModal(commentId, commentText) {
+    const modal = document.getElementById('commentShareModal');
+    const textarea = document.getElementById('commentShareText');
+    const projectName = '{{ project.name | replace("'", "\\'") }}';
+    const truncatedComment = commentText.length > 100 ? commentText.substring(0, 100) + '...' : commentText;
+    
+    // Set the share text
+    textarea.value = `"${truncatedComment}" - My comment on ${projectName}`;
+    
+    // Store data for share functions
+    modal.dataset.commentId = commentId;
+    modal.dataset.projectId = '{{ project.id }}';
+    
+    modal.classList.remove('hidden');
+    modal.classList.add('flex');
+    document.body.style.overflow = 'hidden';
+}
+
+function closeCommentShareModal() {
+    const modal = document.getElementById('commentShareModal');
+    modal.classList.add('hidden');
+    modal.classList.remove('flex');
+    document.body.style.overflow = '';
+}
+
+function shareCommentToX() {
+    const modal = document.getElementById('commentShareModal');
+    let text = document.getElementById('commentShareText').value;
+    const commentId = modal.dataset.commentId;
+    const projectId = modal.dataset.projectId;
+    const url = `https://xdest.dev/project/${projectId}#comment-${commentId}`;
+    
+    // Add "via @handle" if project has Twitter handle
+    if (projectTwitterHandle) {
+        text += ` via @${projectTwitterHandle}`;
+    }
+    
+    window.open(`https://x.com/intent/tweet?text=${encodeURIComponent(text)}&url=${encodeURIComponent(url)}`, '_blank', 'width=550,height=420');
+    closeCommentShareModal();
+}
+
+function shareCommentToLinkedIn() {
+    const modal = document.getElementById('commentShareModal');
+    const commentId = modal.dataset.commentId;
+    const projectId = modal.dataset.projectId;
+    const url = `https://xdest.dev/project/${projectId}#comment-${commentId}`;
+    window.open(`https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(url)}`, '_blank', 'width=550,height=420');
+    closeCommentShareModal();
+}
+
+function shareCommentToFarcaster() {
+    const modal = document.getElementById('commentShareModal');
+    let text = document.getElementById('commentShareText').value;
+    const commentId = modal.dataset.commentId;
+    const projectId = modal.dataset.projectId;
+    const url = `https://xdest.dev/project/${projectId}#comment-${commentId}`;
+    
+    // Add "via @handle" if project has Farcaster handle
+    if (projectFarcasterHandle) {
+        text += ` via @${projectFarcasterHandle}`;
+    }
+    
+    window.open(`https://warpcast.com/~/compose?text=${encodeURIComponent(text + ' ' + url)}`, '_blank', 'width=550,height=420');
+    closeCommentShareModal();
+}
+
+function copyCommentLink() {
+    const modal = document.getElementById('commentShareModal');
+    const commentId = modal.dataset.commentId;
+    const projectId = modal.dataset.projectId;
+    const url = `https://xdest.dev/project/${projectId}#comment-${commentId}`;
+    navigator.clipboard.writeText(url).then(() => {
+        // Show success feedback
+        const btn = document.getElementById('copyCommentLinkBtn');
+        const originalText = btn.innerHTML;
+        btn.innerHTML = '<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg> Copied!';
+        btn.classList.add('text-green-400');
+        setTimeout(() => {
+            btn.innerHTML = originalText;
+            btn.classList.remove('text-green-400');
+        }, 2000);
+    });
+}
+
+// Close comment share modal on backdrop click
+document.getElementById('commentShareModal')?.addEventListener('click', function(e) {
+    if (e.target === this) closeCommentShareModal();
 });
 
 // Close on backdrop click
@@ -1920,7 +2092,78 @@ document.getElementById('editPostModal')?.addEventListener('click', function(e) 
 
 // Close on Escape key
 document.addEventListener('keydown', function(e) {
-    if (e.key === 'Escape') closeEditPostModal();
+    if (e.key === 'Escape') {
+        closeEditPostModal();
+        closeCommentShareModal();
+    }
 });
 </script>
+
+<!-- Comment Share Modal -->
+<div id="commentShareModal" class="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 hidden items-center justify-center p-4">
+    <div class="bg-dark-100 border border-gray-700 rounded-2xl max-w-md w-full p-6 relative">
+        <button onclick="closeCommentShareModal()" class="absolute top-4 right-4 text-gray-400 hover:text-white text-2xl">&times;</button>
+        
+        <div class="text-center mb-6">
+            <div class="w-14 h-14 bg-purple-600/20 rounded-full flex items-center justify-center mx-auto mb-4">
+                <svg class="w-7 h-7 text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z"/>
+                </svg>
+            </div>
+            <h3 class="text-xl font-bold text-white mb-1">Share Your Comment</h3>
+            <p class="text-gray-400 text-sm">Let others know what you think!</p>
+        </div>
+        
+        <!-- Project Preview -->
+        {% if project.image %}
+        <div class="mb-4 rounded-lg overflow-hidden border border-gray-700">
+            <img src="{{ project.image }}" alt="{{ project.name }}" class="w-full h-32 object-cover">
+            <div class="bg-dark-300 px-3 py-2">
+                <p class="text-sm font-medium text-white truncate">{{ project.name }}</p>
+            </div>
+        </div>
+        {% endif %}
+        
+        <!-- Share Text -->
+        <div class="mb-6">
+            <label class="text-sm text-gray-400 mb-2 block">Share Text</label>
+            <textarea id="commentShareText" rows="3" 
+                class="w-full bg-dark-300 border border-gray-700 rounded-lg px-4 py-3 text-white placeholder-gray-500 focus:outline-none focus:border-purple-500 resize-none text-sm"></textarea>
+        </div>
+        
+        <!-- Share Buttons -->
+        <div class="grid grid-cols-2 gap-3">
+            <button onclick="shareCommentToX()" 
+                class="flex items-center justify-center gap-2 py-3 rounded-lg bg-dark-300 hover:bg-gray-700 border border-gray-700 transition">
+                <svg class="w-5 h-5" viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/>
+                </svg>
+                <span class="text-sm">X</span>
+            </button>
+            <button onclick="shareCommentToLinkedIn()" 
+                class="flex items-center justify-center gap-2 py-3 rounded-lg bg-dark-300 hover:bg-blue-700 border border-gray-700 transition">
+                <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
+                    <path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433c-1.144 0-2.063-.926-2.063-2.065 0-1.138.92-2.063 2.063-2.063 1.14 0 2.064.925 2.064 2.063 0 1.139-.925 2.065-2.064 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z"/>
+                </svg>
+                <span class="text-sm">LinkedIn</span>
+            </button>
+            <button onclick="shareCommentToFarcaster()" 
+                class="flex items-center justify-center gap-2 py-3 rounded-lg bg-dark-300 hover:bg-purple-700 border border-gray-700 transition">
+                <svg class="w-5 h-5" viewBox="0 0 1000 1000" fill="currentColor">
+                    <path d="M257.778 155.556H742.222V844.444H671.111V528.889H670.414C662.554 441.677 589.258 373.333 500 373.333C410.742 373.333 337.446 441.677 329.586 528.889H328.889V844.444H257.778V155.556Z"/>
+                    <path d="M128.889 253.333L157.778 351.111H182.222V746.667C169.949 746.667 160 756.616 160 768.889V795.556H155.556C143.283 795.556 133.333 805.505 133.333 817.778V844.444H382.222V817.778C382.222 805.505 372.273 795.556 360 795.556H355.556V768.889C355.556 756.616 345.606 746.667 333.333 746.667H306.667V253.333H128.889Z"/>
+                    <path d="M693.333 746.667C681.06 746.667 671.111 756.616 671.111 768.889V795.556H666.667C654.394 795.556 644.444 805.505 644.444 817.778V844.444H893.333V817.778C893.333 805.505 883.384 795.556 871.111 795.556H866.667V768.889C866.667 756.616 856.717 746.667 844.444 746.667V351.111H868.889L897.778 253.333H720V746.667H693.333Z"/>
+                </svg>
+                <span class="text-sm">Farcaster</span>
+            </button>
+            <button id="copyCommentLinkBtn" onclick="copyCommentLink()" 
+                class="flex items-center justify-center gap-2 py-3 rounded-lg bg-dark-300 hover:bg-gray-700 border border-gray-700 transition">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 5H6a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2v-1M8 5a2 2 0 002 2h2a2 2 0 002-2M8 5a2 2 0 012-2h2a2 2 0 012 2m0 0h2a2 2 0 012 2v3m2 4H10m0 0l3-3m-3 3l3 3"/>
+                </svg>
+                <span class="text-sm">Copy Link</span>
+            </button>
+        </div>
+    </div>
+</div>
 {% endblock %}

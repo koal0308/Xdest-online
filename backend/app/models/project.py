@@ -17,6 +17,9 @@ class Project(Base):
     google_analytics_id = Column(String(50), nullable=True)  # z.B. G-XXXXXXXXXX
     plausible_domain = Column(String(200), nullable=True)  # z.B. myproject.com
     plausible_api_key = Column(String(100), nullable=True)  # Plausible API Key für Stats
+    # Social Media Handles für via @mentions beim Teilen
+    twitter_handle = Column(String(100), nullable=True)  # z.B. @myproject oder myproject
+    farcaster_handle = Column(String(100), nullable=True)  # z.B. @myproject oder myproject
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     

@@ -3,8 +3,8 @@ from fastapi.responses import RedirectResponse, JSONResponse
 from sqlalchemy.orm import Session
 from sqlalchemy import func
 from app.database import get_db
-from app.models import User, Project, Post, Comment, Issue, IssueResponse, ResponseVote, Offer, Message, MessageReply
-from app.dependencies import get_current_user
+from app.models import User, Project, Post, Comment, Issue, IssueResponse, ResponseVote, Offer, Message, MessageReply, UserRating
+from app.dependencies import get_current_user, get_current_user_optional
 from app.config import settings
 from app.encryption import decrypt_token, encrypt_token
 import os
@@ -12,6 +12,7 @@ import uuid
 from datetime import datetime
 import httpx
 import re
+import json
 
 router = APIRouter(prefix="/api", tags=["api"])
 
@@ -126,6 +127,8 @@ async def create_project(
     google_analytics_id: str = Form(""),
     plausible_domain: str = Form(""),
     plausible_api_key: str = Form(""),
+    twitter_handle: str = Form(""),
+    farcaster_handle: str = Form(""),
     image: UploadFile = File(None),
     db: Session = Depends(get_db)
 ):
@@ -143,6 +146,10 @@ async def create_project(
             raise HTTPException(status_code=400, detail="Invalid image type")
         image_url = save_upload(image, "projects")
     
+    # Clean up handles - remove @ if user included it
+    clean_twitter = twitter_handle.lstrip('@') if twitter_handle else None
+    clean_farcaster = farcaster_handle.lstrip('@') if farcaster_handle else None
+    
     project = Project(
         user_id=user.id,
         name=name,
@@ -153,6 +160,8 @@ async def create_project(
         google_analytics_id=google_analytics_id if google_analytics_id else None,
         plausible_domain=plausible_domain if plausible_domain else None,
         plausible_api_key=encrypt_token(plausible_api_key) if plausible_api_key else None,
+        twitter_handle=clean_twitter if clean_twitter else None,
+        farcaster_handle=clean_farcaster if clean_farcaster else None,
         image=image_url
     )
     db.add(project)
@@ -204,6 +213,8 @@ async def edit_project(
     google_analytics_id: str = Form(""),
     plausible_domain: str = Form(""),
     plausible_api_key: str = Form(""),
+    twitter_handle: str = Form(""),
+    farcaster_handle: str = Form(""),
     image: UploadFile = File(None),
     remove_image: str = Form(""),
     db: Session = Depends(get_db)
@@ -219,6 +230,10 @@ async def edit_project(
     if project.user_id != user.id:
         raise HTTPException(status_code=403, detail="Not authorized")
     
+    # Clean up handles - remove @ if user included it
+    clean_twitter = twitter_handle.lstrip('@') if twitter_handle else None
+    clean_farcaster = farcaster_handle.lstrip('@') if farcaster_handle else None
+    
     # Update fields
     project.name = name
     project.description = description if description else None
@@ -227,6 +242,8 @@ async def edit_project(
     project.tags = tags if tags else None
     project.google_analytics_id = google_analytics_id if google_analytics_id else None
     project.plausible_domain = plausible_domain if plausible_domain else None
+    project.twitter_handle = clean_twitter if clean_twitter else None
+    project.farcaster_handle = clean_farcaster if clean_farcaster else None
     # Only update API key if provided (don't overwrite with empty) - encrypt it
     if plausible_api_key:
         project.plausible_api_key = encrypt_token(plausible_api_key)
@@ -523,8 +540,11 @@ async def get_project_analytics(project_id: int, request: Request, db: Session =
     if not plausible_key:
         return {"error": "no_analytics", "message": "Plausible API key invalid"}
     
+    # Debug: Log key length (not the key itself!)
+    print(f"Plausible API: domain={project.plausible_domain}, key_length={len(plausible_key)}")
+    
     try:
-        async with httpx.AsyncClient() as client:
+        async with httpx.AsyncClient(timeout=30.0) as client:
             headers = {"Authorization": f"Bearer {plausible_key}"}
             base_url = "https://plausible.io/api/v1/stats"
             
@@ -534,6 +554,11 @@ async def get_project_analytics(project_id: int, request: Request, db: Session =
                 params={"site_id": str(project.plausible_domain)},
                 headers=headers
             )
+            
+            # Log realtime response for debugging
+            if realtime_resp.status_code != 200:
+                print(f"Plausible realtime error: {realtime_resp.status_code} - {realtime_resp.text}")
+            
             realtime = realtime_resp.json() if realtime_resp.status_code == 200 else 0
             
             plausible_domain = str(project.plausible_domain)
@@ -1424,6 +1449,196 @@ async def get_leaderboard(
         entry["rank"] = rank
     
     return JSONResponse({"leaderboard": leaderboard[:50]})
+
+
+@router.get("/leaderboard/my-stats")
+async def get_my_leaderboard_stats(
+    request: Request,
+    db: Session = Depends(get_db)
+):
+    """Gibt die persönlichen Leaderboard-Stats des eingeloggten Users zurück"""
+    user = await get_current_user_optional(request, db)
+    if not user:
+        return JSONResponse({"error": "Not authenticated"}, status_code=401)
+    
+    # Punkte-Aufschlüsselung
+    response_data = db.query(
+        func.coalesce(func.sum(IssueResponse.helpful_count), 0).label('response_helpful'),
+        func.coalesce(func.sum(IssueResponse.is_solution), 0).label('solutions_count'),
+        func.count(IssueResponse.id).label('total_responses')
+    ).filter(IssueResponse.user_id == user.id).first()
+    
+    issue_data = db.query(
+        func.coalesce(func.sum(Issue.helpful_count), 0).label('issue_helpful'),
+        func.coalesce(func.sum(Issue.github_reactions), 0).label('github_reactions'),
+        func.coalesce(func.sum(Issue.github_negative_reactions), 0).label('github_negative_reactions'),
+        func.count(Issue.id).label('total_issues')
+    ).filter(Issue.user_id == user.id).first()
+    
+    five_star_count = db.query(func.count(UserRating.id)).filter(
+        UserRating.rated_user_id == user.id,
+        UserRating.stars == 5
+    ).scalar() or 0
+    
+    # Rang berechnen (aus dem vollen Leaderboard)
+    # Wir holen das komplette Leaderboard und suchen den User
+    full_leaderboard_response = await get_leaderboard(request, db)
+    full_leaderboard = full_leaderboard_response.body.decode()
+    leaderboard_data = json.loads(full_leaderboard)
+    
+    my_rank = None
+    for entry in leaderboard_data.get("leaderboard", []):
+        if entry["user_id"] == user.id:
+            my_rank = entry["rank"]
+            break
+    
+    # Letzte 5 Aktivitäten die Punkte gebracht haben
+    recent_activities = []
+    
+    # 1. Letzte Solutions
+    recent_solutions = db.query(
+        IssueResponse.id,
+        IssueResponse.content,
+        IssueResponse.created_at,
+        Issue.title.label('issue_title'),
+        Project.name.label('project_name')
+    ).join(Issue, IssueResponse.issue_id == Issue.id
+    ).join(Project, Issue.project_id == Project.id
+    ).filter(
+        IssueResponse.user_id == user.id,
+        IssueResponse.is_solution == True
+    ).order_by(IssueResponse.created_at.desc()).limit(5).all()
+    
+    for sol in recent_solutions:
+        recent_activities.append({
+            "type": "solution",
+            "points": 10,
+            "description": f"Solution marked for '{sol.issue_title}'",
+            "project": sol.project_name,
+            "created_at": sol.created_at.isoformat() if sol.created_at else None
+        })
+    
+    # 2. Letzte Helpful Votes auf Responses (nur die mit votes > 0)
+    recent_helpful_responses = db.query(
+        IssueResponse.id,
+        IssueResponse.helpful_count,
+        IssueResponse.created_at,
+        Issue.title.label('issue_title'),
+        Project.name.label('project_name')
+    ).join(Issue, IssueResponse.issue_id == Issue.id
+    ).join(Project, Issue.project_id == Project.id
+    ).filter(
+        IssueResponse.user_id == user.id,
+        IssueResponse.helpful_count > 0,
+        IssueResponse.is_solution == False  # Nicht doppelt zählen
+    ).order_by(IssueResponse.created_at.desc()).limit(5).all()
+    
+    for resp in recent_helpful_responses:
+        recent_activities.append({
+            "type": "response_helpful",
+            "points": resp.helpful_count,
+            "description": f"Response got {resp.helpful_count} helpful votes on '{resp.issue_title}'",
+            "project": resp.project_name,
+            "created_at": resp.created_at.isoformat() if resp.created_at else None
+        })
+    
+    # 3. Letzte Issues mit Helpful Votes
+    recent_helpful_issues = db.query(
+        Issue.id,
+        Issue.title,
+        Issue.helpful_count,
+        Issue.github_reactions,
+        Issue.created_at,
+        Project.name.label('project_name')
+    ).join(Project, Issue.project_id == Project.id
+    ).filter(
+        Issue.user_id == user.id,
+        (Issue.helpful_count > 0) | (Issue.github_reactions > 0)
+    ).order_by(Issue.created_at.desc()).limit(5).all()
+    
+    for issue in recent_helpful_issues:
+        points = issue.helpful_count + (issue.github_reactions * 2)
+        recent_activities.append({
+            "type": "issue_helpful",
+            "points": points,
+            "description": f"Issue '{issue.title}' got votes",
+            "project": issue.project_name,
+            "created_at": issue.created_at.isoformat() if issue.created_at else None
+        })
+    
+    # 4. Letzte 5-Sterne Ratings
+    recent_ratings = db.query(
+        UserRating.id,
+        UserRating.created_at,
+        User.username.label('rater_username')
+    ).join(User, UserRating.rater_user_id == User.id
+    ).filter(
+        UserRating.rated_user_id == user.id,
+        UserRating.stars == 5
+    ).order_by(UserRating.created_at.desc()).limit(5).all()
+    
+    for rating in recent_ratings:
+        recent_activities.append({
+            "type": "five_star",
+            "points": 0.5,
+            "description": f"5-star rating from {rating.rater_username}",
+            "project": None,
+            "created_at": rating.created_at.isoformat() if rating.created_at else None
+        })
+    
+    # Sortieren nach Datum und nur die letzten 5 behalten
+    recent_activities.sort(key=lambda x: x["created_at"] or "", reverse=True)
+    recent_activities = recent_activities[:5]
+    
+    # Gesamtpunkte berechnen
+    five_star_score = five_star_count * 0.5
+    github_positive = (issue_data.github_reactions or 0) * 2
+    github_negative = issue_data.github_negative_reactions or 0
+    
+    total_score = (
+        ((response_data.solutions_count or 0) * 10) +
+        (response_data.response_helpful or 0) +
+        (issue_data.issue_helpful or 0) +
+        github_positive -
+        github_negative +
+        five_star_score
+    )
+    
+    return JSONResponse({
+        "user_id": user.id,
+        "username": user.username,
+        "avatar": user.avatar,
+        "rank": my_rank,
+        "total_score": total_score,
+        "breakdown": {
+            "solutions": {
+                "count": response_data.solutions_count or 0,
+                "points": (response_data.solutions_count or 0) * 10
+            },
+            "response_helpful": {
+                "count": response_data.response_helpful or 0,
+                "points": response_data.response_helpful or 0
+            },
+            "issue_helpful": {
+                "count": issue_data.issue_helpful or 0,
+                "points": issue_data.issue_helpful or 0
+            },
+            "github_reactions": {
+                "positive": issue_data.github_reactions or 0,
+                "negative": github_negative,
+                "points": github_positive - github_negative
+            },
+            "five_star_ratings": {
+                "count": five_star_count,
+                "points": five_star_score
+            }
+        },
+        "recent_activities": recent_activities,
+        "stats": {
+            "total_responses": response_data.total_responses or 0,
+            "total_issues": issue_data.total_issues or 0
+        }
+    })
 
 
 # ==================== GITHUB SYNC ====================
