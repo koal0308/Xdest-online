@@ -9,6 +9,7 @@ from app.config import settings
 from app.encryption import decrypt_token, encrypt_token
 import os
 import uuid
+from pathlib import Path
 from datetime import datetime
 import httpx
 import re
@@ -399,12 +400,20 @@ async def update_profile(
     linkedin: str = Form(""),
     website: str = Form(""),
     email_visible: str = Form(""),
+    accept_terms: str = Form(""),
     avatar: UploadFile = File(None),
     db: Session = Depends(get_db)
 ):
     user = await get_current_user(request, db)
     if not user:
         raise HTTPException(status_code=401, detail="Not authenticated")
+    
+    # Check if terms need to be accepted (new user or terms not yet accepted)
+    if not user.terms_accepted_at:
+        if accept_terms != "on":
+            raise HTTPException(status_code=400, detail="You must accept the Terms of Service and Privacy Policy")
+        from datetime import datetime
+        user.terms_accepted_at = datetime.utcnow()
     
     # Username Update (nur wenn geändert und verfügbar)
     if username and username != user.username:
@@ -433,6 +442,10 @@ async def update_profile(
         user.avatar = save_upload(avatar, "avatars")
     
     db.commit()
+    
+    # If terms were just accepted (setup mode), redirect to dashboard
+    if accept_terms == "on":
+        return RedirectResponse(url="/dashboard", status_code=302)
     
     return RedirectResponse(url=f"/user/{user.username}", status_code=302)
 
@@ -1128,6 +1141,66 @@ async def respond_to_issue(
         content=content
     )
     db.add(response)
+    db.commit()
+    
+    return RedirectResponse(url=f"/project/{issue.project_id}/issues/{issue_id}", status_code=302)
+
+@router.post("/issue/{issue_id}/edit")
+async def edit_issue(
+    issue_id: int,
+    request: Request,
+    title: str = Form(...),
+    description: str = Form(...),
+    issue_type: str = Form(...),
+    screenshot: UploadFile = File(None),
+    db: Session = Depends(get_db)
+):
+    """Bearbeitet ein Issue (nur Reporter)"""
+    user = await get_current_user(request, db)
+    if not user:
+        raise HTTPException(status_code=401, detail="Not authenticated")
+    
+    issue = db.query(Issue).filter(Issue.id == issue_id).first()
+    if not issue:
+        raise HTTPException(status_code=404, detail="Issue not found")
+    
+    # Nur Reporter darf bearbeiten
+    if issue.user_id != user.id:
+        raise HTTPException(status_code=403, detail="Only the reporter can edit this issue")
+    
+    # Geschlossene Issues können nicht bearbeitet werden
+    closed_statuses = ["resolved", "closed", "wont_fix"]
+    if issue.status in closed_statuses:
+        raise HTTPException(status_code=403, detail="Closed issues cannot be edited")
+    
+    valid_types = ["bug", "feature", "question", "security", "docs", "feedback"]
+    if issue_type not in valid_types:
+        raise HTTPException(status_code=400, detail="Invalid issue type")
+    
+    # Update fields
+    issue.title = title
+    issue.description = description
+    issue.issue_type = issue_type
+    issue.updated_at = datetime.utcnow()
+    
+    # Handle screenshot upload
+    if screenshot and screenshot.filename:
+        # Create uploads directory if needed
+        upload_dir = Path("uploads/issues")
+        upload_dir.mkdir(parents=True, exist_ok=True)
+        
+        # Generate unique filename
+        file_ext = Path(screenshot.filename).suffix
+        unique_filename = f"{uuid.uuid4()}{file_ext}"
+        file_path = upload_dir / unique_filename
+        
+        # Save file
+        with open(file_path, "wb") as f:
+            content = await screenshot.read()
+            f.write(content)
+        
+        issue.screenshot = f"/uploads/issues/{unique_filename}"
+    
     db.commit()
     
     return RedirectResponse(url=f"/project/{issue.project_id}/issues/{issue_id}", status_code=302)
@@ -2175,6 +2248,8 @@ async def delete_account(request: Request, db: Session = Depends(get_db)):
         raise HTTPException(status_code=401, detail="Not authenticated")
     
     from app.models import IssueVote, ProjectRating, UserRating
+    from app.models.message import Message, MessageReply
+    from app.models.offer import Offer
     
     try:
         # Delete in order of dependencies
@@ -2189,11 +2264,23 @@ async def delete_account(request: Request, db: Session = Depends(get_db)):
         # Ratings FOR this user werden auch gelöscht
         db.query(UserRating).filter(UserRating.rated_user_id == user.id).delete()
         
-        # 3. Delete responses BY this user (seine eigenen Antworten)
-        # ABER: Die Punkte (helpful_count, is_solution) gehen mit dem User verloren - das ist OK
+        # 3. Delete message replies BY this user
+        db.query(MessageReply).filter(MessageReply.user_id == user.id).delete()
+        
+        # 4. Delete messages BY this user (first delete their replies)
+        user_messages = db.query(Message).filter(Message.user_id == user.id).all()
+        for msg in user_messages:
+            db.query(MessageReply).filter(MessageReply.message_id == msg.id).delete()
+        db.query(Message).filter(Message.user_id == user.id).delete()
+        
+        # 5. Delete responses BY this user (seine eigenen Antworten)
+        # Zuerst Votes auf diese Responses löschen
+        user_responses = db.query(IssueResponse).filter(IssueResponse.user_id == user.id).all()
+        for resp in user_responses:
+            db.query(ResponseVote).filter(ResponseVote.response_id == resp.id).delete()
         db.query(IssueResponse).filter(IssueResponse.user_id == user.id).delete()
         
-        # 4. Issues BY this user - NUR löschen wenn keine Antworten von anderen existieren
+        # 6. Issues BY this user - NUR löschen wenn keine Antworten von anderen existieren
         user_issues = db.query(Issue).filter(Issue.user_id == user.id).all()
         for issue in user_issues:
             # Prüfe ob andere User geantwortet haben
@@ -2206,15 +2293,26 @@ async def delete_account(request: Request, db: Session = Depends(get_db)):
                 # Keine Antworten von anderen - kann sicher gelöscht werden
                 db.query(IssueVote).filter(IssueVote.issue_id == issue.id).delete()
                 db.delete(issue)
-            # else: Issue bleibt bestehen damit die Punkte der Responder erhalten bleiben
-            # Die Antworten anderer User behalten ihre is_solution und helpful_count
+            else:
+                # Issue bleibt, aber setze user_id auf NULL (anonymisieren)
+                issue.user_id = None
         
-        # 5. Delete projects
+        # 7. Delete projects and their offers
         user_projects = db.query(Project).filter(Project.user_id == user.id).all()
         for project in user_projects:
+            # Delete offers for this project
+            db.query(Offer).filter(Offer.project_id == project.id).delete()
+            
+            # Delete posts and their comments for this project
+            project_posts = db.query(Post).filter(Post.project_id == project.id).all()
+            for post in project_posts:
+                db.query(Comment).filter(Comment.post_id == post.id).delete()
+            db.query(Post).filter(Post.project_id == project.id).delete()
+            
             # Issues vom Projekt - wieder nur löschen wenn keine Antworten anderer
             project_issues = db.query(Issue).filter(Issue.project_id == project.id).all()
             for issue in project_issues:
+                # Responses auf dieses Issue (von anderen Usern)
                 other_responses = db.query(IssueResponse).filter(
                     IssueResponse.issue_id == issue.id
                 ).count()
@@ -2222,13 +2320,8 @@ async def delete_account(request: Request, db: Session = Depends(get_db)):
                 if other_responses == 0:
                     db.query(IssueVote).filter(IssueVote.issue_id == issue.id).delete()
                     db.delete(issue)
-                else:
-                    # Issue hat Antworten - entkopple es vom Projekt aber lösche es nicht
-                    # Setze project_id auf ein "orphan" Projekt oder NULL (wenn erlaubt)
-                    # Da project_id nullable=False ist, müssen wir das Issue behalten
-                    pass  # Issue bleibt bestehen
+                # else: Issue bleibt bestehen wegen Antworten anderer User
             
-            # Nur Issues ohne Antworten wurden gelöscht, der Rest bleibt
             # Projekt-Ratings löschen
             db.query(ProjectRating).filter(ProjectRating.project_id == project.id).delete()
             
@@ -2238,11 +2331,15 @@ async def delete_account(request: Request, db: Session = Depends(get_db)):
                 db.delete(project)
             # else: Projekt bleibt wegen der Issues mit Antworten
         
-        # 6. Delete comments and posts
-        db.query(Comment).filter(Comment.user_id == user.id).delete()
+        # 8. Delete remaining comments and posts by this user (on OTHER projects)
+        # First delete comments on posts by this user
+        user_posts = db.query(Post).filter(Post.user_id == user.id).all()
+        for post in user_posts:
+            db.query(Comment).filter(Comment.post_id == post.id).delete()
         db.query(Post).filter(Post.user_id == user.id).delete()
+        db.query(Comment).filter(Comment.user_id == user.id).delete()
         
-        # 7. Finally delete the user
+        # 9. Finally delete the user
         db.delete(user)
         db.commit()
         

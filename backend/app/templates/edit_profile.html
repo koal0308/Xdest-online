@@ -9,8 +9,19 @@
 
     <main class="pt-24 pb-12 px-4 max-w-2xl mx-auto">
         <div class="bg-dark-100 rounded-xl border border-gray-800 p-4 sm:p-8">
+            {% if setup_mode %}
+            <div class="mb-6 p-4 bg-gradient-to-r from-purple-900/30 to-pink-900/30 border border-purple-500/30 rounded-xl">
+                <h2 class="text-xl font-bold mb-2 flex items-center gap-2">
+                    <span class="text-2xl">👋</span> Welcome to Xdest!
+                </h2>
+                <p class="text-gray-300 text-sm">Please complete your profile setup and accept our terms to get started.</p>
+            </div>
+            <h1 class="text-2xl sm:text-3xl font-bold mb-2">Complete Your Profile</h1>
+            <p class="text-gray-400 mb-8 text-sm sm:text-base">Set up your profile to join the community</p>
+            {% else %}
             <h1 class="text-2xl sm:text-3xl font-bold mb-2">Edit Profile</h1>
             <p class="text-gray-400 mb-8 text-sm sm:text-base">Update your profile information</p>
+            {% endif %}
             
             <form action="/api/profile/update" method="POST" enctype="multipart/form-data" class="space-y-6">
                 <!-- Avatar Section -->
@@ -118,14 +129,43 @@
                     </div>
                 </div>
                 
+                {% if setup_mode or not user.terms_accepted_at %}
+                <!-- Terms & Conditions (required for new users) -->
+                <div class="border-t border-gray-800 pt-6">
+                    <div class="bg-dark-300 rounded-xl p-4 border border-gray-700">
+                        <h3 class="text-lg font-semibold mb-3 flex items-center gap-2">
+                            <svg class="w-5 h-5 text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                            </svg>
+                            Terms & Conditions
+                        </h3>
+                        <p class="text-sm text-gray-400 mb-4">To use Xdest, you must agree to our terms and privacy policy.</p>
+                        
+                        <label class="flex items-start gap-3 cursor-pointer">
+                            <input type="checkbox" name="accept_terms" id="acceptTerms" class="mt-1 w-5 h-5 rounded border-gray-600 bg-dark-400 text-purple-600 focus:ring-purple-500" required>
+                            <span class="text-sm text-gray-300">
+                                I agree to the <a href="/terms" target="_blank" class="text-purple-400 hover:underline">Terms of Service</a> and <a href="/privacy" target="_blank" class="text-purple-400 hover:underline">Privacy Policy</a>
+                                <span class="text-red-400">*</span>
+                            </span>
+                        </label>
+                    </div>
+                </div>
+                {% endif %}
+                
                 <!-- Buttons -->
                 <div class="flex flex-col sm:flex-row gap-4 pt-4">
+                    {% if setup_mode %}
+                    <button type="submit" id="submitBtn" disabled class="flex-1 px-6 py-3 rounded-lg bg-gray-700 text-gray-500 cursor-not-allowed transition font-semibold">
+                        Complete Setup
+                    </button>
+                    {% else %}
                     <a href="/user/{{ user.username }}" class="flex-1 px-6 py-3 rounded-lg border border-gray-700 hover:border-gray-600 text-center transition">
                         Cancel
                     </a>
                     <button type="submit" class="flex-1 px-6 py-3 rounded-lg bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-500 hover:to-pink-500 transition font-semibold">
                         Save Changes
                     </button>
+                    {% endif %}
                 </div>
             </form>
         </div>
@@ -160,5 +200,23 @@
             reader.readAsDataURL(file);
         }
     });
+    
+    // Terms checkbox handling for setup mode
+    const acceptTerms = document.getElementById('acceptTerms');
+    const submitBtn = document.getElementById('submitBtn');
+    
+    if (acceptTerms && submitBtn) {
+        acceptTerms.addEventListener('change', () => {
+            if (acceptTerms.checked) {
+                submitBtn.disabled = false;
+                submitBtn.classList.remove('bg-gray-700', 'text-gray-500', 'cursor-not-allowed');
+                submitBtn.classList.add('bg-gradient-to-r', 'from-purple-600', 'to-pink-600', 'hover:from-purple-500', 'hover:to-pink-500', 'text-white');
+            } else {
+                submitBtn.disabled = true;
+                submitBtn.classList.add('bg-gray-700', 'text-gray-500', 'cursor-not-allowed');
+                submitBtn.classList.remove('bg-gradient-to-r', 'from-purple-600', 'to-pink-600', 'hover:from-purple-500', 'hover:to-pink-500', 'text-white');
+            }
+        });
+    }
 </script>
 {% endblock %}

@@ -62,6 +62,21 @@
         }
     </script>
     <style>
+        /* Scroll offset for anchor links (accounts for fixed header) */
+        [id^="post-"], #updates {
+            scroll-margin-top: 100px;
+        }
+        
+        /* Highlight animation for targeted posts */
+        [id^="post-"]:target {
+            animation: highlight-post 2s ease-out;
+        }
+        
+        @keyframes highlight-post {
+            0% { box-shadow: 0 0 0 3px rgba(147, 51, 234, 0.6); }
+            100% { box-shadow: none; }
+        }
+        
         /* Dark Mode (default) */
         .dark body {
             background-color: #0a0a14;
@@ -78,6 +93,8 @@
         .light .bg-dark-300 { background-color: #f5f5f5; }
         .light .bg-dark-400 { background-color: #f0f0f0; }
         .light .bg-dark-400\/80 { background-color: rgba(240, 240, 240, 0.8); }
+        .light .hover\:bg-dark-200:hover { background-color: #e5e5e5; }
+        .light .hover\:bg-dark-300:hover { background-color: #d4d4d4; }
         .light .border-gray-800 { border-color: #d4d4d4; }
         .light .border-gray-700 { border-color: #a3a3a3; }
         .light .text-gray-100 { color: #1f2937; }
@@ -102,6 +119,39 @@
         .light .markdown-content h1, .light .markdown-content h2, .light .markdown-content h3, .light .markdown-content h4 { color: #111827; }
         .light .markdown-content a { color: #7c3aed; }
         .light .markdown-content li::marker { color: #6b7280; }
+        /* Badge color overrides for Light Mode */
+        .light .bg-purple-600\/30 { background-color: rgba(147, 51, 234, 0.25); }
+        .light .text-purple-400 { color: #7c3aed; }
+        .light .bg-green-600\/20 { background-color: rgba(22, 163, 74, 0.2); }
+        .light .text-green-400 { color: #15803d; }
+        .light .bg-blue-600\/20 { background-color: rgba(37, 99, 235, 0.2); }
+        .light .text-blue-400 { color: #1d4ed8; }
+        .light .bg-yellow-600\/20 { background-color: rgba(202, 138, 4, 0.2); }
+        .light .text-yellow-400 { color: #a16207; }
+        .light .bg-orange-600\/20 { background-color: rgba(234, 88, 12, 0.2); }
+        .light .text-orange-400 { color: #c2410c; }
+        .light .bg-pink-600\/20 { background-color: rgba(219, 39, 119, 0.2); }
+        .light .text-pink-400 { color: #be185d; }
+        /* Gradient overrides for Light Mode */
+        .light .bg-gradient-to-br.from-dark-100.to-dark-200 {
+            background: linear-gradient(to bottom right, #ffffff, #fafafa) !important;
+        }
+        .light .from-dark-100 { --tw-gradient-from: #ffffff; }
+        .light .to-dark-200 { --tw-gradient-to: #fafafa; }
+        /* AEra Banner overrides for Light Mode */
+        .light .aera-banner {
+            background: linear-gradient(to right, rgba(14, 116, 144, 0.15), rgba(37, 99, 235, 0.15)) !important;
+            border-color: rgba(14, 116, 144, 0.4) !important;
+        }
+        .light .aera-title { color: #0e7490 !important; }
+        .light .aera-badge { background-color: rgba(14, 116, 144, 0.2) !important; color: #0e7490 !important; }
+        .light .aera-subtitle { color: #4b5563 !important; }
+        .light .aera-info { color: #6b7280 !important; }
+        .light .aera-profile-badge {
+            background: linear-gradient(to right, rgba(14, 116, 144, 0.2), rgba(37, 99, 235, 0.2)) !important;
+            border-color: rgba(14, 116, 144, 0.5) !important;
+            color: #0e7490 !important;
+        }
         
         /* Sand Mode */
         .sand body {
@@ -113,6 +163,8 @@
         .sand .bg-dark-300 { background-color: #eddfcc; }
         .sand .bg-dark-400 { background-color: #e3d5c3; }
         .sand .bg-dark-400\/80 { background-color: rgba(227, 213, 195, 0.8); }
+        .sand .hover\:bg-dark-200:hover { background-color: #d6cbbf; }
+        .sand .hover\:bg-dark-300:hover { background-color: #c7b9a8; }
         .sand .border-gray-800 { border-color: #b8a994; }
         .sand .border-gray-700 { border-color: #a89a84; }
         .sand .text-gray-100 { color: #292524; }
@@ -138,6 +190,39 @@
         .sand .markdown-content a { color: #9333ea; }
         .sand .markdown-content li::marker { color: #78716c; }
         .sand .markdown-content h1, .sand .markdown-content h2, .sand .markdown-content h3 { color: #1c1917; }
+        /* Badge color overrides for Sand Mode */
+        .sand .bg-purple-600\/30 { background-color: rgba(147, 51, 234, 0.3); }
+        .sand .text-purple-400 { color: #7c3aed; }
+        .sand .bg-green-600\/20 { background-color: rgba(22, 163, 74, 0.25); }
+        .sand .text-green-400 { color: #15803d; }
+        .sand .bg-blue-600\/20 { background-color: rgba(37, 99, 235, 0.25); }
+        .sand .text-blue-400 { color: #1d4ed8; }
+        .sand .bg-yellow-600\/20 { background-color: rgba(202, 138, 4, 0.25); }
+        .sand .text-yellow-400 { color: #a16207; }
+        .sand .bg-orange-600\/20 { background-color: rgba(234, 88, 12, 0.25); }
+        .sand .text-orange-400 { color: #c2410c; }
+        .sand .bg-pink-600\/20 { background-color: rgba(219, 39, 119, 0.25); }
+        .sand .text-pink-400 { color: #be185d; }
+        /* Gradient overrides for Sand Mode */
+        .sand .bg-gradient-to-br.from-dark-100.to-dark-200 {
+            background: linear-gradient(to bottom right, #faf6f1, #f5ebe0) !important;
+        }
+        .sand .from-dark-100 { --tw-gradient-from: #faf6f1; }
+        .sand .to-dark-200 { --tw-gradient-to: #f5ebe0; }
+        /* AEra Banner overrides for Sand Mode */
+        .sand .aera-banner {
+            background: linear-gradient(to right, rgba(14, 116, 144, 0.18), rgba(37, 99, 235, 0.18)) !important;
+            border-color: rgba(14, 116, 144, 0.35) !important;
+        }
+        .sand .aera-title { color: #0e7490 !important; }
+        .sand .aera-badge { background-color: rgba(14, 116, 144, 0.25) !important; color: #0e7490 !important; }
+        .sand .aera-subtitle { color: #57534e !important; }
+        .sand .aera-info { color: #78716c !important; }
+        .sand .aera-profile-badge {
+            background: linear-gradient(to right, rgba(14, 116, 144, 0.25), rgba(37, 99, 235, 0.25)) !important;
+            border-color: rgba(14, 116, 144, 0.45) !important;
+            color: #0e7490 !important;
+        }
         
         body {
             background-color: #0a0a14;
@@ -230,6 +315,29 @@
         .markdown-content hr {
             border-color: #374151;
             margin: 1rem 0;
+        }
+        /* Fix overflow for long text/URLs on mobile */
+        .markdown-content {
+            word-wrap: break-word;
+            overflow-wrap: break-word;
+            word-break: break-word;
+            max-width: 100%;
+        }
+        .markdown-content pre {
+            max-width: 100%;
+            overflow-x: auto;
+        }
+        .markdown-content code {
+            word-break: break-all;
+        }
+        .markdown-content a {
+            word-break: break-all;
+        }
+        /* Global overflow fix for issue cards */
+        .issue-card, .response-card {
+            overflow: hidden;
+            word-wrap: break-word;
+            overflow-wrap: break-word;
         }
     </style>
     

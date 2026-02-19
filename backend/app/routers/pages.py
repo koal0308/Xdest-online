@@ -31,6 +31,10 @@ async def dashboard(request: Request, db: Session = Depends(get_db)):
     if not user:
         return RedirectResponse(url="/", status_code=302)
     
+    # Check if user has accepted terms
+    if not user.terms_accepted_at:
+        return RedirectResponse(url="/profile/edit?setup=true", status_code=302)
+    
     projects = db.query(Project).filter(Project.user_id == user.id).order_by(Project.created_at.desc()).all()
     
     # Get user's offers (through their projects)
@@ -147,6 +151,10 @@ async def edit_project_page(project_id: int, request: Request, db: Session = Dep
     if not user:
         return RedirectResponse(url="/", status_code=302)
     
+    # Check if user has accepted terms
+    if not user.terms_accepted_at:
+        return RedirectResponse(url="/profile/edit?setup=true", status_code=302)
+    
     project = db.query(Project).filter(Project.id == project_id).first()
     if not project:
         raise HTTPException(status_code=404, detail="Project not found")
@@ -167,6 +175,10 @@ async def create_project_page(request: Request, db: Session = Depends(get_db)):
     if not user:
         return RedirectResponse(url="/", status_code=302)
     
+    # Check if user has accepted terms
+    if not user.terms_accepted_at:
+        return RedirectResponse(url="/profile/edit?setup=true", status_code=302)
+    
     # Testers cannot create projects
     if user.role == "tester":
         return RedirectResponse(url="/dashboard", status_code=302)
@@ -177,14 +189,19 @@ async def create_project_page(request: Request, db: Session = Depends(get_db)):
     })
 
 @router.get("/edit-profile", response_class=HTMLResponse)
-async def edit_profile_page(request: Request, db: Session = Depends(get_db)):
+@router.get("/profile/edit", response_class=HTMLResponse)
+async def edit_profile_page(request: Request, setup: Optional[str] = None, db: Session = Depends(get_db)):
     user = await get_current_user(request, db)
     if not user:
         return RedirectResponse(url="/", status_code=302)
     
+    # Setup mode is true if query param is set OR if user hasn't accepted terms yet
+    setup_mode = setup == "true" or not user.terms_accepted_at
+    
     return templates.TemplateResponse("edit_profile.html", {
         "request": request,
-        "user": user
+        "user": user,
+        "setup_mode": setup_mode
     })
 
 @router.get("/explore", response_class=HTMLResponse)
@@ -366,6 +383,10 @@ async def new_issue_page(project_id: int, request: Request, db: Session = Depend
     if not user:
         return RedirectResponse(url=f"/project/{project_id}", status_code=302)
     
+    # Check if user has accepted terms
+    if not user.terms_accepted_at:
+        return RedirectResponse(url="/profile/edit?setup=true", status_code=302)
+    
     project = db.query(Project).filter(Project.id == project_id).first()
     if not project:
         raise HTTPException(status_code=404, detail="Project not found")
@@ -494,6 +515,10 @@ async def create_offer_page(request: Request, db: Session = Depends(get_db)):
     if not user:
         return RedirectResponse(url="/", status_code=302)
     
+    # Check if user has accepted terms
+    if not user.terms_accepted_at:
+        return RedirectResponse(url="/profile/edit?setup=true", status_code=302)
+    
     if user.role == "tester":
         raise HTTPException(status_code=403, detail="Testers cannot create offers")
     
@@ -515,6 +540,10 @@ async def edit_offer_page(offer_id: int, request: Request, db: Session = Depends
     user = await get_current_user(request, db)
     if not user:
         return RedirectResponse(url="/", status_code=302)
+    
+    # Check if user has accepted terms
+    if not user.terms_accepted_at:
+        return RedirectResponse(url="/profile/edit?setup=true", status_code=302)
     
     offer = db.query(Offer).filter(Offer.id == offer_id).first()
     if not offer:

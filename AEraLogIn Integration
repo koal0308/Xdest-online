@@ -1,0 +1,259 @@
+🌀
+AEraLogIn
+SDK Docs
+Examples
+Home
+AEraCore
+SDK Docs
+Examples
+🛡️ Try AEra Login
+Home
+AEraCore
+Getting Started
+Introduction
+Installation
+Quick Start
+JavaScript SDK
+AEraGate.init()
+AEraGate.login()
+AEraGate.logout()
+AEraGate.getUser()
+Events
+Server Integration
+Register Your App
+OAuth Flow
+API Verification
+Middleware
+AEra Gate SDK
+The AEra Gate SDK enables website operators to protect their content with NFT-based access control. Users must own an AEra Identity NFT to access protected areas.
+
+✨ Benefits
+No custom login system required
+Decentralized authentication via wallet
+Automatic protection of HTML elements
+Easy integration in 5 minutes
+🎯 Ready to Get Started?
+Integrate AEra Gate in minutes and offer your users a secure, decentralized authentication experience.
+
+📋 View Example
+🛡️ Try AEra Login
+🔐
+OAuth 2.0 Integration
+Enable third-party applications to authenticate users with AEraLogIn OAuth 2.0. Perfect for MiniApps, integrations, and external services.
+
+🚀 OAuth Features
+Standard OAuth 2.0 Flow: Industry-standard authorization code flow
+Smart Wallet Support: Works with Coinbase Smart Wallet & BASE App
+Identity NFT Verification: Automatic NFT ownership validation
+Secure Sessions: JWT-based token management with configurable expiry
+Developer Dashboard: Register and manage OAuth applications
+📱 Try Live Demo
+Experience OAuth authentication in action with our interactive MiniApp demo:
+
+🚀
+Open OAuth Demo App
+↗
+⚙️
+Register OAuth App
+ℹ️ Requires AEra Identity NFT • Full OAuth 2.0 documentation coming soon
+
+🔧 Installation
+Via CDN (Recommended)
+HTML
+Copy
+<script src="https://aeralogin.com/sdk/aera-gate.js"></script>
+Via NPM
+Terminal
+Copy
+npm install @aera/gate-sdk
+JavaScript
+Copy
+import { AEraGate } from '@aera/gate-sdk';
+🚀 Quick Start
+The simplest setup requires only a few lines of code. The SDK automatically protects all elements with the data-aera-protect attribute.
+
+💡 Attribute Names
+Both data-aera-protect and data-aera-protected are supported. Use whichever fits your coding style better.
+
+HTML
+Copy
+<!-- Public Content --> <div>This content is visible to everyone.</div> <!-- Protected Content --> <div data-aera-protect> Only visible to NFT holders! </div> <!-- Protected with minimum score --> <div data-aera-protect data-min-score="50"> Requires Score ≥ 50 </div> <!-- Load and initialize SDK --> <script src="https://aeralogin.com/sdk/aera-gate.js"></script> <script> AEraGate.init({ clientId: 'your-client-id', autoProtect: true }); </script>
+⚙️ AEraGate.init(options)
+Initializes the SDK with the specified options.
+
+Parameters
+Option	Type	Default	Description
+clientId Required	string	-	Your Client ID from the AEra Dashboard
+autoProtect	boolean	true	Automatically protect elements with data-aera-protected
+mode	string	'modal'	Login mode: 'modal' or 'redirect'
+theme	string	'dark'	UI theme: 'dark' or 'light'
+requireNFT	boolean	true	NFT ownership required
+minScore	number	0	Minimum Resonance Score
+onAuthenticated	function	-	Callback after successful authentication
+onLogout	function	-	Callback after logout
+onError	function	-	Callback on errors
+Example
+JavaScript
+Copy
+AEraGate.init({ clientId: 'my-website-client', autoProtect: true, mode: 'modal', theme: 'dark', minScore: 50, onAuthenticated: function(user) { console.log('Welcome!', user.wallet); console.log('Score:', user.score); }, onLogout: function() { console.log('Goodbye!'); }, onError: function(error) { console.error('Error:', error); } });
+🔐 AEraGate.login(options)
+Starts the login process. Opens a modal or redirects to the AEra Login page depending on configuration.
+
+JavaScript
+Copy
+// Simple call AEraGate.login(); // With options AEraGate.login({ returnUrl: '/dashboard', forceModal: true });
+🚪 AEraGate.logout()
+Ends the current session and removes all stored tokens.
+
+JavaScript
+Copy
+AEraGate.logout();
+👤 AEraGate.getUser()
+Returns the data of the currently authenticated user, or null if not authenticated.
+
+Return Value
+JavaScript
+Copy
+const user = AEraGate.getUser(); // user object: { wallet: "0x1234...5678", // Wallet address score: 150, // Resonance Score hasNFT: true, // Has AEra Identity NFT token: "eyJ...", // Session Token expiresAt: "2025-12-08T..." // Token expiry }
+📡 Events
+Das SDK löst Events aus, auf die Sie reagieren können. Verwenden Sie AEraGate.on() um Event-Listener zu registrieren.
+
+Verfügbare Events
+Event	Beschreibung	Callback Parameter
+login	Benutzer hat sich erfolgreich angemeldet	{ wallet, score, hasNFT }
+logout	Benutzer hat sich abgemeldet	{ wallet }
+sessionExpired	Session Token ist abgelaufen	{ wallet, expiredAt }
+error	Ein Fehler ist aufgetreten	{ code, message }
+Beispiel
+JavaScript
+Copy
+// Login-Event abfangen AEraGate.on('login', (user) => { console.log('User logged in:', user.wallet); console.log('Resonance Score:', user.score); }); // Session-Ablauf behandeln AEraGate.on('sessionExpired', (data) => { console.log('Session expired, please login again'); // Optionaler Re-Login AEraGate.login(); }); // Fehlerbehandlung AEraGate.on('error', (error) => { console.error('AEra Error:', error.message); });
+📱 Register Your Application
+Before using the OAuth flow, you need to register your application to get a client_id and client_secret.
+
+✅ Prerequisites
+An AEra Identity NFT (mint one at AEraCore Dashboard)
+Your website URL and callback URL ready
+Option 1: Via Dashboard (Recommended)
+1. Go to AEraCore Dashboard
+2. Connect your wallet and sign in
+3. Navigate to "SDK Apps" section
+4. Click "Register New App" and fill in the details
+5. Copy and securely store your client_id and client_secret
+
+Option 2: Via API
+Register programmatically using a JWT token from dashboard login:
+
+HTTP Request
+Copy
+POST https://aeralogin.com/api/oauth/my-apps/register Authorization: Bearer <your_dashboard_jwt_token> Content-Type: application/json { "app_name": "My Awesome Website", "website_url": "https://mywebsite.com", "redirect_uri": "https://mywebsite.com/callback", "description": "My protected web application" }
+Response
+JSON
+{ "success": true, "client_id": "aera_1a2b3c4d5e6f7g8h...", "client_secret": "AbCdEfGhIjKlMnOpQrStUvWxYz...", "message": "⚠️ Save your client_secret NOW! It cannot be retrieved later." }
+⚠️ Security Notice
+The client_secret is shown ONLY ONCE at registration
+Store it securely (e.g., environment variables, secrets manager)
+NEVER commit secrets to version control
+If compromised, regenerate via the dashboard
+🔑 OAuth 2.0 Flow (Server-Side)
+For server-side verification, use the OAuth 2.0 Authorization Code flow. This provides maximum security as the token exchange happens on your server with your client_secret (never exposed to the browser).
+
+⚠️ Important: Server-Side Required
+The client_secret must NEVER be used in frontend code! The Token Exchange (Step 2) must happen on your backend server.
+
+OAuth Flow Overview
+Flow Diagram
+┌─────────────┐ ┌─────────────┐ ┌─────────────┐ │ Browser │ │ Your Server │ │ AEraLogIn │ └──────┬──────┘ └──────┬──────┘ └──────┬──────┘ │ │ │ │ 1. Click Login │ │ │──────────────────────>│ │ │ │ │ │ 2. Redirect to AEra │ │ │<──────────────────────│ │ │ │ │ │ 3. /oauth/authorize ──────────────────────────>│ │ │ │ │ 4. User signs with wallet │ │<──────────────────────────────────────────────│ │ │ │ │ 5. Redirect with ?code=xxx │ │──────────────────────>│ │ │ │ │ │ │ 6. POST /oauth/token │ │ │──────────────────────>│ │ │ │ │ │ 7. access_token │ │ │<──────────────────────│ │ │ │ │ 8. Set session cookie │ │ │<──────────────────────│ │ │ │ │
+1. Authorization URL (Frontend)
+Redirect the user to the AEraLogIn authorization page:
+
+URL Parameters
+https://aeralogin.com/oauth/authorize ?client_id=YOUR_CLIENT_ID &redirect_uri=https://yoursite.com/callback &response_type=code &state=RANDOM_STATE_FOR_CSRF_PROTECTION
+Parameter	Required	Description
+client_id	Required	Your OAuth Client ID from the AEra Dashboard
+redirect_uri	Required	Must match exactly one of your registered redirect URIs
+response_type	Required	Always code
+state	Recommended	Random string for CSRF protection. Returned unchanged.
+2. Token Exchange (Server-Side) ⚠️
+After successful authentication, the user is redirected to your redirect_uri with a code parameter. Your server must exchange this for an Access Token:
+
+Node.js / Express
+Copy
+// Express.js callback route app.get('/callback', async (req, res) => { const { code, state } = req.query; // 1. Validate state parameter (CSRF protection) if (state !== req.session.oauthState) { return res.status(403).send('Invalid state parameter'); } // 2. Exchange code for access token const tokenResponse = await fetch('https://aeralogin.com/oauth/token', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ grant_type: 'authorization_code', code: code, redirect_uri: 'https://yoursite.com/callback', client_id: process.env.AERA_CLIENT_ID, client_secret: process.env.AERA_CLIENT_SECRET // ⚠️ Server-side only! }) }); const tokenData = await tokenResponse.json(); // 3. Check for errors if (tokenData.error) { return res.status(400).json({ error: tokenData.error_description }); } // 4. Store session and redirect req.session.aeraToken = tokenData.access_token; req.session.wallet = tokenData.wallet; req.session.score = tokenData.score; req.session.hasNFT = tokenData.has_nft; res.redirect('/dashboard'); });
+Python / Flask
+Copy
+import requests, os from flask import Flask, request, session, redirect @app.route('/callback') def oauth_callback(): code = request.args.get('code') state = request.args.get('state') # 1. Validate state if state != session.get('oauth_state'): return 'Invalid state', 403 # 2. Exchange code for token token_response = requests.post( 'https://aeralogin.com/oauth/token', json={ 'grant_type': 'authorization_code', 'code': code, 'redirect_uri': 'https://yoursite.com/callback', 'client_id': os.environ['AERA_CLIENT_ID'], 'client_secret': os.environ['AERA_CLIENT_SECRET'] } ) token_data = token_response.json() if 'error' in token_data: return f"Error: {token_data['error_description']}", 400 # 3. Store in session session['aera_token'] = token_data['access_token'] session['wallet'] = token_data['wallet'] session['score'] = token_data['score'] session['has_nft'] = token_data['has_nft'] return redirect('/dashboard')
+Token Response
+JSON Response
+{ "access_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...", "token_type": "Bearer", "expires_in": 86400, "wallet": "0x1234567890abcdef1234567890abcdef12345678", "score": 55, "has_nft": true }
+3. Token Verification (Optional Server-Side Check)
+You can verify a stored token at any time using the /api/v1/verify endpoint:
+
+Node.js - Token Verification
+Copy
+// Verify token on each protected request async function verifyAeraToken(accessToken) { const response = await fetch('https://aeralogin.com/api/v1/verify', { method: 'POST', headers: { 'Authorization': `Bearer ${accessToken}` } }); return await response.json(); } // Usage in middleware app.use('/protected', async (req, res, next) => { const token = req.session.aeraToken; if (!token) return res.redirect('/login'); const result = await verifyAeraToken(token); if (!result.valid) { delete req.session.aeraToken; return res.redirect('/login'); } // Check NFT requirement if (!result.has_nft) { return res.status(403).send('NFT required'); } req.user = result; next(); });
+4. NFT Verification Endpoint (Alternative)
+For additional security, you can verify NFT ownership directly with client credentials:
+
+JavaScript (Node.js)
+Copy
+const verification = await fetch('https://aeralogin.com/api/oauth/verify-nft', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ access_token: accessToken, client_id: process.env.AERA_CLIENT_ID, client_secret: process.env.AERA_CLIENT_SECRET }) }); const result = await verification.json(); // { valid: true, wallet: "0x...", has_nft: true, score: 150, chain_id: 8453 }
+Error Handling
+Common OAuth errors and how to handle them:
+
+Error	Description	Solution
+invalid_client	Unknown client or invalid secret	Check your client_id and client_secret
+invalid_grant	Authorization code expired or already used	Code is valid for 60 seconds and single-use only
+unsupported_grant_type	Wrong grant_type value	Use authorization_code
+invalid_request	Missing required parameters	Include all required fields in your request
+🔍 API Verification
+Use the /api/v1/verify endpoint to verify a user's session token server-side. This is useful when you need to validate authentication state from your backend.
+
+Request
+HTTP
+POST https://aeralogin.com/api/v1/verify Authorization: Bearer <aera_session_token>
+Response (Success)
+JSON
+{ "valid": true, "authenticated": true, "wallet": "0x1234...abcd", "score": 42, "has_nft": true, "chain_id": 8453, "issued_at": "2025-01-01T00:00:00Z", "expires_at": "2025-01-02T00:00:00Z" }
+Response (Failure)
+JSON
+{ "valid": false, "authenticated": false, "error": "Token expired" }
+Example (Node.js)
+JavaScript
+Copy
+const response = await fetch('https://aeralogin.com/api/v1/verify', { method: 'POST', headers: { 'Authorization': `Bearer ${sessionToken}` } }); const result = await response.json(); if (result.valid && result.has_nft) { // User is authenticated and has NFT console.log('User wallet:', result.wallet); } else { // Authentication failed console.log('Error:', result.error); }
+💡 Hinweis
+Der Session Token wird beim Login automatisch generiert und kann über AEraGate.getSessionToken() im Frontend abgerufen werden.
+
+🧩 Server Middleware
+We provide ready-to-use middleware solutions for various frameworks:
+
+Framework	Middleware	Link
+Express.js	express-middleware.js	Download
+Next.js	nextjs-middleware.ts	Download
+PHP	php-middleware.php	Download
+Python/Flask	python-middleware.py	Download
+💡 Tip
+For maximum security, we recommend using server-side middleware in combination with the JavaScript SDK.
+
+
+🌀
+
+
+
+
+
+CLIENT ID:
+aera_d524a97f1658c603d402bca965e34b79
+CLIENT SECRET:
+ToDgf79IGQRuLfiAgad8HyIo2PqTI3akh_jYUByq81s
+⚠️ IMPORTANT: Copy your Client Secret NOW! It will NOT be shown again.
+
+📋 Copy Both to Clipboard
+📱 My Registered Apps
+🔄 Refresh
+Xdest
+https://xdest.dev
+✓ Active
+CLIENT ID:
+aera_d524a97f1658c603d402bca965e34b79

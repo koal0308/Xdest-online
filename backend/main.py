@@ -19,8 +19,13 @@ os.makedirs("static", exist_ok=True)
 
 app = FastAPI(title="Xdest", version="1.0.0")
 
-# Add session middleware
-app.add_middleware(SessionMiddleware, secret_key=settings.SECRET_KEY)
+# Add session middleware with secure cookie settings for HTTPS
+app.add_middleware(
+    SessionMiddleware, 
+    secret_key=settings.SECRET_KEY,
+    https_only=True,
+    same_site="lax"
+)
 
 # Mount static files
 app.mount("/uploads", StaticFiles(directory="uploads"), name="uploads")

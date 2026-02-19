@@ -23,6 +23,11 @@
                         {% else %}
                         <span class="px-2 py-1 bg-blue-800/50 text-blue-400 text-xs rounded">🧪 Tester</span>
                         {% endif %}
+                        {% if profile_user.provider == 'aera' %}
+                        <span class="aera-profile-badge px-2 py-1 bg-gradient-to-r from-cyan-600/30 to-blue-600/30 border border-cyan-500/40 text-cyan-400 text-xs rounded flex items-center gap-1">
+                            🌀 AEra Genesis
+                        </span>
+                        {% endif %}
                     </div>
                     
                     {% if profile_user.email_visible %}
