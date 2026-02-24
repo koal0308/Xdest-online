@@ -609,10 +609,51 @@
                         
                         <!-- CTA Button -->
                         {% if offer.redemption_url %}
-                        <a href="{{ offer.redemption_url }}" target="_blank" class="block w-full text-center py-2 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-500 hover:to-pink-500 rounded-lg transition font-medium text-sm">
+                        <a href="{{ offer.redemption_url }}" target="_blank" class="block w-full text-center py-2 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-500 hover:to-pink-500 rounded-lg transition font-medium text-sm mb-3">
                             Claim Offer →
                         </a>
                         {% endif %}
+                        
+                        <!-- Share Offer Buttons -->
+                        <div class="flex items-center justify-center gap-2 pt-3 border-t border-gray-800">
+                            <span class="text-gray-500 text-xs">Share:</span>
+                            <!-- X (Twitter) -->
+                            <a href="https://twitter.com/intent/tweet?text=🔥%20{{ offer.title | urlencode }}%0A{% if offer.original_price and offer.offer_price %}💰%20{{ offer.original_price | urlencode }}%20→%20{{ offer.offer_price | urlencode }}{% if offer.discount_percent %}%20({{ offer.discount_percent }}%25%20OFF!){% endif %}{% elif offer.offer_price %}💰%20{{ offer.offer_price | urlencode }}{% elif offer.discount_percent %}💰%20{{ offer.discount_percent }}%25%20OFF!{% endif %}%0A%0AIf%20you%20build,%20test%20it.%0AIf%20you%20test,%20improve%20it.%0ASecure%20your%20spot:%0Ahttps://xdest.dev/project/{{ project.id }}%0A{% if project.twitter_handle %}%40{{ project.twitter_handle | replace('@', '') | urlencode }}%0A{% endif %}%40XdestHQ" 
+                               target="_blank" rel="noopener noreferrer"
+                               onclick="event.stopPropagation()"
+                               class="p-1.5 rounded-lg bg-dark-300 hover:bg-gray-700 transition" title="Share on X">
+                                <svg class="w-4 h-4" viewBox="0 0 24 24" fill="currentColor">
+                                    <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/>
+                                </svg>
+                            </a>
+                            <!-- Farcaster -->
+                            <a href="https://warpcast.com/~/compose?text=🔥%20{{ offer.title | urlencode }}%0A{% if offer.original_price and offer.offer_price %}💰%20{{ offer.original_price | urlencode }}%20→%20{{ offer.offer_price | urlencode }}{% if offer.discount_percent %}%20({{ offer.discount_percent }}%25%20OFF!){% endif %}{% elif offer.offer_price %}💰%20{{ offer.offer_price | urlencode }}{% elif offer.discount_percent %}💰%20{{ offer.discount_percent }}%25%20OFF!{% endif %}%0A%0AIf%20you%20build,%20test%20it.%0AIf%20you%20test,%20improve%20it.%0ASecure%20your%20spot:%0Ahttps://xdest.dev/project/{{ project.id }}%0A{% if project.farcaster_handle %}%40{{ project.farcaster_handle | replace('@', '') | urlencode }}%0A{% endif %}%40xdesthq" 
+                               target="_blank" rel="noopener noreferrer"
+                               onclick="event.stopPropagation()"
+                               class="p-1.5 rounded-lg bg-dark-300 hover:bg-purple-700 transition" title="Share on Farcaster">
+                                <svg class="w-4 h-4" viewBox="0 0 1000 1000" fill="currentColor">
+                                    <path d="M257.778 155.556H742.222V844.444H671.111V528.889H670.414C662.554 441.677 589.258 373.333 500 373.333C410.742 373.333 337.446 441.677 329.586 528.889H328.889V844.444H257.778V155.556Z"/>
+                                    <path d="M128.889 253.333L157.778 351.111H182.222V746.667C169.949 746.667 160 756.616 160 768.889V795.556H155.556C143.283 795.556 133.333 805.505 133.333 817.778V844.444H382.222V817.778C382.222 805.505 372.273 795.556 360 795.556H355.556V768.889C355.556 756.616 345.606 746.667 333.333 746.667H306.667V253.333H128.889Z"/>
+                                    <path d="M693.333 746.667C681.06 746.667 671.111 756.616 671.111 768.889V795.556H666.667C654.394 795.556 644.444 805.505 644.444 817.778V844.444H893.333V817.778C893.333 805.505 883.384 795.556 871.111 795.556H866.667V768.889C866.667 756.616 856.717 746.667 844.444 746.667V351.111H868.889L897.778 253.333H720V746.667H693.333Z"/>
+                                </svg>
+                            </a>
+                            <!-- LinkedIn -->
+                            <a href="https://www.linkedin.com/sharing/share-offsite/?url=https://xdest.dev/project/{{ project.id }}" 
+                               target="_blank" rel="noopener noreferrer"
+                               onclick="event.stopPropagation()"
+                               class="p-1.5 rounded-lg bg-dark-300 hover:bg-blue-700 transition" title="Share on LinkedIn">
+                                <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
+                                    <path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433c-1.144 0-2.063-.926-2.063-2.065 0-1.138.92-2.063 2.063-2.063 1.14 0 2.064.925 2.064 2.063 0 1.139-.925 2.065-2.064 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z"/>
+                                </svg>
+                            </a>
+                            <!-- Copy Link -->
+                            <button onclick="event.stopPropagation(); copyOfferLink({{ offer.id }})" 
+                                    class="p-1.5 rounded-lg bg-dark-300 hover:bg-gray-700 transition" title="Copy Link">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"/>
+                                </svg>
+                            </button>
+                        </div>
                     </div>
                 </div>
                 {% endfor %}
@@ -1919,6 +1960,20 @@ function copyProjectLink() {
 
 function copyPostLink(postId) {
     const url = window.location.origin + window.location.pathname + '#post-' + postId;
+    navigator.clipboard.writeText(url).then(() => {
+        const btn = event.target.closest('button');
+        const originalTitle = btn.title;
+        btn.title = 'Copied!';
+        btn.classList.add('bg-green-600');
+        setTimeout(() => {
+            btn.title = originalTitle;
+            btn.classList.remove('bg-green-600');
+        }, 2000);
+    });
+}
+
+function copyOfferLink(offerId) {
+    const url = window.location.origin + window.location.pathname + '#offer-' + offerId;
     navigator.clipboard.writeText(url).then(() => {
         const btn = event.target.closest('button');
         const originalTitle = btn.title;

@@ -195,7 +195,7 @@ We'll improve the flow as fast as possible.
 Thanks for being here and building with us! 🚀""",
             issue_type="docs",
             status="open",
-            source_platform="Xdest"
+            source_platform="Xdest-System"  # System-Issue: zählt nicht ins Test Karma
         )
         db.add(welcome_issue)
         db.commit()
@@ -2622,4 +2622,40 @@ async def delete_reply(
     db.commit()
     
     return JSONResponse({"message": "Deleted"})
+
+
+# Logo Size Logger Endpoint
+import logging
+
+# Setup logo logger
+logo_logger = logging.getLogger('logo_size')
+logo_logger.setLevel(logging.INFO)
+
+# Create file handler for logo size changes
+logo_handler = logging.FileHandler('logo_size.log')
+logo_handler.setFormatter(logging.Formatter('%(asctime)s - %(message)s'))
+logo_logger.addHandler(logo_handler)
+
+@router.post("/log/logo-size")
+async def log_logo_size(request: Request):
+    """Log logo size changes from client"""
+    try:
+        data = await request.json()
+        
+        log_entry = {
+            "event": data.get("event"),
+            "page": data.get("page"),
+            "logoSrc": data.get("logoSrc"),
+            "oldSize": data.get("oldSize"),
+            "newSize": data.get("newSize"),
+            "viewport": data.get("viewport"),
+            "timestamp": data.get("timestamp"),
+            "client_ip": request.client.host if request.client else "unknown"
+        }
+        
+        logo_logger.info(json.dumps(log_entry))
+        
+        return JSONResponse({"status": "logged"})
+    except Exception as e:
+        return JSONResponse({"status": "error", "message": str(e)}, status_code=400)
 

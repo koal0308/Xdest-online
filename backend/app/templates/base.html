@@ -752,6 +752,77 @@
             else if (html.classList.contains('sand')) currentTheme = 'sand';
             updateThemeIcons(currentTheme);
         });
+        
+        // Logo Size Logger
+        (function() {
+            let logoSizes = {};
+            
+            function logLogoSize(logo, event) {
+                const id = logo.id || logo.src || 'unknown';
+                const newSize = { width: logo.offsetWidth, height: logo.offsetHeight };
+                const oldSize = logoSizes[id];
+                
+                if (oldSize && (oldSize.width !== newSize.width || oldSize.height !== newSize.height)) {
+                    const logData = {
+                        event: event,
+                        page: window.location.pathname,
+                        logoSrc: logo.src,
+                        oldSize: oldSize,
+                        newSize: newSize,
+                        timestamp: new Date().toISOString(),
+                        viewport: { width: window.innerWidth, height: window.innerHeight }
+                    };
+                    
+                    console.log('[LOGO SIZE CHANGE]', logData);
+                    
+                    // Send to server
+                    fetch('/api/log/logo-size', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(logData)
+                    }).catch(() => {}); // Silent fail
+                }
+                
+                logoSizes[id] = newSize;
+            }
+            
+            function initLogoLogger() {
+                const logos = document.querySelectorAll('img[alt="Xdest"], img[src*="logo"], img[src*="Logo"], img[src*="IMG_5015"]');
+                
+                logos.forEach((logo, index) => {
+                    logo.id = logo.id || `logo-${index}`;
+                    
+                    // Initial size
+                    if (logo.complete) {
+                        logLogoSize(logo, 'initial');
+                    } else {
+                        logo.addEventListener('load', () => logLogoSize(logo, 'load'));
+                    }
+                });
+                
+                // Watch for resize
+                let resizeTimeout;
+                window.addEventListener('resize', () => {
+                    clearTimeout(resizeTimeout);
+                    resizeTimeout = setTimeout(() => {
+                        logos.forEach(logo => logLogoSize(logo, 'resize'));
+                    }, 100);
+                });
+                
+                // Watch for CSS class changes (responsive breakpoints)
+                if (window.ResizeObserver) {
+                    logos.forEach(logo => {
+                        new ResizeObserver(() => logLogoSize(logo, 'observer')).observe(logo);
+                    });
+                }
+            }
+            
+            if (document.readyState === 'loading') {
+                document.addEventListener('DOMContentLoaded', initLogoLogger);
+            } else {
+                initLogoLogger();
+            }
+        })();
     </script>
 </body>
 </html>

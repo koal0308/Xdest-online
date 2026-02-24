@@ -5,7 +5,7 @@ from sqlalchemy.orm import Session
 from sqlalchemy import or_
 from app.database import get_db
 from app.models import User, Project, Post, Comment, Issue, IssueResponse, Offer, Message, MessageReply
-from app.dependencies import get_current_user_optional, get_current_user
+from app.dependencies import get_current_user_optional, get_current_user, calculate_test_karma, KARMA_LIMIT
 import httpx
 from typing import Optional
 from datetime import datetime
@@ -78,6 +78,9 @@ async def dashboard(request: Request, db: Session = Depends(get_db)):
     
     total_notifications = unread_issues_count + unread_responses_count + unread_comments_count
     
+    # Test Karma berechnen
+    user_karma = calculate_test_karma(db, user.id)
+    
     return templates.TemplateResponse("dashboard.html", {
         "request": request,
         "user": user,
@@ -88,7 +91,8 @@ async def dashboard(request: Request, db: Session = Depends(get_db)):
         "unread_responses_count": unread_responses_count,
         "unread_comments_count": unread_comments_count,
         "project_comment_counts": project_comment_counts,
-        "total_notifications": total_notifications
+        "total_notifications": total_notifications,
+        "karma": user_karma
     })
 
 @router.get("/user/{username}", response_class=HTMLResponse)
@@ -345,6 +349,12 @@ async def project_issues_page(
     if not project:
         raise HTTPException(status_code=404, detail="Project not found")
     
+    is_owner = user and user.id == project.user_id
+    
+    # Test Karma System: Berechne Karma für den Projekt-Owner
+    owner_karma = calculate_test_karma(db, project.user_id)
+    karma_blocked = owner_karma["is_blocked"]
+    
     # Query Issues mit Filtern
     query = db.query(Issue).filter(Issue.project_id == project_id)
     
@@ -353,10 +363,16 @@ async def project_issues_page(
     if issue_type:
         query = query.filter(Issue.issue_type == issue_type)
     
-    issues = query.order_by(Issue.created_at.desc()).all()
-    is_owner = user and user.id == project.user_id
+    all_issues = query.order_by(Issue.created_at.desc()).all()
     
-    # Zähle Issues nach Status
+    # Wenn Karma-geblockt: Owner sieht nur eigene Issues (die er selbst gemeldet hat)
+    # Andere User sehen alle Issues normal
+    if karma_blocked and is_owner:
+        issues = [i for i in all_issues if i.user_id == user.id]
+    else:
+        issues = all_issues
+    
+    # Zähle Issues nach Status (volle Zählung, unabhängig von Karma)
     issue_counts = {
         "all": db.query(Issue).filter(Issue.project_id == project_id).count(),
         "open": db.query(Issue).filter(Issue.project_id == project_id, Issue.status == "open").count(),
@@ -364,6 +380,9 @@ async def project_issues_page(
         "resolved": db.query(Issue).filter(Issue.project_id == project_id, Issue.status == "resolved").count(),
         "closed": db.query(Issue).filter(Issue.project_id == project_id, Issue.status == "closed").count(),
     }
+    
+    # Karma-Info für den Owner mitgeben
+    user_karma = calculate_test_karma(db, user.id) if user else None
     
     return templates.TemplateResponse("issues.html", {
         "request": request,
@@ -373,7 +392,9 @@ async def project_issues_page(
         "is_owner": is_owner,
         "issue_counts": issue_counts,
         "current_status": status,
-        "current_type": issue_type
+        "current_type": issue_type,
+        "karma": user_karma,
+        "karma_blocked": karma_blocked and is_owner
     })
 
 @router.get("/project/{project_id}/issues/new", response_class=HTMLResponse)
@@ -413,6 +434,12 @@ async def issue_detail_page(project_id: int, issue_id: int, request: Request, db
     is_owner = user and user.id == project.user_id
     is_reporter = user and user.id == issue.user_id
     
+    # Test Karma System: Wenn Owner Karma-geblockt ist und das Issue von jemand anderem ist
+    if is_owner and not is_reporter:
+        owner_karma = calculate_test_karma(db, project.user_id)
+        if owner_karma["is_blocked"]:
+            raise HTTPException(status_code=403, detail="Your Test Karma is too low. Test other projects first to unlock your issues.")
+    
     # Mark issue and its responses as read if owner is viewing
     if is_owner:
         if not issue.is_read_by_owner:
@@ -423,13 +450,17 @@ async def issue_detail_page(project_id: int, issue_id: int, request: Request, db
                 response.is_read_by_owner = True
         db.commit()
     
+    # Karma-Info mitgeben
+    user_karma = calculate_test_karma(db, user.id) if user else None
+    
     return templates.TemplateResponse("issue_detail.html", {
         "request": request,
         "user": user,
         "project": project,
         "issue": issue,
         "is_owner": is_owner,
-        "is_reporter": is_reporter
+        "is_reporter": is_reporter,
+        "karma": user_karma
     })
 
 
