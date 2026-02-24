@@ -3,7 +3,7 @@ from fastapi.responses import RedirectResponse, JSONResponse
 from sqlalchemy.orm import Session
 from sqlalchemy import func
 from app.database import get_db
-from app.models import User, Project, Post, Comment, Issue, IssueResponse, ResponseVote, Offer, Message, MessageReply, UserRating
+from app.models import User, Project, Post, Comment, Issue, IssueResponse, ResponseVote, Offer, OfferRedemption, Message, MessageReply, UserRating
 from app.dependencies import get_current_user, get_current_user_optional
 from app.config import settings
 from app.encryption import decrypt_token, encrypt_token
@@ -19,6 +19,45 @@ router = APIRouter(prefix="/api", tags=["api"])
 
 ALLOWED_IMAGE_TYPES = {"image/jpeg", "image/png", "image/gif", "image/webp"}
 ALLOWED_VIDEO_TYPES = {"video/mp4", "video/webm", "video/quicktime"}
+
+
+def _fulfill_offer_obligation(db: Session, user_id: int, project_id: int):
+    """Check if user has pending offer obligations for this project and fulfill them.
+    Also reverses karma penalty if it was already applied."""
+    pending = db.query(OfferRedemption).filter(
+        OfferRedemption.user_id == user_id,
+        OfferRedemption.project_id == project_id,
+        OfferRedemption.fulfilled == False
+    ).all()
+    
+    for redemption in pending:
+        redemption.fulfilled = True
+        redemption.fulfilled_at = datetime.utcnow()
+        
+        # If karma penalty was already applied, reverse it
+        if redemption.karma_penalty_applied and not redemption.karma_penalty_reversed:
+            redemption.karma_penalty_reversed = True
+    
+    if pending:
+        db.commit()
+
+
+def check_and_apply_karma_penalties(db: Session):
+    """Check all overdue obligations and apply karma penalties.
+    Called periodically or on relevant page loads."""
+    overdue = db.query(OfferRedemption).filter(
+        OfferRedemption.fulfilled == False,
+        OfferRedemption.karma_penalty_applied == False,
+        OfferRedemption.deadline < datetime.utcnow()
+    ).all()
+    
+    for redemption in overdue:
+        redemption.karma_penalty_applied = True
+    
+    if overdue:
+        db.commit()
+    
+    return len(overdue)
 
 # GitHub Issue Type Labels Mapping with colors
 GITHUB_LABELS = {
@@ -387,6 +426,9 @@ async def create_comment(
     )
     db.add(comment)
     db.commit()
+    
+    # Check and fulfill any pending offer obligations for this project
+    _fulfill_offer_obligation(db, user.id, post.project_id)
     
     return RedirectResponse(url=f"/project/{post.project_id}", status_code=302)
 
@@ -1117,6 +1159,9 @@ async def create_issue(
     db.commit()
     db.refresh(issue)
     
+    # Check and fulfill any pending offer obligations for this project
+    _fulfill_offer_obligation(db, user.id, project_id)
+    
     return RedirectResponse(url=f"/project/{project_id}/issues", status_code=302)
 
 @router.post("/issue/{issue_id}/respond")
@@ -1142,6 +1187,9 @@ async def respond_to_issue(
     )
     db.add(response)
     db.commit()
+    
+    # Check and fulfill any pending offer obligations for this project
+    _fulfill_offer_obligation(db, user.id, issue.project_id)
     
     return RedirectResponse(url=f"/project/{issue.project_id}/issues/{issue_id}", status_code=302)
 
@@ -2658,4 +2706,133 @@ async def log_logo_size(request: Request):
         return JSONResponse({"status": "logged"})
     except Exception as e:
         return JSONResponse({"status": "error", "message": str(e)}, status_code=400)
+
+
+# ==================== OFFER REDEMPTION SYSTEM ====================
+
+@router.post("/offers/{offer_id}/claim")
+async def claim_offer(
+    offer_id: int,
+    request: Request,
+    db: Session = Depends(get_db)
+):
+    """Claim an offer coupon code. User agrees to test the project within 7 days."""
+    user = await get_current_user(request, db)
+    if not user:
+        raise HTTPException(status_code=401, detail="Not authenticated")
+    
+    offer = db.query(Offer).filter(Offer.id == offer_id).first()
+    if not offer:
+        raise HTTPException(status_code=404, detail="Offer not found")
+    
+    if not offer.is_valid:
+        raise HTTPException(status_code=400, detail="This offer is no longer available")
+    
+    # Check if user already claimed this offer
+    existing = db.query(OfferRedemption).filter(
+        OfferRedemption.offer_id == offer_id,
+        OfferRedemption.user_id == user.id
+    ).first()
+    
+    if existing:
+        return JSONResponse({
+            "status": "already_claimed",
+            "coupon_code": offer.coupon_code,
+            "redemption_url": offer.redemption_url,
+            "deadline": existing.deadline.isoformat(),
+            "fulfilled": existing.fulfilled
+        })
+    
+    # Can't claim your own project's offers
+    if offer.project.user_id == user.id:
+        raise HTTPException(status_code=400, detail="You cannot claim your own project's offers")
+    
+    # Create redemption
+    from datetime import timedelta
+    now = datetime.utcnow()
+    redemption = OfferRedemption(
+        offer_id=offer_id,
+        user_id=user.id,
+        project_id=offer.project_id,
+        claimed_at=now,
+        deadline=now + timedelta(days=7)
+    )
+    db.add(redemption)
+    
+    # Increment redemption counter
+    offer.current_redemptions = (offer.current_redemptions or 0) + 1
+    
+    db.commit()
+    
+    return JSONResponse({
+        "status": "claimed",
+        "coupon_code": offer.coupon_code,
+        "redemption_url": offer.redemption_url,
+        "deadline": redemption.deadline.isoformat(),
+        "project_id": offer.project_id,
+        "project_name": offer.project.name
+    })
+
+@router.get("/offers/{offer_id}/check-claim")
+async def check_offer_claim(
+    offer_id: int,
+    request: Request,
+    db: Session = Depends(get_db)
+):
+    """Check if current user has claimed this offer."""
+    user = await get_current_user_optional(request, db)
+    if not user:
+        return JSONResponse({"claimed": False, "logged_in": False})
+    
+    redemption = db.query(OfferRedemption).filter(
+        OfferRedemption.offer_id == offer_id,
+        OfferRedemption.user_id == user.id
+    ).first()
+    
+    if redemption:
+        offer = db.query(Offer).filter(Offer.id == offer_id).first()
+        return JSONResponse({
+            "claimed": True,
+            "logged_in": True,
+            "coupon_code": offer.coupon_code if offer else None,
+            "redemption_url": offer.redemption_url if offer else None,
+            "fulfilled": redemption.fulfilled,
+            "deadline": redemption.deadline.isoformat(),
+            "is_overdue": redemption.is_overdue
+        })
+    
+    return JSONResponse({"claimed": False, "logged_in": True})
+
+@router.get("/user/pending-obligations")
+async def get_pending_obligations(
+    request: Request,
+    db: Session = Depends(get_db)
+):
+    """Get all pending test obligations for the current user."""
+    user = await get_current_user(request, db)
+    if not user:
+        raise HTTPException(status_code=401, detail="Not authenticated")
+    
+    pending = db.query(OfferRedemption).filter(
+        OfferRedemption.user_id == user.id,
+        OfferRedemption.fulfilled == False
+    ).all()
+    
+    obligations = []
+    for r in pending:
+        offer = db.query(Offer).filter(Offer.id == r.offer_id).first()
+        project = db.query(Project).filter(Project.id == r.project_id).first()
+        obligations.append({
+            "redemption_id": r.id,
+            "offer_title": offer.title if offer else "Unknown",
+            "project_id": r.project_id,
+            "project_name": project.name if project else "Unknown",
+            "claimed_at": r.claimed_at.isoformat(),
+            "deadline": r.deadline.isoformat(),
+            "days_remaining": r.days_remaining,
+            "is_overdue": r.is_overdue,
+            "karma_penalty_applied": r.karma_penalty_applied
+        })
+    
+    return JSONResponse({"obligations": obligations})
 

@@ -39,3 +39,6 @@ class User(Base):
     # Collective Messages
     messages = relationship("Message", back_populates="author")
     message_replies = relationship("MessageReply", back_populates="author")
+    
+    # Offer Redemptions
+    offer_redemptions = relationship("OfferRedemption", back_populates="user")

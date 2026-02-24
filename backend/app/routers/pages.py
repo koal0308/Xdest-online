@@ -4,7 +4,7 @@ from fastapi.templating import Jinja2Templates
 from sqlalchemy.orm import Session
 from sqlalchemy import or_
 from app.database import get_db
-from app.models import User, Project, Post, Comment, Issue, IssueResponse, Offer, Message, MessageReply
+from app.models import User, Project, Post, Comment, Issue, IssueResponse, Offer, OfferRedemption, Message, MessageReply
 from app.dependencies import get_current_user_optional, get_current_user, calculate_test_karma, KARMA_LIMIT
 import httpx
 from typing import Optional
@@ -78,8 +78,32 @@ async def dashboard(request: Request, db: Session = Depends(get_db)):
     
     total_notifications = unread_issues_count + unread_responses_count + unread_comments_count
     
+    # Check and apply karma penalties for overdue offer obligations
+    from app.routers.api import check_and_apply_karma_penalties
+    check_and_apply_karma_penalties(db)
+    
     # Test Karma berechnen
     user_karma = calculate_test_karma(db, user.id)
+    
+    # Get pending offer obligations for dashboard warning
+    pending_obligations = db.query(OfferRedemption).filter(
+        OfferRedemption.user_id == user.id,
+        OfferRedemption.fulfilled == False
+    ).all()
+    
+    obligation_details = []
+    for r in pending_obligations:
+        offer = db.query(Offer).filter(Offer.id == r.offer_id).first()
+        project = db.query(Project).filter(Project.id == r.project_id).first()
+        obligation_details.append({
+            "offer_title": offer.title if offer else "Unknown",
+            "project_id": r.project_id,
+            "project_name": project.name if project else "Unknown",
+            "deadline": r.deadline,
+            "days_remaining": r.days_remaining,
+            "is_overdue": r.is_overdue,
+            "karma_penalty_applied": r.karma_penalty_applied
+        })
     
     return templates.TemplateResponse("dashboard.html", {
         "request": request,
@@ -92,7 +116,8 @@ async def dashboard(request: Request, db: Session = Depends(get_db)):
         "unread_comments_count": unread_comments_count,
         "project_comment_counts": project_comment_counts,
         "total_notifications": total_notifications,
-        "karma": user_karma
+        "karma": user_karma,
+        "pending_obligations": obligation_details
     })
 
 @router.get("/user/{username}", response_class=HTMLResponse)

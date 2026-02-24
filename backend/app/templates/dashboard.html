@@ -403,23 +403,23 @@
                             Test Karma: {{ karma.karma }}
                         </h3>
                         <p class="text-sm text-gray-400">
-                            <span class="text-green-400">{{ karma.given }} gegeben</span> · 
-                            <span class="text-blue-400">{{ karma.received }} empfangen</span>
+                            <span class="text-green-400">{{ karma.given }} given</span> · 
+                            <span class="text-blue-400">{{ karma.received }} received</span>
                         </p>
                     </div>
                 </div>
                 <div>
                     {% if karma.is_blocked %}
                         <span class="px-4 py-2 rounded-lg bg-red-600/20 text-red-400 text-sm font-medium flex items-center gap-2">
-                            🔒 Issues auf deinen Projekten versteckt
+                            🔒 Issues on your projects hidden
                         </span>
                     {% elif karma.karma >= 0 %}
                         <span class="px-4 py-2 rounded-lg bg-green-600/20 text-green-400 text-sm font-medium flex items-center gap-2">
-                            ✅ Gutes Karma
+                            ✅ Good Karma
                         </span>
                     {% else %}
                         <span class="px-4 py-2 rounded-lg bg-yellow-600/20 text-yellow-400 text-sm font-medium flex items-center gap-2">
-                            ⚠️ Karma im Minus ({{ karma.karma }}/{{ karma.limit }})
+                            ⚠️ Karma in deficit ({{ karma.karma }}/{{ karma.limit }})
                         </span>
                     {% endif %}
                 </div>
@@ -427,11 +427,11 @@
             {% if karma.is_blocked %}
             <div class="mt-4 p-3 rounded-lg bg-red-900/20 border border-red-800/30">
                 <p class="text-sm text-red-300 mb-2">
-                    ⚠️ Du hast deutlich mehr Issues empfangen als gegeben. Teste andere Projekte und schreibe Issues,
-                    um dein Karma wieder über {{ karma.limit }} zu bringen.
+                    ⚠️ You've received significantly more issues than you've given. Test other projects and write issues
+                    to bring your karma back above {{ karma.limit }}.
                 </p>
                 <a href="/explore" class="inline-block px-4 py-1.5 rounded-lg bg-purple-600 hover:bg-purple-500 transition text-xs font-semibold text-white">
-                    🔍 Projekte zum Testen finden
+                    🔍 Find projects to test
                 </a>
             </div>
             {% elif karma.karma < 0 %}
@@ -445,10 +445,54 @@
                          style="width: {{ (100 - ((karma.karma|abs / karma.limit|abs) * 100)) | int }}%"></div>
                 </div>
                 <p class="text-xs text-gray-500 mt-1">
-                    Noch {{ (karma.limit - karma.karma)|abs }} Issues, bevor deine empfangenen Issues versteckt werden.
+                    {{ (karma.limit - karma.karma)|abs }} more issues until your received issues get hidden.
                 </p>
             </div>
             {% endif %}
+        </div>
+        {% endif %}
+
+        <!-- Pending Test Obligations Widget -->
+        {% if pending_obligations %}
+        <div class="mb-8 rounded-xl border border-yellow-600/50 bg-yellow-900/10 p-5">
+            <div class="flex items-center gap-4 mb-4">
+                <div class="w-12 h-12 rounded-xl bg-yellow-600/20 flex items-center justify-center text-2xl">
+                    🎟️
+                </div>
+                <div>
+                    <h3 class="font-bold text-lg text-yellow-400">
+                        Pending Test Obligations ({{ pending_obligations|length }})
+                    </h3>
+                    <p class="text-sm text-gray-400">You claimed offer coupons — write a review or issue to fulfill your obligation.</p>
+                </div>
+            </div>
+            <div class="space-y-3">
+                {% for ob in pending_obligations %}
+                <div class="flex items-center justify-between p-3 rounded-lg {{ 'bg-red-900/20 border border-red-800/30' if ob.is_overdue else 'bg-dark-300' }}">
+                    <div class="flex items-center gap-3">
+                        <span class="text-lg">{{ '⚠️' if ob.is_overdue else '⏱️' }}</span>
+                        <div>
+                            <p class="font-medium {{ 'text-red-400' if ob.is_overdue else 'text-white' }}">
+                                {{ ob.offer_title }}
+                            </p>
+                            <p class="text-xs text-gray-500">
+                                Project: {{ ob.project_name }}
+                            </p>
+                        </div>
+                    </div>
+                    <div class="text-right">
+                        {% if ob.is_overdue %}
+                            <span class="text-xs text-red-400 font-medium">⚠️ Overdue! -1 Karma</span>
+                        {% else %}
+                            <span class="text-xs text-yellow-400">{{ ob.days_remaining }} days left</span>
+                        {% endif %}
+                        <a href="/project/{{ ob.project_id }}/issues" class="block mt-1 text-xs text-purple-400 hover:text-purple-300 transition">
+                            Write issue →
+                        </a>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
         </div>
         {% endif %}
 
@@ -534,7 +578,7 @@
                      data-original-price="{{ offer.original_price or '' }}"
                      data-discount="{{ offer.discount_percent or '' }}"
                      data-duration="{{ offer.duration or '' }}"
-                     data-coupon="{{ offer.coupon_code or '' }}"
+                     data-coupon="{{ 'hidden' if offer.coupon_code else '' }}"
                      data-redemption-url="{{ offer.redemption_url or '' }}"
                      data-spots="{{ offer.spots_left if offer.spots_left is not none else '' }}"
                      data-valid-until="{{ offer.valid_until.strftime('%d. %B %Y') if offer.valid_until else '' }}"
@@ -569,17 +613,52 @@
                         <a href="/project/{{ offer.project_id }}" class="hover:text-purple-400 transition">{{ offer.project.name }}</a>
                     </p>
                     
-                    <!-- Stats -->
-                    <div class="flex items-center gap-4 text-xs text-gray-500 mb-4">
+                    <!-- Redemption Counter -->
+                    <div class="bg-dark-300 rounded-lg p-3 mb-4">
+                        <div class="flex items-center justify-between mb-2">
+                            <span class="text-xs text-gray-400">🎟️ Coupons claimed</span>
+                            <span class="text-sm font-bold {{ 'text-orange-400' if offer.max_redemptions and offer.current_redemptions >= offer.max_redemptions else 'text-white' }}">
+                                {{ offer.current_redemptions or 0 }}{% if offer.max_redemptions %} / {{ offer.max_redemptions }}{% endif %}
+                            </span>
+                        </div>
                         {% if offer.max_redemptions %}
-                        <span>{{ offer.current_redemptions }}/{{ offer.max_redemptions }} redeemed</span>
+                        <div class="w-full bg-dark-100 rounded-full h-2 mb-2">
+                            {% set pct = ((offer.current_redemptions or 0) / offer.max_redemptions * 100) | int %}
+                            <div class="h-2 rounded-full transition-all duration-500 {{ 'bg-red-500' if pct >= 90 else 'bg-orange-500' if pct >= 70 else 'bg-purple-500' }}" 
+                                 style="width: {{ [pct, 100] | min }}%"></div>
+                        </div>
+                        <div class="flex justify-between text-xs">
+                            {% if offer.spots_left is not none and offer.spots_left <= 0 %}
+                            <span class="text-red-400 font-medium">❌ Sold out</span>
+                            {% elif offer.spots_left is not none and offer.spots_left <= 3 %}
+                            <span class="text-orange-400">🔥 {{ offer.spots_left }} left</span>
+                            {% else %}
+                            <span class="text-gray-500">{{ offer.spots_left }} spots left</span>
+                            {% endif %}
+                            <span class="text-gray-600">{{ pct }}%</span>
+                        </div>
                         {% else %}
-                        <span>{{ offer.current_redemptions }} redeemed</span>
+                        <span class="text-xs text-gray-500">Unlimited spots</span>
                         {% endif %}
-                        {% if offer.coupon_code %}
-                        <span class="font-mono bg-gray-800 px-2 py-0.5 rounded">{{ offer.coupon_code }}</span>
+                        
+                        {% set fulfilled_count = offer.redemptions | selectattr('fulfilled') | list | length %}
+                        {% set pending_count = offer.redemptions | rejectattr('fulfilled') | list | length %}
+                        {% if offer.current_redemptions and offer.current_redemptions > 0 %}
+                        <div class="flex items-center gap-3 mt-2 pt-2 border-t border-gray-700 text-xs">
+                            <span class="text-green-400">✅ {{ fulfilled_count }} tested</span>
+                            {% if pending_count > 0 %}
+                            <span class="text-yellow-400">⏳ {{ pending_count }} pending</span>
+                            {% endif %}
+                        </div>
                         {% endif %}
                     </div>
+                    
+                    {% if offer.coupon_code %}
+                    <div class="flex items-center gap-2 mb-4">
+                        <span class="text-xs text-gray-500">Code:</span>
+                        <span class="font-mono bg-gray-800 px-2 py-0.5 rounded text-xs text-purple-400">{{ offer.coupon_code }}</span>
+                    </div>
+                    {% endif %}
                     
                     <!-- Actions -->
                     <div class="flex gap-2">

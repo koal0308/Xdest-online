@@ -47,6 +47,7 @@ class Offer(Base):
     
     # Relationships
     project = relationship("Project", back_populates="offers")
+    redemptions = relationship("OfferRedemption", back_populates="offer", cascade="all, delete-orphan")
     
     @property
     def is_valid(self):
