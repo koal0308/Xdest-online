@@ -15,7 +15,7 @@
                 <p class="text-gray-400">Discover exclusive deals from indie developers</p>
             </div>
             {% if user and user.role != 'tester' %}
-            <a href="/create-offer" class="px-6 py-3 rounded-lg bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-500 hover:to-pink-500 transition font-semibold flex items-center gap-2">
+            <a href="/create-offer" class="px-6 py-3 rounded-lg bg-purple-500 hover:bg-purple-400 transition font-semibold flex items-center gap-2">
                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
                 </svg>
@@ -111,7 +111,7 @@
                         <!-- Claim Button -->
                         <div id="claim-btn-{{ offer.id }}">
                             <button onclick="event.stopPropagation(); claimOffer({{ offer.id }})"
-                               class="w-full py-2 bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-500 hover:to-emerald-500 rounded-lg transition font-medium text-sm flex items-center justify-center gap-2">
+                               class="w-full py-2 bg-green-500 hover:bg-green-400 rounded-lg transition font-medium text-sm flex items-center justify-center gap-2">
                                 🎟️ Reveal Coupon Code
                             </button>
                             <p class="text-xs text-gray-500 mt-1 text-center">By claiming, you agree to test & review within 7 days</p>
@@ -151,7 +151,7 @@
                     <!-- CTA Button -->
                     {% if offer.redemption_url %}
                     <a href="{{ offer.redemption_url }}" target="_blank" onclick="event.stopPropagation()"
-                       class="block w-full py-3 rounded-lg bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-500 hover:to-pink-500 transition font-semibold text-center">
+                       class="block w-full py-3 rounded-lg bg-purple-500 hover:bg-purple-400 transition font-semibold text-center">
                         Get This Deal →
                     </a>
                     {% else %}
@@ -188,7 +188,7 @@
             <h3 class="text-xl font-semibold mb-2">No Offers Found</h3>
             <p class="text-gray-400 mb-6">No offers available yet. Be the first to create one!</p>
             {% if user and user.role != 'tester' %}
-            <a href="/create-offer" class="px-6 py-3 rounded-lg bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-500 hover:to-pink-500 transition font-semibold inline-block">
+            <a href="/create-offer" class="px-6 py-3 rounded-lg bg-purple-500 hover:bg-purple-400 transition font-semibold inline-block">
                 Create First Offer
             </a>
             {% endif %}
@@ -247,7 +247,7 @@
             <div id="modalCouponSection" class="mb-6 hidden">
                 <!-- Claim button -->
                 <div id="modalClaimBtn">
-                    <button onclick="claimOfferModal()" class="w-full py-3 rounded-xl bg-gradient-to-r from-yellow-600 to-orange-600 hover:from-yellow-500 hover:to-orange-500 transition font-semibold text-center">
+                    <button onclick="claimOfferModal()" class="w-full py-3 rounded-xl bg-yellow-500 hover:bg-yellow-400 transition font-semibold text-center">
                         🎟️ Reveal Coupon Code
                     </button>
                     <p class="text-xs text-gray-500 mt-2 text-center">By revealing the code, you agree to test the product and write a review or issue within 7 days.</p>
@@ -257,14 +257,14 @@
                     <p class="text-sm text-gray-400 mb-2">Your coupon code:</p>
                     <div class="bg-dark-300 rounded-xl p-4 flex items-center justify-between">
                         <code id="modalCouponCode" class="text-xl font-mono text-purple-400"></code>
-                        <button onclick="copyModalCode()" class="px-4 py-2 bg-purple-600 hover:bg-purple-500 rounded-lg transition text-sm font-medium">Copy Code</button>
+                        <button onclick="copyModalCode()" class="px-4 py-2 bg-purple-500 hover:bg-purple-400 rounded-lg transition text-sm font-medium">Copy Code</button>
                     </div>
                 </div>
                 <!-- Login prompt -->
                 <div id="modalCouponLogin" class="hidden">
                     <div class="bg-dark-300 rounded-xl p-4 text-center">
                         <p class="text-gray-400 mb-2">🔒 Log in to reveal the coupon code</p>
-                        <a href="/auth/login" class="inline-block px-4 py-2 bg-purple-600 hover:bg-purple-500 rounded-lg transition text-sm font-medium">Log In</a>
+                        <a href="/auth/login" class="inline-block px-4 py-2 bg-purple-500 hover:bg-purple-400 rounded-lg transition text-sm font-medium">Log In</a>
                     </div>
                 </div>
             </div>
@@ -281,7 +281,7 @@
             </div>
             
             <div class="flex gap-4">
-                <a id="modalRedemptionBtn" href="#" target="_blank" class="flex-1 py-4 rounded-xl bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-500 hover:to-pink-500 transition font-semibold text-center text-lg hidden">🎁 Claim This Offer</a>
+                <a id="modalRedemptionBtn" href="#" target="_blank" class="flex-1 py-4 rounded-xl bg-purple-500 hover:bg-purple-400 transition font-semibold text-center text-lg hidden">🎁 Claim This Offer</a>
                 <a id="modalProjectBtn" href="#" class="flex-1 py-4 rounded-xl border-2 border-gray-700 hover:border-purple-500 hover:bg-purple-600/10 transition font-semibold text-center">View Project →</a>
             </div>
         </div>

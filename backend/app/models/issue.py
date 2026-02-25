@@ -32,6 +32,7 @@ class Issue(Base):
     issue_type = Column(String(50), default="bug")  # bug, feature, question, security, docs
     status = Column(String(50), default="open")     # open, in_progress, resolved, closed, wont_fix
     helpful_count = Column(Integer, default=0)  # Anzahl der "Hilfreich" Votes für das Issue (von dest)
+    downvote_count = Column(Integer, default=0)  # Anzahl der Downvotes
     github_reactions = Column(Integer, default=0)  # Anzahl der 👍 Reactions von GitHub
     github_negative_reactions = Column(Integer, default=0)  # Anzahl der 👎 Reactions von GitHub
     
@@ -63,6 +64,7 @@ class IssueResponse(Base):
     
     content = Column(Text, nullable=False)
     helpful_count = Column(Integer, default=0)  # Anzahl der "Hilfreich" Votes
+    downvote_count = Column(Integer, default=0)  # Anzahl der Downvotes
     is_solution = Column(Integer, default=0)  # 1 = vom Issue-Ersteller als Lösung markiert
     is_read_by_owner = Column(Boolean, default=False)  # Hat der Projekt-Owner die Antwort gelesen?
     created_at = Column(DateTime, default=datetime.utcnow)
@@ -73,12 +75,13 @@ class IssueResponse(Base):
     votes = relationship("ResponseVote", back_populates="response", cascade="all, delete-orphan")
 
 class IssueVote(Base):
-    """Speichert wer welches Issue als hilfreich markiert hat"""
+    """Speichert wer welches Issue als hilfreich/nicht hilfreich markiert hat"""
     __tablename__ = "issue_votes"
     
     id = Column(Integer, primary_key=True, index=True)
     issue_id = Column(Integer, ForeignKey("issues.id"), nullable=False)
     user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    vote_type = Column(String(10), default="upvote")  # upvote oder downvote
     created_at = Column(DateTime, default=datetime.utcnow)
     
     # Relationships
@@ -86,12 +89,13 @@ class IssueVote(Base):
     user = relationship("User", back_populates="issue_votes")
 
 class ResponseVote(Base):
-    """Speichert wer welche Antwort als hilfreich markiert hat"""
+    """Speichert wer welche Antwort als hilfreich/nicht hilfreich markiert hat"""
     __tablename__ = "response_votes"
     
     id = Column(Integer, primary_key=True, index=True)
     response_id = Column(Integer, ForeignKey("issue_responses.id"), nullable=False)
     user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    vote_type = Column(String(10), default="upvote")  # upvote oder downvote
     created_at = Column(DateTime, default=datetime.utcnow)
     
     # Relationships

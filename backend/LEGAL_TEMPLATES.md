@@ -66,7 +66,8 @@ GitHub access tokens are encrypted and stored securely. You can revoke access at
 
 ## 6. Points and Leaderboard
 
-- Points are earned through platform activities (reporting issues, receiving helpful votes, etc.)
+- Points are earned through platform activities (reporting issues, receiving helpful votes, test karma, ratings, etc.)
+- Every positive action earns +1 point, negative actions deduct -1 point
 - Points have no monetary value and cannot be exchanged for cash
 - We reserve the right to modify the points system at any time
 

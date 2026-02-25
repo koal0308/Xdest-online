@@ -30,6 +30,8 @@ class User(Base):
     issue_responses = relationship("IssueResponse", back_populates="author")
     issue_votes = relationship("IssueVote", back_populates="user")
     response_votes = relationship("ResponseVote", back_populates="user")
+    post_votes = relationship("PostVote", back_populates="user")
+    comment_votes = relationship("CommentVote", back_populates="user")
     
     # Star Ratings
     project_ratings = relationship("ProjectRating", back_populates="user")
@@ -39,6 +41,8 @@ class User(Base):
     # Collective Messages
     messages = relationship("Message", back_populates="author")
     message_replies = relationship("MessageReply", back_populates="author")
+    message_votes = relationship("MessageVote", back_populates="user")
+    message_reply_votes = relationship("MessageReplyVote", back_populates="user")
     
     # Offer Redemptions
     offer_redemptions = relationship("OfferRedemption", back_populates="user")

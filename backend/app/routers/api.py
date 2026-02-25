@@ -4,7 +4,7 @@ from sqlalchemy.orm import Session
 from sqlalchemy import func
 from app.database import get_db
 from app.models import User, Project, Post, Comment, Issue, IssueResponse, ResponseVote, Offer, OfferRedemption, Message, MessageReply, UserRating
-from app.dependencies import get_current_user, get_current_user_optional
+from app.dependencies import get_current_user, get_current_user_optional, calculate_test_karma
 from app.config import settings
 from app.encryption import decrypt_token, encrypt_token
 import os
@@ -431,6 +431,139 @@ async def create_comment(
     _fulfill_offer_obligation(db, user.id, post.project_id)
     
     return RedirectResponse(url=f"/project/{post.project_id}", status_code=302)
+
+
+# ==================== POST & COMMENT VOTE SYSTEM ====================
+
+@router.post("/post/{post_id}/vote")
+async def vote_post(
+    post_id: int,
+    request: Request,
+    db: Session = Depends(get_db)
+):
+    """Up- oder Downvote für einen Post"""
+    from app.models import PostVote
+    
+    user = await get_current_user(request, db)
+    if not user:
+        raise HTTPException(status_code=401, detail="Not authenticated")
+    
+    post = db.query(Post).filter(Post.id == post_id).first()
+    if not post:
+        raise HTTPException(status_code=404, detail="Post not found")
+    
+    if post.user_id == user.id:
+        return JSONResponse({"error": "Cannot vote for own post"}, status_code=400)
+    
+    try:
+        body = await request.json()
+        vote_type = body.get("vote_type", "upvote")
+    except:
+        vote_type = "upvote"
+    
+    if vote_type not in ("upvote", "downvote"):
+        return JSONResponse({"error": "Invalid vote type"}, status_code=400)
+    
+    existing_vote = db.query(PostVote).filter(
+        PostVote.post_id == post_id,
+        PostVote.user_id == user.id
+    ).first()
+    
+    if existing_vote:
+        if existing_vote.vote_type == vote_type:
+            # Toggle off
+            if vote_type == "upvote":
+                post.upvote_count = max(0, post.upvote_count - 1)
+            else:
+                post.downvote_count = max(0, post.downvote_count - 1)
+            db.delete(existing_vote)
+            db.commit()
+            return JSONResponse({"voted": None, "upvotes": post.upvote_count, "downvotes": post.downvote_count})
+        else:
+            # Switch vote
+            if existing_vote.vote_type == "upvote":
+                post.upvote_count = max(0, post.upvote_count - 1)
+                post.downvote_count = post.downvote_count + 1
+            else:
+                post.downvote_count = max(0, post.downvote_count - 1)
+                post.upvote_count = post.upvote_count + 1
+            existing_vote.vote_type = vote_type
+            db.commit()
+            return JSONResponse({"voted": vote_type, "upvotes": post.upvote_count, "downvotes": post.downvote_count})
+    else:
+        vote = PostVote(post_id=post_id, user_id=user.id, vote_type=vote_type)
+        db.add(vote)
+        if vote_type == "upvote":
+            post.upvote_count = post.upvote_count + 1
+        else:
+            post.downvote_count = post.downvote_count + 1
+        db.commit()
+        return JSONResponse({"voted": vote_type, "upvotes": post.upvote_count, "downvotes": post.downvote_count})
+
+
+@router.post("/comment/{comment_id}/vote")
+async def vote_comment(
+    comment_id: int,
+    request: Request,
+    db: Session = Depends(get_db)
+):
+    """Up- oder Downvote für einen Comment"""
+    from app.models import CommentVote
+    
+    user = await get_current_user(request, db)
+    if not user:
+        raise HTTPException(status_code=401, detail="Not authenticated")
+    
+    comment = db.query(Comment).filter(Comment.id == comment_id).first()
+    if not comment:
+        raise HTTPException(status_code=404, detail="Comment not found")
+    
+    if comment.user_id == user.id:
+        return JSONResponse({"error": "Cannot vote for own comment"}, status_code=400)
+    
+    try:
+        body = await request.json()
+        vote_type = body.get("vote_type", "upvote")
+    except:
+        vote_type = "upvote"
+    
+    if vote_type not in ("upvote", "downvote"):
+        return JSONResponse({"error": "Invalid vote type"}, status_code=400)
+    
+    existing_vote = db.query(CommentVote).filter(
+        CommentVote.comment_id == comment_id,
+        CommentVote.user_id == user.id
+    ).first()
+    
+    if existing_vote:
+        if existing_vote.vote_type == vote_type:
+            if vote_type == "upvote":
+                comment.upvote_count = max(0, comment.upvote_count - 1)
+            else:
+                comment.downvote_count = max(0, comment.downvote_count - 1)
+            db.delete(existing_vote)
+            db.commit()
+            return JSONResponse({"voted": None, "upvotes": comment.upvote_count, "downvotes": comment.downvote_count})
+        else:
+            if existing_vote.vote_type == "upvote":
+                comment.upvote_count = max(0, comment.upvote_count - 1)
+                comment.downvote_count = comment.downvote_count + 1
+            else:
+                comment.downvote_count = max(0, comment.downvote_count - 1)
+                comment.upvote_count = comment.upvote_count + 1
+            existing_vote.vote_type = vote_type
+            db.commit()
+            return JSONResponse({"voted": vote_type, "upvotes": comment.upvote_count, "downvotes": comment.downvote_count})
+    else:
+        vote = CommentVote(comment_id=comment_id, user_id=user.id, vote_type=vote_type)
+        db.add(vote)
+        if vote_type == "upvote":
+            comment.upvote_count = comment.upvote_count + 1
+        else:
+            comment.downvote_count = comment.downvote_count + 1
+        db.commit()
+        return JSONResponse({"voted": vote_type, "upvotes": comment.upvote_count, "downvotes": comment.downvote_count})
+
 
 @router.post("/profile/update")
 async def update_profile(
@@ -1308,15 +1441,15 @@ async def delete_issue(
     
     return RedirectResponse(url=f"/project/{project_id}/issues", status_code=302)
 
-# ==================== HELPFUL VOTE SYSTEM ====================
+# ==================== VOTE SYSTEM (Up/Down) ====================
 
 @router.post("/response/{response_id}/vote")
-async def vote_helpful(
+async def vote_response(
     response_id: int,
     request: Request,
     db: Session = Depends(get_db)
 ):
-    """Markiert eine Antwort als hilfreich"""
+    """Up- oder Downvote für eine Antwort"""
     user = await get_current_user(request, db)
     if not user:
         raise HTTPException(status_code=401, detail="Not authenticated")
@@ -1325,37 +1458,63 @@ async def vote_helpful(
     if not response:
         raise HTTPException(status_code=404, detail="Response not found")
     
-    # Kann nicht eigene Antwort als hilfreich markieren
     if response.user_id == user.id:
         return JSONResponse({"error": "Cannot vote for own response"}, status_code=400)
     
-    # Prüfen ob bereits gevotet
+    # vote_type aus Body lesen (default: upvote für Abwärtskompatibilität)
+    try:
+        body = await request.json()
+        vote_type = body.get("vote_type", "upvote")
+    except:
+        vote_type = "upvote"
+    
+    if vote_type not in ("upvote", "downvote"):
+        return JSONResponse({"error": "Invalid vote type"}, status_code=400)
+    
     existing_vote = db.query(ResponseVote).filter(
         ResponseVote.response_id == response_id,
         ResponseVote.user_id == user.id
     ).first()
     
     if existing_vote:
-        # Vote entfernen
-        db.delete(existing_vote)
-        response.helpful_count = max(0, response.helpful_count - 1)
-        db.commit()
-        return JSONResponse({"voted": False, "count": response.helpful_count})
+        if existing_vote.vote_type == vote_type:
+            # Gleicher Vote → entfernen (toggle)
+            if vote_type == "upvote":
+                response.helpful_count = max(0, response.helpful_count - 1)
+            else:
+                response.downvote_count = max(0, response.downvote_count - 1)
+            db.delete(existing_vote)
+            db.commit()
+            return JSONResponse({"voted": None, "upvotes": response.helpful_count, "downvotes": response.downvote_count, "count": response.helpful_count})
+        else:
+            # Anderer Vote → wechseln
+            if existing_vote.vote_type == "upvote":
+                response.helpful_count = max(0, response.helpful_count - 1)
+                response.downvote_count = response.downvote_count + 1
+            else:
+                response.downvote_count = max(0, response.downvote_count - 1)
+                response.helpful_count = response.helpful_count + 1
+            existing_vote.vote_type = vote_type
+            db.commit()
+            return JSONResponse({"voted": vote_type, "upvotes": response.helpful_count, "downvotes": response.downvote_count, "count": response.helpful_count})
     else:
-        # Vote hinzufügen
-        vote = ResponseVote(response_id=response_id, user_id=user.id)
+        # Neuer Vote
+        vote = ResponseVote(response_id=response_id, user_id=user.id, vote_type=vote_type)
         db.add(vote)
-        response.helpful_count = response.helpful_count + 1
+        if vote_type == "upvote":
+            response.helpful_count = response.helpful_count + 1
+        else:
+            response.downvote_count = response.downvote_count + 1
         db.commit()
-        return JSONResponse({"voted": True, "count": response.helpful_count})
+        return JSONResponse({"voted": vote_type, "upvotes": response.helpful_count, "downvotes": response.downvote_count, "count": response.helpful_count})
 
 @router.post("/issue/{issue_id}/vote")
-async def vote_issue_helpful(
+async def vote_issue(
     issue_id: int,
     request: Request,
     db: Session = Depends(get_db)
 ):
-    """Markiert ein Issue als hilfreich"""
+    """Up- oder Downvote für ein Issue"""
     from app.models import IssueVote
     
     user = await get_current_user(request, db)
@@ -1366,29 +1525,53 @@ async def vote_issue_helpful(
     if not issue:
         raise HTTPException(status_code=404, detail="Issue not found")
     
-    # Kann nicht eigenes Issue als hilfreich markieren
     if issue.user_id == user.id:
         return JSONResponse({"error": "Cannot vote for own issue"}, status_code=400)
     
-    # Prüfen ob bereits gevotet
+    try:
+        body = await request.json()
+        vote_type = body.get("vote_type", "upvote")
+    except:
+        vote_type = "upvote"
+    
+    if vote_type not in ("upvote", "downvote"):
+        return JSONResponse({"error": "Invalid vote type"}, status_code=400)
+    
     existing_vote = db.query(IssueVote).filter(
         IssueVote.issue_id == issue_id,
         IssueVote.user_id == user.id
     ).first()
     
     if existing_vote:
-        # Vote entfernen
-        db.delete(existing_vote)
-        issue.helpful_count = max(0, issue.helpful_count - 1)
-        db.commit()
-        return JSONResponse({"voted": False, "count": issue.helpful_count})
+        if existing_vote.vote_type == vote_type:
+            # Toggle off
+            if vote_type == "upvote":
+                issue.helpful_count = max(0, issue.helpful_count - 1)
+            else:
+                issue.downvote_count = max(0, issue.downvote_count - 1)
+            db.delete(existing_vote)
+            db.commit()
+            return JSONResponse({"voted": None, "upvotes": issue.helpful_count, "downvotes": issue.downvote_count, "count": issue.helpful_count})
+        else:
+            # Switch vote
+            if existing_vote.vote_type == "upvote":
+                issue.helpful_count = max(0, issue.helpful_count - 1)
+                issue.downvote_count = issue.downvote_count + 1
+            else:
+                issue.downvote_count = max(0, issue.downvote_count - 1)
+                issue.helpful_count = issue.helpful_count + 1
+            existing_vote.vote_type = vote_type
+            db.commit()
+            return JSONResponse({"voted": vote_type, "upvotes": issue.helpful_count, "downvotes": issue.downvote_count, "count": issue.helpful_count})
     else:
-        # Vote hinzufügen
-        vote = IssueVote(issue_id=issue_id, user_id=user.id)
+        vote = IssueVote(issue_id=issue_id, user_id=user.id, vote_type=vote_type)
         db.add(vote)
-        issue.helpful_count = issue.helpful_count + 1
+        if vote_type == "upvote":
+            issue.helpful_count = issue.helpful_count + 1
+        else:
+            issue.downvote_count = issue.downvote_count + 1
         db.commit()
-        return JSONResponse({"voted": True, "count": issue.helpful_count})
+        return JSONResponse({"voted": vote_type, "upvotes": issue.helpful_count, "downvotes": issue.downvote_count, "count": issue.helpful_count})
 
 @router.post("/response/{response_id}/solution")
 async def mark_as_solution(
@@ -1429,147 +1612,146 @@ async def get_leaderboard(
     request: Request,
     db: Session = Depends(get_db)
 ):
-    """Gibt das Leaderboard der hilfreichsten User zurück - inkl. Issue-Ersteller mit GitHub Reactions und 5-Sterne-Bewertungen"""
+    """Leaderboard with unified +1/-1 scoring system integrated with Test Karma."""
     
-    # Alle User mit Aktivität sammeln
     user_scores = {}
     
-    # 1. Punkte für hilfreiche Antworten und Lösungen
+    # Helper: ensure user entry exists
+    def ensure_user(uid, username, avatar):
+        if uid not in user_scores:
+            user_scores[uid] = {
+                "user_id": uid,
+                "username": username,
+                "avatar": avatar,
+                "solutions": 0,
+                "response_helpful": 0,
+                "issue_helpful": 0,
+                "github_positive": 0,
+                "github_negative": 0,
+                "five_star_ratings": 0,
+                "issues_given": 0,
+                "issues_received": 0,
+                "offer_penalties": 0,
+                "total_responses": 0,
+                "total_issues": 0,
+                "projects_count": 0
+            }
+    
+    # 1. Response stats: solutions + helpful votes
     response_data = db.query(
-        User.id,
-        User.username,
-        User.avatar,
+        User.id, User.username, User.avatar,
         func.coalesce(func.sum(IssueResponse.helpful_count), 0).label('response_helpful'),
         func.coalesce(func.sum(IssueResponse.is_solution), 0).label('solutions_count'),
         func.count(IssueResponse.id).label('total_responses')
-    ).outerjoin(
-        IssueResponse, User.id == IssueResponse.user_id
+    ).outerjoin(IssueResponse, User.id == IssueResponse.user_id
     ).group_by(User.id).all()
     
     for row in response_data:
-        if row.id not in user_scores:
-            user_scores[row.id] = {
-                "user_id": row.id,
-                "username": row.username,
-                "avatar": row.avatar,
-                "response_helpful": 0,
-                "solutions_count": 0,
-                "total_responses": 0,
-                "issue_helpful": 0,
-                "github_reactions": 0,
-                "github_negative_reactions": 0,
-                "total_issues": 0,
-                "five_star_ratings": 0
-            }
-        user_scores[row.id]["response_helpful"] = row.response_helpful
-        user_scores[row.id]["solutions_count"] = row.solutions_count
-        user_scores[row.id]["total_responses"] = row.total_responses
+        ensure_user(row.id, row.username, row.avatar)
+        user_scores[row.id]["solutions"] = row.solutions_count or 0
+        user_scores[row.id]["response_helpful"] = row.response_helpful or 0
+        user_scores[row.id]["total_responses"] = row.total_responses or 0
     
-    # 2. Punkte für hilfreiche Issues (dest votes + GitHub reactions)
+    # 2. Issue stats: helpful votes + GitHub reactions
     issue_data = db.query(
-        User.id,
-        User.username,
-        User.avatar,
+        User.id, User.username, User.avatar,
         func.coalesce(func.sum(Issue.helpful_count), 0).label('issue_helpful'),
-        func.coalesce(func.sum(Issue.github_reactions), 0).label('github_reactions'),
-        func.coalesce(func.sum(Issue.github_negative_reactions), 0).label('github_negative_reactions'),
+        func.coalesce(func.sum(Issue.github_reactions), 0).label('github_pos'),
+        func.coalesce(func.sum(Issue.github_negative_reactions), 0).label('github_neg'),
         func.count(Issue.id).label('total_issues')
-    ).outerjoin(
-        Issue, User.id == Issue.user_id
+    ).outerjoin(Issue, User.id == Issue.user_id
     ).group_by(User.id).all()
     
     for row in issue_data:
-        if row.id not in user_scores:
-            user_scores[row.id] = {
-                "user_id": row.id,
-                "username": row.username,
-                "avatar": row.avatar,
-                "response_helpful": 0,
-                "solutions_count": 0,
-                "total_responses": 0,
-                "issue_helpful": 0,
-                "github_reactions": 0,
-                "github_negative_reactions": 0,
-                "total_issues": 0,
-                "five_star_ratings": 0
-            }
-        user_scores[row.id]["issue_helpful"] = row.issue_helpful
-        user_scores[row.id]["github_reactions"] = row.github_reactions
-        user_scores[row.id]["github_negative_reactions"] = row.github_negative_reactions
-        user_scores[row.id]["total_issues"] = row.total_issues
+        ensure_user(row.id, row.username, row.avatar)
+        user_scores[row.id]["issue_helpful"] = row.issue_helpful or 0
+        user_scores[row.id]["github_positive"] = row.github_pos or 0
+        user_scores[row.id]["github_negative"] = row.github_neg or 0
+        user_scores[row.id]["total_issues"] = row.total_issues or 0
     
-    # 3. Punkte für 5-Sterne User-Bewertungen (0.5 Punkte pro 5-Sterne-Bewertung)
+    # 3. Five-star ratings received
     five_star_data = db.query(
         UserRating.rated_user_id,
-        func.count(UserRating.id).label('five_star_count')
-    ).filter(
-        UserRating.stars == 5
-    ).group_by(UserRating.rated_user_id).all()
+        func.count(UserRating.id).label('count')
+    ).filter(UserRating.stars == 5).group_by(UserRating.rated_user_id).all()
     
     for row in five_star_data:
         if row.rated_user_id in user_scores:
-            user_scores[row.rated_user_id]["five_star_ratings"] = row.five_star_count
+            user_scores[row.rated_user_id]["five_star_ratings"] = row.count
         else:
-            # User hat nur 5-Sterne-Bewertungen, aber keine andere Aktivität - hole User-Daten
-            user = db.query(User).filter(User.id == row.rated_user_id).first()
-            if user:
-                user_scores[row.rated_user_id] = {
-                    "user_id": user.id,
-                    "username": user.username,
-                    "avatar": user.avatar,
-                    "response_helpful": 0,
-                    "solutions_count": 0,
-                    "total_responses": 0,
-                    "issue_helpful": 0,
-                    "github_reactions": 0,
-                    "github_negative_reactions": 0,
-                    "total_issues": 0,
-                    "five_star_ratings": row.five_star_count
-                }
+            u = db.query(User).filter(User.id == row.rated_user_id).first()
+            if u:
+                ensure_user(u.id, u.username, u.avatar)
+                user_scores[u.id]["five_star_ratings"] = row.count
     
-    # 4. Gesamtpunkte berechnen
-    # Formel: Lösungen x10 + Response-Helpful x1 + Issue-Helpful x1 + GitHub 👍 x2 - GitHub 👎 x1 + 5-Sterne-Ratings x0.5
-    leaderboard = []
-    for user_id, data in user_scores.items():
-        five_star_score = data["five_star_ratings"] * 0.5
-        github_positive = data["github_reactions"] * 2  # GitHub 👍 zählen doppelt (+2)
-        github_negative = data["github_negative_reactions"] * 1  # GitHub 👎 ziehen ab (-1)
+    # 4. Test Karma: issues given to foreign projects (excludes system issues)
+    for uid, data in list(user_scores.items()):
+        issues_given = db.query(func.count(Issue.id)).join(
+            Project, Issue.project_id == Project.id
+        ).filter(
+            Issue.user_id == uid,
+            Project.user_id != uid,
+            Issue.source_platform != "Xdest-System"
+        ).scalar() or 0
         
-        total_score = (
-            (data["solutions_count"] * 10) +
-            data["response_helpful"] +
-            data["issue_helpful"] +
-            github_positive -  # Plus für positive Reaktionen
-            github_negative +  # Minus für negative Reaktionen
-            five_star_score  # 5-Sterne-Bewertungen = 0.5 Punkte
+        issues_received = db.query(func.count(Issue.id)).join(
+            Project, Issue.project_id == Project.id
+        ).filter(
+            Project.user_id == uid,
+            Issue.user_id != uid,
+            Issue.source_platform != "Xdest-System"
+        ).scalar() or 0
+        
+        offer_penalties = db.query(func.count(OfferRedemption.id)).filter(
+            OfferRedemption.user_id == uid,
+            OfferRedemption.karma_penalty_applied == True,
+            OfferRedemption.karma_penalty_reversed == False
+        ).scalar() or 0
+        
+        projects_count = db.query(func.count(Project.id)).filter(
+            Project.user_id == uid
+        ).scalar() or 0
+        
+        data["issues_given"] = issues_given
+        data["issues_received"] = issues_received
+        data["offer_penalties"] = offer_penalties
+        data["projects_count"] = projects_count
+    
+    # 5. Calculate total score: everything is +1 or -1
+    leaderboard = []
+    for uid, d in user_scores.items():
+        # Each category counts as +1 per instance, negatives as -1
+        total = (
+            d["solutions"]          # +1 per solution marked
+            + d["response_helpful"]  # +1 per helpful vote on responses
+            + d["issue_helpful"]     # +1 per helpful vote on issues
+            + d["github_positive"]   # +1 per GitHub 👍
+            - d["github_negative"]   # -1 per GitHub 👎
+            + d["five_star_ratings"] # +1 per 5-star rating received
+            + d["issues_given"]      # +1 per issue written for others (tester karma)
+            + d["issues_received"]   # +1 per issue received on your projects
+            - d["offer_penalties"]   # -1 per overdue offer obligation
         )
         
-        # Nur User mit positivem Score anzeigen (oder mindestens 0)
-        if total_score > 0:
+        # Test karma separate (for display)
+        test_karma = d["issues_given"] - d["issues_received"] - d["offer_penalties"]
+        
+        if total > 0 or d["total_issues"] > 0 or d["total_responses"] > 0 or d["issues_given"] > 0 or d["issues_received"] > 0:
             leaderboard.append({
-                "user_id": data["user_id"],
-                "username": data["username"],
-                "avatar": data["avatar"],
-                "response_helpful": data["response_helpful"],
-                "solutions_count": data["solutions_count"],
-                "total_responses": data["total_responses"],
-                "issue_helpful": data["issue_helpful"],
-                "github_reactions": data["github_reactions"],
-                "github_negative_reactions": data["github_negative_reactions"],
-                "total_issues": data["total_issues"],
-                "five_star_ratings": data["five_star_ratings"],
-                "five_star_score": five_star_score,
-                "total_score": total_score
+                **d,
+                "total_score": total,
+                "test_karma": test_karma
             })
     
-    # Sortieren nach Gesamtpunkten
     leaderboard.sort(key=lambda x: x["total_score"], reverse=True)
     
-    # Rang hinzufügen
-    for rank, entry in enumerate(leaderboard[:50], 1):
+    # Limit to 50
+    leaderboard = leaderboard[:50]
+    
+    for rank, entry in enumerate(leaderboard, 1):
         entry["rank"] = rank
     
-    return JSONResponse({"leaderboard": leaderboard[:50]})
+    return JSONResponse({"leaderboard": leaderboard})
 
 
 @router.get("/leaderboard/my-stats")
@@ -1577,22 +1759,23 @@ async def get_my_leaderboard_stats(
     request: Request,
     db: Session = Depends(get_db)
 ):
-    """Gibt die persönlichen Leaderboard-Stats des eingeloggten Users zurück"""
+    """Personal leaderboard stats with unified +1/-1 scoring."""
     user = await get_current_user_optional(request, db)
     if not user:
         return JSONResponse({"error": "Not authenticated"}, status_code=401)
     
-    # Punkte-Aufschlüsselung
+    # Response stats
     response_data = db.query(
         func.coalesce(func.sum(IssueResponse.helpful_count), 0).label('response_helpful'),
         func.coalesce(func.sum(IssueResponse.is_solution), 0).label('solutions_count'),
         func.count(IssueResponse.id).label('total_responses')
     ).filter(IssueResponse.user_id == user.id).first()
     
+    # Issue stats
     issue_data = db.query(
         func.coalesce(func.sum(Issue.helpful_count), 0).label('issue_helpful'),
-        func.coalesce(func.sum(Issue.github_reactions), 0).label('github_reactions'),
-        func.coalesce(func.sum(Issue.github_negative_reactions), 0).label('github_negative_reactions'),
+        func.coalesce(func.sum(Issue.github_reactions), 0).label('github_pos'),
+        func.coalesce(func.sum(Issue.github_negative_reactions), 0).label('github_neg'),
         func.count(Issue.id).label('total_issues')
     ).filter(Issue.user_id == user.id).first()
     
@@ -1601,8 +1784,14 @@ async def get_my_leaderboard_stats(
         UserRating.stars == 5
     ).scalar() or 0
     
-    # Rang berechnen (aus dem vollen Leaderboard)
-    # Wir holen das komplette Leaderboard und suchen den User
+    # Test Karma data
+    karma_data = calculate_test_karma(db, user.id)
+    
+    projects_count = db.query(func.count(Project.id)).filter(
+        Project.user_id == user.id
+    ).scalar() or 0
+    
+    # Rank
     full_leaderboard_response = await get_leaderboard(request, db)
     full_leaderboard = full_leaderboard_response.body.decode()
     leaderboard_data = json.loads(full_leaderboard)
@@ -1613,13 +1802,10 @@ async def get_my_leaderboard_stats(
             my_rank = entry["rank"]
             break
     
-    # Letzte 5 Aktivitäten die Punkte gebracht haben
+    # Recent activities (last 10)
     recent_activities = []
     
-    # 1. Letzte Solutions
     recent_solutions = db.query(
-        IssueResponse.id,
-        IssueResponse.content,
         IssueResponse.created_at,
         Issue.title.label('issue_title'),
         Project.name.label('project_name')
@@ -1632,45 +1818,34 @@ async def get_my_leaderboard_stats(
     
     for sol in recent_solutions:
         recent_activities.append({
-            "type": "solution",
-            "points": 10,
+            "type": "solution", "points": 1,
             "description": f"Solution marked for '{sol.issue_title}'",
             "project": sol.project_name,
             "created_at": sol.created_at.isoformat() if sol.created_at else None
         })
     
-    # 2. Letzte Helpful Votes auf Responses (nur die mit votes > 0)
     recent_helpful_responses = db.query(
-        IssueResponse.id,
-        IssueResponse.helpful_count,
-        IssueResponse.created_at,
-        Issue.title.label('issue_title'),
-        Project.name.label('project_name')
+        IssueResponse.helpful_count, IssueResponse.created_at,
+        Issue.title.label('issue_title'), Project.name.label('project_name')
     ).join(Issue, IssueResponse.issue_id == Issue.id
     ).join(Project, Issue.project_id == Project.id
     ).filter(
         IssueResponse.user_id == user.id,
         IssueResponse.helpful_count > 0,
-        IssueResponse.is_solution == False  # Nicht doppelt zählen
+        IssueResponse.is_solution == False
     ).order_by(IssueResponse.created_at.desc()).limit(5).all()
     
     for resp in recent_helpful_responses:
         recent_activities.append({
-            "type": "response_helpful",
-            "points": resp.helpful_count,
-            "description": f"Response got {resp.helpful_count} helpful votes on '{resp.issue_title}'",
+            "type": "response_helpful", "points": resp.helpful_count,
+            "description": f"{resp.helpful_count}x helpful on '{resp.issue_title}'",
             "project": resp.project_name,
             "created_at": resp.created_at.isoformat() if resp.created_at else None
         })
     
-    # 3. Letzte Issues mit Helpful Votes
     recent_helpful_issues = db.query(
-        Issue.id,
-        Issue.title,
-        Issue.helpful_count,
-        Issue.github_reactions,
-        Issue.created_at,
-        Project.name.label('project_name')
+        Issue.title, Issue.helpful_count, Issue.github_reactions,
+        Issue.created_at, Project.name.label('project_name')
     ).join(Project, Issue.project_id == Project.id
     ).filter(
         Issue.user_id == user.id,
@@ -1678,20 +1853,16 @@ async def get_my_leaderboard_stats(
     ).order_by(Issue.created_at.desc()).limit(5).all()
     
     for issue in recent_helpful_issues:
-        points = issue.helpful_count + (issue.github_reactions * 2)
+        points = (issue.helpful_count or 0) + (issue.github_reactions or 0)
         recent_activities.append({
-            "type": "issue_helpful",
-            "points": points,
-            "description": f"Issue '{issue.title}' got votes",
+            "type": "issue_helpful", "points": points,
+            "description": f"Issue '{issue.title}' got {points} votes",
             "project": issue.project_name,
             "created_at": issue.created_at.isoformat() if issue.created_at else None
         })
     
-    # 4. Letzte 5-Sterne Ratings
     recent_ratings = db.query(
-        UserRating.id,
-        UserRating.created_at,
-        User.username.label('rater_username')
+        UserRating.created_at, User.username.label('rater_username')
     ).join(User, UserRating.rater_user_id == User.id
     ).filter(
         UserRating.rated_user_id == user.id,
@@ -1700,30 +1871,50 @@ async def get_my_leaderboard_stats(
     
     for rating in recent_ratings:
         recent_activities.append({
-            "type": "five_star",
-            "points": 0.5,
+            "type": "five_star", "points": 1,
             "description": f"5-star rating from {rating.rater_username}",
             "project": None,
             "created_at": rating.created_at.isoformat() if rating.created_at else None
         })
     
-    # Sortieren nach Datum und nur die letzten 5 behalten
-    recent_activities.sort(key=lambda x: x["created_at"] or "", reverse=True)
-    recent_activities = recent_activities[:5]
+    # Recent issues given to other projects
+    recent_issues_given = db.query(
+        Issue.title, Issue.created_at, Project.name.label('project_name')
+    ).join(Project, Issue.project_id == Project.id
+    ).filter(
+        Issue.user_id == user.id,
+        Project.user_id != user.id,
+        Issue.source_platform != "Xdest-System"
+    ).order_by(Issue.created_at.desc()).limit(5).all()
     
-    # Gesamtpunkte berechnen
-    five_star_score = five_star_count * 0.5
-    github_positive = (issue_data.github_reactions or 0) * 2
-    github_negative = issue_data.github_negative_reactions or 0
+    for iss in recent_issues_given:
+        recent_activities.append({
+            "type": "karma_given", "points": 1,
+            "description": f"Tested '{iss.project_name}': {iss.title}",
+            "project": iss.project_name,
+            "created_at": iss.created_at.isoformat() if iss.created_at else None
+        })
+    
+    recent_activities.sort(key=lambda x: x["created_at"] or "", reverse=True)
+    recent_activities = recent_activities[:10]
+    
+    # Total score (same formula as leaderboard)
+    solutions = response_data.solutions_count or 0
+    resp_helpful = response_data.response_helpful or 0
+    iss_helpful = issue_data.issue_helpful or 0
+    gh_pos = issue_data.github_pos or 0
+    gh_neg = issue_data.github_neg or 0
     
     total_score = (
-        ((response_data.solutions_count or 0) * 10) +
-        (response_data.response_helpful or 0) +
-        (issue_data.issue_helpful or 0) +
-        github_positive -
-        github_negative +
-        five_star_score
+        solutions + resp_helpful + iss_helpful
+        + gh_pos - gh_neg
+        + five_star_count
+        + karma_data["given"]
+        + karma_data["received"]
+        - karma_data["offer_penalties"]
     )
+    
+    test_karma = karma_data["given"] - karma_data["received"] - karma_data["offer_penalties"]
     
     return JSONResponse({
         "user_id": user.id,
@@ -1731,33 +1922,23 @@ async def get_my_leaderboard_stats(
         "avatar": user.avatar,
         "rank": my_rank,
         "total_score": total_score,
+        "test_karma": test_karma,
         "breakdown": {
-            "solutions": {
-                "count": response_data.solutions_count or 0,
-                "points": (response_data.solutions_count or 0) * 10
-            },
-            "response_helpful": {
-                "count": response_data.response_helpful or 0,
-                "points": response_data.response_helpful or 0
-            },
-            "issue_helpful": {
-                "count": issue_data.issue_helpful or 0,
-                "points": issue_data.issue_helpful or 0
-            },
-            "github_reactions": {
-                "positive": issue_data.github_reactions or 0,
-                "negative": github_negative,
-                "points": github_positive - github_negative
-            },
-            "five_star_ratings": {
-                "count": five_star_count,
-                "points": five_star_score
-            }
+            "solutions": {"count": solutions, "points": solutions},
+            "response_helpful": {"count": resp_helpful, "points": resp_helpful},
+            "issue_helpful": {"count": iss_helpful, "points": iss_helpful},
+            "github_reactions": {"positive": gh_pos, "negative": gh_neg, "points": gh_pos - gh_neg},
+            "five_star_ratings": {"count": five_star_count, "points": five_star_count},
+            "issues_given": {"count": karma_data["given"], "points": karma_data["given"]},
+            "issues_received": {"count": karma_data["received"], "points": karma_data["received"]},
+            "offer_penalties": {"count": karma_data["offer_penalties"], "points": -karma_data["offer_penalties"]}
         },
         "recent_activities": recent_activities,
         "stats": {
             "total_responses": response_data.total_responses or 0,
-            "total_issues": issue_data.total_issues or 0
+            "total_issues": issue_data.total_issues or 0,
+            "projects_count": projects_count,
+            "pending_obligations": karma_data["pending_obligations"]
         }
     })
 
@@ -2540,7 +2721,7 @@ async def update_offer(
     offer.updated_at = datetime.utcnow()
     db.commit()
     
-    return RedirectResponse(url=f"/offer/{offer_id}/edit", status_code=302)
+    return RedirectResponse(url="/dashboard", status_code=302)
 
 
 @router.put("/offers/{offer_id}/toggle")
@@ -2670,6 +2851,136 @@ async def delete_reply(
     db.commit()
     
     return JSONResponse({"message": "Deleted"})
+
+
+# ==================== COMMUNITY VOTE SYSTEM ====================
+
+@router.post("/messages/{message_id}/vote")
+async def vote_message(
+    message_id: int,
+    request: Request,
+    db: Session = Depends(get_db)
+):
+    """Up- oder Downvote für eine Community Message"""
+    from app.models import MessageVote
+    
+    user = await get_current_user(request, db)
+    if not user:
+        raise HTTPException(status_code=401, detail="Not authenticated")
+    
+    message = db.query(Message).filter(Message.id == message_id).first()
+    if not message:
+        raise HTTPException(status_code=404, detail="Message not found")
+    
+    if message.user_id == user.id:
+        return JSONResponse({"error": "Cannot vote for own message"}, status_code=400)
+    
+    try:
+        body = await request.json()
+        vote_type = body.get("vote_type", "upvote")
+    except:
+        vote_type = "upvote"
+    
+    if vote_type not in ("upvote", "downvote"):
+        return JSONResponse({"error": "Invalid vote type"}, status_code=400)
+    
+    existing_vote = db.query(MessageVote).filter(
+        MessageVote.message_id == message_id,
+        MessageVote.user_id == user.id
+    ).first()
+    
+    if existing_vote:
+        if existing_vote.vote_type == vote_type:
+            if vote_type == "upvote":
+                message.upvote_count = max(0, message.upvote_count - 1)
+            else:
+                message.downvote_count = max(0, message.downvote_count - 1)
+            db.delete(existing_vote)
+            db.commit()
+            return JSONResponse({"voted": None, "upvotes": message.upvote_count, "downvotes": message.downvote_count})
+        else:
+            if existing_vote.vote_type == "upvote":
+                message.upvote_count = max(0, message.upvote_count - 1)
+                message.downvote_count = message.downvote_count + 1
+            else:
+                message.downvote_count = max(0, message.downvote_count - 1)
+                message.upvote_count = message.upvote_count + 1
+            existing_vote.vote_type = vote_type
+            db.commit()
+            return JSONResponse({"voted": vote_type, "upvotes": message.upvote_count, "downvotes": message.downvote_count})
+    else:
+        vote = MessageVote(message_id=message_id, user_id=user.id, vote_type=vote_type)
+        db.add(vote)
+        if vote_type == "upvote":
+            message.upvote_count = message.upvote_count + 1
+        else:
+            message.downvote_count = message.downvote_count + 1
+        db.commit()
+        return JSONResponse({"voted": vote_type, "upvotes": message.upvote_count, "downvotes": message.downvote_count})
+
+
+@router.post("/messages/reply/{reply_id}/vote")
+async def vote_message_reply(
+    reply_id: int,
+    request: Request,
+    db: Session = Depends(get_db)
+):
+    """Up- oder Downvote für eine Community Reply"""
+    from app.models import MessageReplyVote
+    
+    user = await get_current_user(request, db)
+    if not user:
+        raise HTTPException(status_code=401, detail="Not authenticated")
+    
+    reply = db.query(MessageReply).filter(MessageReply.id == reply_id).first()
+    if not reply:
+        raise HTTPException(status_code=404, detail="Reply not found")
+    
+    if reply.user_id == user.id:
+        return JSONResponse({"error": "Cannot vote for own reply"}, status_code=400)
+    
+    try:
+        body = await request.json()
+        vote_type = body.get("vote_type", "upvote")
+    except:
+        vote_type = "upvote"
+    
+    if vote_type not in ("upvote", "downvote"):
+        return JSONResponse({"error": "Invalid vote type"}, status_code=400)
+    
+    existing_vote = db.query(MessageReplyVote).filter(
+        MessageReplyVote.reply_id == reply_id,
+        MessageReplyVote.user_id == user.id
+    ).first()
+    
+    if existing_vote:
+        if existing_vote.vote_type == vote_type:
+            if vote_type == "upvote":
+                reply.upvote_count = max(0, reply.upvote_count - 1)
+            else:
+                reply.downvote_count = max(0, reply.downvote_count - 1)
+            db.delete(existing_vote)
+            db.commit()
+            return JSONResponse({"voted": None, "upvotes": reply.upvote_count, "downvotes": reply.downvote_count})
+        else:
+            if existing_vote.vote_type == "upvote":
+                reply.upvote_count = max(0, reply.upvote_count - 1)
+                reply.downvote_count = reply.downvote_count + 1
+            else:
+                reply.downvote_count = max(0, reply.downvote_count - 1)
+                reply.upvote_count = reply.upvote_count + 1
+            existing_vote.vote_type = vote_type
+            db.commit()
+            return JSONResponse({"voted": vote_type, "upvotes": reply.upvote_count, "downvotes": reply.downvote_count})
+    else:
+        vote = MessageReplyVote(reply_id=reply_id, user_id=user.id, vote_type=vote_type)
+        db.add(vote)
+        if vote_type == "upvote":
+            reply.upvote_count = reply.upvote_count + 1
+        else:
+            reply.downvote_count = reply.downvote_count + 1
+        db.commit()
+        return JSONResponse({"voted": vote_type, "upvotes": reply.upvote_count, "downvotes": reply.downvote_count})
 
 
 # Logo Size Logger Endpoint

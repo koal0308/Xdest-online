@@ -241,6 +241,7 @@
 
     <!-- Main Content -->
     <main class="md:ml-64 flex-1 p-4 md:p-8 mt-16 md:mt-0">
+      <div class="max-w-5xl mx-auto">
         <!-- AEra Identity Banner (for AEra users) -->
         {% if user.provider == 'aera' %}
         <div class="aera-banner bg-gradient-to-r from-cyan-900/30 to-blue-900/30 border border-cyan-500/30 rounded-xl p-4 mb-6">
@@ -264,18 +265,16 @@
         {% endif %}
 
         <!-- Header -->
-        <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-8">
+        <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 mb-6">
             <div>
                 {% if user.provider == 'aera' %}
-                <h1 class="text-3xl font-bold">Welcome back.</h1>
-                <p class="text-gray-400 mt-1">
-                    You're logged in via AEra — a new type of builder identity.
-                </p>
+                <h1 class="text-2xl font-bold">Welcome back.</h1>
+                <p class="text-gray-400 text-sm">Logged in via AEra</p>
                 {% else %}
-                <h1 class="text-3xl font-bold">Welcome back, {{ user.username }}!</h1>
-                <p class="text-gray-400 mt-1">
+                <h1 class="text-2xl font-bold">Welcome back, {{ user.username }}!</h1>
+                <p class="text-gray-400 text-sm">
                     {% if user.role == 'tester' %}
-                    You're a Tester - explore projects, report issues, and earn points!
+                    Explore projects, report issues, and earn points!
                     {% else %}
                     Manage your projects and profile
                     {% endif %}
@@ -286,50 +285,48 @@
 
         <!-- Notification Banner -->
         {% if total_notifications > 0 %}
-        <div class="bg-gradient-to-r from-purple-600/20 to-pink-600/20 border border-purple-500/30 rounded-xl p-4 mb-8">
-            <div class="flex items-center gap-4 mb-4">
+        <div class="bg-gradient-to-r from-purple-600/20 to-pink-600/20 border border-purple-500/30 rounded-xl p-4 mb-6">
+            <div class="flex items-center gap-3 mb-3">
                 <div class="relative">
-                    <svg class="w-8 h-8 text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <svg class="w-6 h-6 text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"></path>
                     </svg>
-                    <span class="absolute -top-1 -right-1 bg-red-500 text-white text-xs font-bold rounded-full w-5 h-5 flex items-center justify-center animate-pulse">
+                    <span class="absolute -top-1 -right-1 bg-red-500 text-white text-[10px] font-bold rounded-full w-4 h-4 flex items-center justify-center animate-pulse">
                         {{ total_notifications }}
                     </span>
                 </div>
                 <div>
-                    <h3 class="font-semibold text-white">New Activity on Your Projects!</h3>
-                    <p class="text-gray-400 text-sm">
+                    <h3 class="font-semibold text-white text-sm">New Activity</h3>
+                    <p class="text-gray-400 text-xs">
                         {% if unread_issues_count > 0 %}
-                        <span class="text-orange-400">{{ unread_issues_count }} new issue{{ 's' if unread_issues_count > 1 else '' }}</span>
+                        <span class="text-orange-400">{{ unread_issues_count }} issue{{ 's' if unread_issues_count > 1 else '' }}</span>
                         {% endif %}
                         {% if unread_issues_count > 0 and unread_responses_count > 0 %} · {% endif %}
                         {% if unread_responses_count > 0 %}
-                        <span class="text-blue-400">{{ unread_responses_count }} new response{{ 's' if unread_responses_count > 1 else '' }}</span>
+                        <span class="text-blue-400">{{ unread_responses_count }} response{{ 's' if unread_responses_count > 1 else '' }}</span>
                         {% endif %}
                     </p>
                 </div>
             </div>
             
-            <!-- Unread Issues List -->
             {% if unread_issues %}
-            <div class="space-y-2 mt-4 border-t border-purple-500/20 pt-4">
+            <div class="space-y-1.5">
                 {% for issue in unread_issues %}
                 <a href="/project/{{ issue.project_id }}/issues/{{ issue.id }}" 
-                   class="flex items-center justify-between p-3 bg-dark-100/50 rounded-lg hover:bg-dark-100 transition group">
-                    <div class="flex items-center gap-3">
-                        <span class="w-2 h-2 bg-orange-500 rounded-full animate-pulse"></span>
-                        <div>
-                            <p class="text-white group-hover:text-purple-400 transition font-medium">{{ issue.title }}</p>
-                            <p class="text-gray-500 text-sm">
+                   class="flex items-center justify-between p-2.5 bg-dark-100/50 rounded-lg hover:bg-dark-100 transition group">
+                    <div class="flex items-center gap-2.5 min-w-0">
+                        <span class="w-1.5 h-1.5 bg-orange-500 rounded-full animate-pulse flex-shrink-0"></span>
+                        <div class="min-w-0">
+                            <p class="text-white group-hover:text-purple-400 transition text-sm font-medium truncate">{{ issue.title }}</p>
+                            <p class="text-gray-500 text-xs truncate">
                                 {{ issue.project.name }} · 
                                 <span class="{% if issue.issue_type == 'bug' %}text-red-400{% elif issue.issue_type == 'feature' %}text-green-400{% elif issue.issue_type == 'security' %}text-yellow-400{% else %}text-blue-400{% endif %}">
                                     {{ issue.issue_type }}
                                 </span>
-                                · {{ issue.created_at.strftime('%d.%m.%Y %H:%M') }}
                             </p>
                         </div>
                     </div>
-                    <svg class="w-5 h-5 text-gray-500 group-hover:text-purple-400 transition" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <svg class="w-4 h-4 text-gray-600 group-hover:text-purple-400 transition flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
                     </svg>
                 </a>
@@ -341,181 +338,195 @@
 
         <!-- Tester Badge -->
         {% if user.role == 'tester' %}
-        <div class="bg-blue-600/20 border border-blue-500/30 rounded-xl p-4 mb-8 flex items-center gap-4">
-            <div class="text-3xl">🧪</div>
+        <div class="bg-blue-600/20 border border-blue-500/30 rounded-xl p-3 mb-6 flex items-center gap-3">
+            <span class="text-xl">🧪</span>
             <div>
-                <h3 class="font-semibold text-blue-400">Tester Account</h3>
-                <p class="text-gray-400 text-sm">You can test projects, create issues, and earn leaderboard points. To create your own projects, sign in with GitHub.</p>
+                <h3 class="font-semibold text-blue-400 text-sm">Tester Account</h3>
+                <p class="text-gray-400 text-xs">Test projects, create issues, earn points. Sign in with GitHub to create projects.</p>
             </div>
         </div>
         {% endif %}
         
         <!-- Developer without GitHub hint -->
         {% if user.role == 'developer' and not user.github_token %}
-        <div class="bg-purple-600/20 border border-purple-500/30 rounded-xl p-4 mb-8 flex flex-col sm:flex-row items-start sm:items-center gap-4">
-            <div class="text-3xl">🔧</div>
+        <div class="bg-purple-600/20 border border-purple-500/30 rounded-xl p-3 mb-6 flex items-center gap-3">
+            <span class="text-xl">🔧</span>
             <div class="flex-1">
-                <h3 class="font-semibold text-purple-400">Developer Account</h3>
-                <p class="text-gray-400 text-sm">You can create projects! Link your GitHub to connect repositories and sync issues.</p>
+                <h3 class="font-semibold text-purple-400 text-sm">Developer Account</h3>
+                <p class="text-gray-400 text-xs">Link GitHub to connect repositories and sync issues.</p>
             </div>
-            <a href="/auth/github/link" class="px-4 py-2 bg-purple-600 hover:bg-purple-500 text-white rounded-lg text-sm font-medium transition flex items-center gap-2">
-                <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/></svg>
+            <a href="/auth/github/link" class="px-3 py-1.5 bg-purple-500 hover:bg-purple-400 text-white rounded-lg text-xs font-medium transition flex items-center gap-1.5 flex-shrink-0">
+                <svg class="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 24 24"><path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/></svg>
                 Link GitHub
             </a>
         </div>
         {% endif %}
 
-        <!-- Profile Card -->
-        <div class="bg-dark-100 rounded-xl border border-gray-800 p-4 sm:p-6 mb-8">
-            <div class="flex flex-col sm:flex-row items-start sm:items-center gap-4 sm:gap-6">
-                <img src="{{ user.avatar or '/static/default-avatar.png' }}" class="w-16 h-16 sm:w-20 sm:h-20 rounded-full" alt="Avatar">
-                <div class="flex-1 min-w-0">
-                    <div class="flex items-center gap-2 flex-wrap">
-                        <h2 class="text-lg sm:text-xl font-semibold truncate">{{ user.username }}</h2>
-                        {% if user.provider == 'aera' %}
-                        <span class="aera-badge px-2 py-0.5 bg-gradient-to-r from-cyan-500 to-blue-500 text-white text-xs rounded-full font-medium">🌀 AEra</span>
-                        {% endif %}
-                        {% if user.github_token %}
-                        <span class="px-2 py-0.5 bg-gradient-to-r from-purple-500 to-pink-500 text-white text-xs rounded-full font-medium">🔧 Builder</span>
-                        {% endif %}
+        <!-- Profile Card + Karma Row -->
+        <div class="grid md:grid-cols-2 gap-4 mb-6">
+            <!-- Profile Card -->
+            <div class="bg-dark-100 rounded-xl border border-gray-800 p-4">
+                <div class="flex items-center gap-4">
+                    <img src="{{ user.avatar or '/static/default-avatar.png' }}" class="w-14 h-14 rounded-full" alt="Avatar">
+                    <div class="flex-1 min-w-0">
+                        <div class="flex items-center gap-2 flex-wrap">
+                            <h2 class="text-lg font-semibold truncate">{{ user.username }}</h2>
+                            {% if user.provider == 'aera' %}
+                            <span class="aera-badge px-2 py-0.5 bg-gradient-to-r from-cyan-500 to-blue-500 text-white text-xs rounded-full font-medium">🌀 AEra</span>
+                            {% endif %}
+                            {% if user.github_token %}
+                            <span class="px-2 py-0.5 bg-gradient-to-r from-purple-500 to-pink-500 text-white text-xs rounded-full font-medium">🔧 Builder</span>
+                            {% endif %}
+                        </div>
+                        <p class="text-gray-400 text-sm truncate">{{ user.email }}</p>
                     </div>
-                    <p class="text-gray-400 text-sm sm:text-base truncate">{{ user.email }}</p>
-                    {% if user.bio %}
-                    <p class="text-gray-300 mt-2 text-sm sm:text-base line-clamp-2">{{ user.bio }}</p>
+                    <a href="/edit-profile" class="px-3 py-1.5 text-sm rounded-lg border border-gray-700 hover:border-gray-600 hover:bg-gray-800/50 transition whitespace-nowrap">
+                        Edit
+                    </a>
+                </div>
+            </div>
+
+            <!-- Test Karma Widget (compact) -->
+            {% if karma %}
+            <div class="rounded-xl border {{ 'border-red-600/50 bg-red-900/10' if karma.is_blocked else 'border-gray-700 bg-dark-100' }} p-4">
+                <div class="flex items-center justify-between">
+                    <div class="flex items-center gap-3">
+                        <div class="w-10 h-10 rounded-lg {{ 'bg-red-600/20' if karma.is_blocked else 'bg-purple-600/20' if karma.karma >= 0 else 'bg-yellow-600/20' }} flex items-center justify-center text-xl">
+                            ⚖️
+                        </div>
+                        <div>
+                            <h3 class="font-bold {{ 'text-red-400' if karma.is_blocked else 'text-white' }}">
+                                Karma: {{ karma.karma }}
+                            </h3>
+                            <p class="text-xs text-gray-400">
+                                <span class="text-green-400">{{ karma.given }} given</span> · 
+                                <span class="text-blue-400">{{ karma.received }} received</span>
+                            </p>
+                        </div>
+                    </div>
+                    {% if karma.is_blocked %}
+                        <span class="px-3 py-1.5 rounded-lg bg-red-600/20 text-red-400 text-xs font-medium">🔒 Hidden</span>
+                    {% elif karma.karma >= 0 %}
+                        <span class="px-3 py-1.5 rounded-lg bg-green-600/20 text-green-400 text-xs font-medium">✅ Good</span>
+                    {% else %}
+                        <span class="px-3 py-1.5 rounded-lg bg-yellow-600/20 text-yellow-400 text-xs font-medium">⚠️ {{ karma.karma }}/{{ karma.limit }}</span>
                     {% endif %}
                 </div>
-                <a href="/edit-profile" class="px-3 py-1.5 sm:px-4 sm:py-2 text-sm sm:text-base rounded-lg border border-gray-700 hover:border-gray-600 hover:bg-gray-800/50 transition whitespace-nowrap">
-                    Edit Profile
-                </a>
+                {% if karma.is_blocked %}
+                <p class="text-xs text-red-300 mt-2">
+                    Test other projects to bring karma above {{ karma.limit }}.
+                    <a href="/explore" class="text-purple-400 hover:text-purple-300 ml-1">Find projects →</a>
+                </p>
+                {% elif karma.karma < 0 %}
+                <div class="mt-2">
+                    <div class="w-full bg-dark-300 rounded-full h-1.5">
+                        <div class="h-1.5 rounded-full transition-all duration-500 {{ 'bg-orange-500' if karma.karma <= -3 else 'bg-yellow-500' }}" 
+                             style="width: {{ (100 - ((karma.karma|abs / karma.limit|abs) * 100)) | int }}%"></div>
+                    </div>
+                </div>
+                {% endif %}
             </div>
+            {% else %}
+            <div></div>
+            {% endif %}
         </div>
 
-        <!-- Test Karma Widget -->
-        {% if karma %}
-        <div class="mb-8 rounded-xl border {{ 'border-red-600/50 bg-red-900/10' if karma.is_blocked else 'border-gray-700 bg-dark-100' }} p-5">
-            <div class="flex items-center justify-between flex-wrap gap-4">
-                <div class="flex items-center gap-4">
-                    <div class="w-12 h-12 rounded-xl {{ 'bg-red-600/20' if karma.is_blocked else 'bg-purple-600/20' if karma.karma >= 0 else 'bg-yellow-600/20' }} flex items-center justify-center text-2xl">
-                        ⚖️
-                    </div>
+        <!-- Obligations Row -->
+        {% if pending_obligations or incoming_obligations %}
+        <div class="grid {{ 'md:grid-cols-2' if pending_obligations and incoming_obligations else '' }} gap-4 mb-6">
+            {% if pending_obligations %}
+            <div class="rounded-xl border border-yellow-600/50 bg-yellow-900/10 p-4">
+                <div class="flex items-center gap-3 mb-3">
+                    <span class="text-xl">🎟️</span>
                     <div>
-                        <h3 class="font-bold text-lg {{ 'text-red-400' if karma.is_blocked else 'text-white' }}">
-                            Test Karma: {{ karma.karma }}
+                        <h3 class="font-bold text-yellow-400 text-sm">
+                            Pending Obligations ({{ pending_obligations|length }})
                         </h3>
-                        <p class="text-sm text-gray-400">
-                            <span class="text-green-400">{{ karma.given }} given</span> · 
-                            <span class="text-blue-400">{{ karma.received }} received</span>
-                        </p>
+                        <p class="text-xs text-gray-500">Write issues to fulfill your obligations</p>
                     </div>
                 </div>
-                <div>
-                    {% if karma.is_blocked %}
-                        <span class="px-4 py-2 rounded-lg bg-red-600/20 text-red-400 text-sm font-medium flex items-center gap-2">
-                            🔒 Issues on your projects hidden
-                        </span>
-                    {% elif karma.karma >= 0 %}
-                        <span class="px-4 py-2 rounded-lg bg-green-600/20 text-green-400 text-sm font-medium flex items-center gap-2">
-                            ✅ Good Karma
-                        </span>
-                    {% else %}
-                        <span class="px-4 py-2 rounded-lg bg-yellow-600/20 text-yellow-400 text-sm font-medium flex items-center gap-2">
-                            ⚠️ Karma in deficit ({{ karma.karma }}/{{ karma.limit }})
-                        </span>
-                    {% endif %}
+                <div class="space-y-2">
+                    {% for ob in pending_obligations %}
+                    <div class="flex items-center justify-between p-2.5 rounded-lg {{ 'bg-red-900/20 border border-red-800/30' if ob.is_overdue else 'bg-dark-300' }}">
+                        <div class="flex items-center gap-2 min-w-0">
+                            <span class="text-sm">{{ '⚠️' if ob.is_overdue else '⏱️' }}</span>
+                            <div class="min-w-0">
+                                <p class="font-medium text-sm {{ 'text-red-400' if ob.is_overdue else 'text-white' }} truncate">{{ ob.offer_title }}</p>
+                                <p class="text-xs text-gray-500 truncate">{{ ob.project_name }}</p>
+                            </div>
+                        </div>
+                        <div class="text-right flex-shrink-0 ml-2">
+                            {% if ob.is_overdue %}
+                                <span class="text-xs text-red-400 font-medium">Overdue!</span>
+                            {% else %}
+                                <span class="text-xs text-yellow-400">{{ ob.days_remaining }}d left</span>
+                            {% endif %}
+                            <a href="/project/{{ ob.project_id }}/issues" class="block text-xs text-purple-400 hover:text-purple-300 transition">Write issue →</a>
+                        </div>
+                    </div>
+                    {% endfor %}
                 </div>
             </div>
-            {% if karma.is_blocked %}
-            <div class="mt-4 p-3 rounded-lg bg-red-900/20 border border-red-800/30">
-                <p class="text-sm text-red-300 mb-2">
-                    ⚠️ You've received significantly more issues than you've given. Test other projects and write issues
-                    to bring your karma back above {{ karma.limit }}.
-                </p>
-                <a href="/explore" class="inline-block px-4 py-1.5 rounded-lg bg-purple-600 hover:bg-purple-500 transition text-xs font-semibold text-white">
-                    🔍 Find projects to test
-                </a>
-            </div>
-            {% elif karma.karma < 0 %}
-            <div class="mt-3">
-                <div class="flex justify-between text-xs text-gray-500 mb-1">
-                    <span>Karma</span>
-                    <span>{{ karma.karma }} / {{ karma.limit }}</span>
+            {% endif %}
+
+            {% if incoming_obligations %}
+            <div class="rounded-xl border border-cyan-600/50 bg-cyan-900/10 p-4">
+                <div class="flex items-center gap-3 mb-3">
+                    <span class="text-xl">📊</span>
+                    <div>
+                        <h3 class="font-bold text-cyan-400 text-sm">
+                            Incoming Obligations
+                        </h3>
+                        <p class="text-xs text-gray-500">Testers need to write issues for your projects</p>
+                    </div>
                 </div>
-                <div class="w-full bg-dark-300 rounded-full h-2">
-                    <div class="h-2 rounded-full transition-all duration-500 {{ 'bg-orange-500' if karma.karma <= -3 else 'bg-yellow-500' }}" 
-                         style="width: {{ (100 - ((karma.karma|abs / karma.limit|abs) * 100)) | int }}%"></div>
+                <div class="space-y-2">
+                    {% for ob in incoming_obligations %}
+                    <div class="flex items-center justify-between p-2.5 rounded-lg bg-dark-300">
+                        <div class="flex items-center gap-2 min-w-0">
+                            <span class="text-sm">🧪</span>
+                            <div class="min-w-0">
+                                <p class="font-medium text-sm text-white truncate">{{ ob.offer_title }}</p>
+                                <p class="text-xs text-gray-500 truncate">{{ ob.project_name }}</p>
+                            </div>
+                        </div>
+                        <div class="flex items-center gap-2 flex-shrink-0 ml-2">
+                            {% if ob.on_time > 0 %}
+                            <span class="px-2 py-0.5 rounded-full bg-cyan-500/10 text-cyan-400 text-xs">⏱️ {{ ob.on_time }}</span>
+                            {% endif %}
+                            {% if ob.overdue > 0 %}
+                            <span class="px-2 py-0.5 rounded-full bg-red-500/10 text-red-400 text-xs">⚠️ {{ ob.overdue }}</span>
+                            {% endif %}
+                        </div>
+                    </div>
+                    {% endfor %}
                 </div>
-                <p class="text-xs text-gray-500 mt-1">
-                    {{ (karma.limit - karma.karma)|abs }} more issues until your received issues get hidden.
-                </p>
+                <p class="text-xs text-gray-600 mt-2">🔒 Tester identities hidden</p>
             </div>
             {% endif %}
         </div>
         {% endif %}
 
-        <!-- Pending Test Obligations Widget -->
-        {% if pending_obligations %}
-        <div class="mb-8 rounded-xl border border-yellow-600/50 bg-yellow-900/10 p-5">
-            <div class="flex items-center gap-4 mb-4">
-                <div class="w-12 h-12 rounded-xl bg-yellow-600/20 flex items-center justify-center text-2xl">
-                    🎟️
-                </div>
-                <div>
-                    <h3 class="font-bold text-lg text-yellow-400">
-                        Pending Test Obligations ({{ pending_obligations|length }})
-                    </h3>
-                    <p class="text-sm text-gray-400">You claimed offer coupons — write a review or issue to fulfill your obligation.</p>
-                </div>
-            </div>
-            <div class="space-y-3">
-                {% for ob in pending_obligations %}
-                <div class="flex items-center justify-between p-3 rounded-lg {{ 'bg-red-900/20 border border-red-800/30' if ob.is_overdue else 'bg-dark-300' }}">
-                    <div class="flex items-center gap-3">
-                        <span class="text-lg">{{ '⚠️' if ob.is_overdue else '⏱️' }}</span>
-                        <div>
-                            <p class="font-medium {{ 'text-red-400' if ob.is_overdue else 'text-white' }}">
-                                {{ ob.offer_title }}
-                            </p>
-                            <p class="text-xs text-gray-500">
-                                Project: {{ ob.project_name }}
-                            </p>
-                        </div>
-                    </div>
-                    <div class="text-right">
-                        {% if ob.is_overdue %}
-                            <span class="text-xs text-red-400 font-medium">⚠️ Overdue! -1 Karma</span>
-                        {% else %}
-                            <span class="text-xs text-yellow-400">{{ ob.days_remaining }} days left</span>
-                        {% endif %}
-                        <a href="/project/{{ ob.project_id }}/issues" class="block mt-1 text-xs text-purple-400 hover:text-purple-300 transition">
-                            Write issue →
-                        </a>
-                    </div>
-                </div>
-                {% endfor %}
-            </div>
-        </div>
-        {% endif %}
-
         <!-- Projects -->
         <div>
-            <h2 class="text-2xl font-bold mb-6">Your Projects</h2>
+            <h2 class="text-xl font-bold mb-4">Your Projects</h2>
             
             {% if projects %}
-            <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+            <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
                 {% for project in projects %}
                 <a href="/project/{{ project.id }}" class="block bg-dark-100 rounded-xl overflow-hidden border border-gray-800 card-hover transition-all duration-300">
                     {% if project.image %}
-                    <img src="{{ project.image }}" class="w-full h-40 object-cover" alt="{{ project.name }}">
+                    <img src="{{ project.image }}" class="w-full h-28 object-cover" alt="{{ project.name }}">
                     {% else %}
-                    <div class="w-full h-40 bg-gradient-to-br from-purple-900/50 to-pink-900/50 flex items-center justify-center">
-                        <svg class="w-12 h-12 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <div class="w-full h-28 bg-gradient-to-br from-purple-900/50 to-pink-900/50 flex items-center justify-center">
+                        <svg class="w-10 h-10 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z"></path>
                         </svg>
                     </div>
                     {% endif %}
-                    <div class="p-4">
+                    <div class="p-3">
                         <div class="flex items-center justify-between mb-1">
-                            <h3 class="font-semibold">{{ project.name }}</h3>
+                            <h3 class="font-semibold text-sm">{{ project.name }}</h3>
                             {% if project_comment_counts.get(project.id, 0) > 0 %}
                             <span class="px-2 py-1 bg-red-500 text-white text-xs rounded-full font-medium">
                                 {{ project_comment_counts.get(project.id, 0) }} new
@@ -535,23 +546,19 @@
                 {% endfor %}
             </div>
             {% else %}
-            <div class="bg-dark-100 rounded-xl border border-gray-800 p-12 text-center">
+            <div class="bg-dark-100 rounded-xl border border-gray-800 p-8 text-center">
                 {% if user.role == 'tester' %}
-                <svg class="w-16 h-16 text-blue-500 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
-                </svg>
-                <h3 class="text-xl font-semibold mb-2">Ready to test?</h3>
-                <p class="text-gray-400 mb-6">Explore projects, report issues, and earn points on the leaderboard!</p>
-                <a href="/explore" class="px-6 py-3 rounded-lg bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-500 hover:to-cyan-500 transition font-semibold inline-block">
+                <span class="text-4xl mb-3 block">🔍</span>
+                <h3 class="text-lg font-semibold mb-2">Ready to test?</h3>
+                <p class="text-gray-400 text-sm mb-4">Explore projects, report issues, and earn points!</p>
+                <a href="/explore" class="px-6 py-3 rounded-lg bg-blue-500 hover:bg-blue-400 transition font-semibold inline-block">
                     Explore Projects
                 </a>
                 {% else %}
-                <svg class="w-16 h-16 text-gray-600 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z"></path>
-                </svg>
-                <h3 class="text-xl font-semibold mb-2">No projects yet</h3>
-                <p class="text-gray-400 mb-6">Create your first project to get started</p>
-                <a href="/create-project" class="px-6 py-3 rounded-lg bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-500 hover:to-pink-500 transition font-semibold inline-block">
+                <span class="text-4xl mb-3 block">📁</span>
+                <h3 class="text-lg font-semibold mb-2">No projects yet</h3>
+                <p class="text-gray-400 text-sm mb-4">Create your first project to get started</p>
+                <a href="/create-project" class="px-6 py-3 rounded-lg bg-purple-500 hover:bg-purple-400 transition font-semibold inline-block">
                     Create Project
                 </a>
                 {% endif %}
@@ -561,15 +568,15 @@
 
         <!-- Offers -->
         {% if user.role == 'developer' %}
-        <div class="mt-12">
-            <div class="flex justify-between items-center mb-6">
-                <h2 class="text-2xl font-bold">Your Offers</h2>
+        <div class="mt-8">
+            <div class="flex justify-between items-center mb-4">
+                <h2 class="text-xl font-bold">Your Offers</h2>
             </div>
             
             {% if offers %}
-            <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+            <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
                 {% for offer in offers %}
-                <div class="bg-dark-100 rounded-xl border border-gray-800 p-5 relative cursor-pointer hover:border-purple-500/50 transition offer-card"
+                <div class="bg-dark-100 rounded-xl border border-gray-800 p-4 relative cursor-pointer hover:border-purple-500/50 transition offer-card"
                      data-id="{{ offer.id }}"
                      data-title="{{ offer.title }}"
                      data-description="{{ offer.description or '' }}"
@@ -605,8 +612,8 @@
                         {% endif %}
                     </div>
                     
-                    <h3 class="font-semibold text-lg mb-2 pr-16">{{ offer.title }}</h3>
-                    <p class="text-gray-400 text-sm mb-3 line-clamp-2">{{ offer.description or 'No description' }}</p>
+                    <h3 class="font-semibold mb-1 pr-16">{{ offer.title }}</h3>
+                    <p class="text-gray-400 text-xs mb-2 line-clamp-2">{{ offer.description or 'No description' }}</p>
                     
                     <!-- Project Link -->
                     <p class="text-xs text-gray-500 mb-3">
@@ -614,7 +621,7 @@
                     </p>
                     
                     <!-- Redemption Counter -->
-                    <div class="bg-dark-300 rounded-lg p-3 mb-4">
+                    <div class="bg-dark-300 rounded-lg p-2 mb-3">
                         <div class="flex items-center justify-between mb-2">
                             <span class="text-xs text-gray-400">🎟️ Coupons claimed</span>
                             <span class="text-sm font-bold {{ 'text-orange-400' if offer.max_redemptions and offer.current_redemptions >= offer.max_redemptions else 'text-white' }}">
@@ -654,7 +661,7 @@
                     </div>
                     
                     {% if offer.coupon_code %}
-                    <div class="flex items-center gap-2 mb-4">
+                    <div class="flex items-center gap-2 mb-3">
                         <span class="text-xs text-gray-500">Code:</span>
                         <span class="font-mono bg-gray-800 px-2 py-0.5 rounded text-xs text-purple-400">{{ offer.coupon_code }}</span>
                     </div>
@@ -673,14 +680,15 @@
                 {% endfor %}
             </div>
             {% else %}
-            <div class="bg-dark-100 rounded-xl border border-gray-800 p-12 text-center">
-                <span class="text-5xl mb-4 block">🎁</span>
-                <h3 class="text-xl font-semibold mb-2">No offers yet</h3>
-                <p class="text-gray-400">Create special offers via the sidebar menu to attract testers</p>
+            <div class="bg-dark-100 rounded-xl border border-gray-800 p-8 text-center">
+                <span class="text-4xl mb-3 block">🎁</span>
+                <h3 class="text-lg font-semibold mb-2">No offers yet</h3>
+                <p class="text-gray-400 text-sm">Create special offers via the sidebar menu to attract testers</p>
             </div>
             {% endif %}
         </div>
         {% endif %}
+      </div>
     </main>
 </div>
 
@@ -865,7 +873,7 @@ document.addEventListener('keydown', e => {
                 <p class="text-sm text-gray-400 mb-2">Use this coupon code:</p>
                 <div class="bg-dark-300 rounded-xl p-4 flex items-center justify-between">
                     <code id="modalCouponCode" class="text-xl font-mono text-purple-400"></code>
-                    <button onclick="copyOfferCode()" class="px-4 py-2 bg-purple-600 hover:bg-purple-500 rounded-lg transition text-sm font-medium">Copy Code</button>
+                    <button onclick="copyOfferCode()" class="px-4 py-2 bg-purple-500 hover:bg-purple-400 rounded-lg transition text-sm font-medium">Copy Code</button>
                 </div>
             </div>
             
@@ -880,7 +888,7 @@ document.addEventListener('keydown', e => {
                 </div>
             </div>
             
-            <a id="modalRedemptionBtn" href="#" target="_blank" class="block w-full py-4 rounded-xl bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-500 hover:to-pink-500 transition font-semibold text-center text-lg hidden">🎁 Claim This Offer</a>
+            <a id="modalRedemptionBtn" href="#" target="_blank" class="block w-full py-4 rounded-xl bg-purple-500 hover:bg-purple-400 transition font-semibold text-center text-lg hidden">🎁 Claim This Offer</a>
         </div>
     </div>
 </div>

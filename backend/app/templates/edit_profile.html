@@ -162,7 +162,7 @@
                     <a href="/user/{{ user.username }}" class="flex-1 px-6 py-3 rounded-lg border border-gray-700 hover:border-gray-600 text-center transition">
                         Cancel
                     </a>
-                    <button type="submit" class="flex-1 px-6 py-3 rounded-lg bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-500 hover:to-pink-500 transition font-semibold">
+                    <button type="submit" class="flex-1 px-6 py-3 rounded-lg bg-purple-500 hover:bg-purple-400 transition font-semibold">
                         Save Changes
                     </button>
                     {% endif %}
@@ -210,11 +210,11 @@
             if (acceptTerms.checked) {
                 submitBtn.disabled = false;
                 submitBtn.classList.remove('bg-gray-700', 'text-gray-500', 'cursor-not-allowed');
-                submitBtn.classList.add('bg-gradient-to-r', 'from-purple-600', 'to-pink-600', 'hover:from-purple-500', 'hover:to-pink-500', 'text-white');
+                submitBtn.classList.add('bg-purple-500', 'hover:bg-purple-400', 'text-white');
             } else {
                 submitBtn.disabled = true;
                 submitBtn.classList.add('bg-gray-700', 'text-gray-500', 'cursor-not-allowed');
-                submitBtn.classList.remove('bg-gradient-to-r', 'from-purple-600', 'to-pink-600', 'hover:from-purple-500', 'hover:to-pink-500', 'text-white');
+                submitBtn.classList.remove('bg-purple-500', 'hover:bg-purple-400', 'text-white');
             }
         });
     }

@@ -184,21 +184,29 @@
                 <div class="markdown-content text-gray-300 break-words" data-markdown="{{ issue.description }}">{{ issue.description }}</div>
             </div>
             
-            <!-- Issue Vote Button -->
-            <div class="mt-4 flex items-center gap-4">
+            <!-- Issue Vote Buttons -->
+            <div class="mt-4 flex items-center gap-2">
                 {% if user and user.id != issue.user_id %}
-                <button onclick="voteIssueHelpful({{ issue.id }}, this)" 
-                        class="flex items-center gap-2 px-4 py-2 rounded-lg bg-dark-300 hover:bg-dark-200 transition text-sm issue-vote-btn"
+                <button onclick="voteIssue({{ issue.id }}, 'upvote', this)" 
+                        class="flex items-center gap-1.5 px-4 py-2 rounded-lg bg-dark-300 hover:bg-green-600/20 transition text-sm issue-upvote-btn"
                         data-issue-id="{{ issue.id }}">
-                    <span class="vote-icon">👍</span>
-                    <span>Helpful Issue</span>
-                    <span class="vote-count text-purple-400 font-medium">({{ issue.helpful_count or 0 }})</span>
+                    <span>👍</span>
+                    <span class="upvote-count text-green-400 font-medium">{{ issue.helpful_count or 0 }}</span>
+                </button>
+                <button onclick="voteIssue({{ issue.id }}, 'downvote', this)" 
+                        class="flex items-center gap-1.5 px-4 py-2 rounded-lg bg-dark-300 hover:bg-red-600/20 transition text-sm issue-downvote-btn"
+                        data-issue-id="{{ issue.id }}">
+                    <span>👎</span>
+                    <span class="downvote-count text-red-400 font-medium">{{ issue.downvote_count or 0 }}</span>
                 </button>
                 {% else %}
-                <div class="flex items-center gap-2 px-4 py-2 text-sm text-gray-500">
+                <div class="flex items-center gap-1.5 px-4 py-2 text-sm text-gray-500">
                     <span>👍</span>
-                    <span>Helpful Issue</span>
-                    <span class="text-purple-400 font-medium">({{ issue.helpful_count or 0 }})</span>
+                    <span class="text-green-400 font-medium">{{ issue.helpful_count or 0 }}</span>
+                </div>
+                <div class="flex items-center gap-1.5 px-4 py-2 text-sm text-gray-500">
+                    <span>👎</span>
+                    <span class="text-red-400 font-medium">{{ issue.downvote_count or 0 }}</span>
                 </div>
                 {% endif %}
             </div>
@@ -257,18 +265,30 @@
                     <!-- Vote & Solution Buttons -->
                     <div class="flex flex-wrap items-center gap-2 sm:gap-4">
                                 {% if user and user.id != response.user_id %}
-                                <button onclick="voteHelpful({{ response.id }}, this)" 
-                                        class="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-dark-300 hover:bg-dark-200 transition text-sm vote-btn"
-                                        data-response-id="{{ response.id }}">
-                                    <span class="vote-icon">👍</span>
-                                    <span>Helpful</span>
-                                    <span class="vote-count text-purple-400 font-medium">({{ response.helpful_count }})</span>
-                                </button>
+                                <div class="flex items-center gap-1">
+                                    <button onclick="voteResponse({{ response.id }}, 'upvote', this)" 
+                                            class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-dark-300 hover:bg-green-600/20 transition text-sm response-upvote-btn"
+                                            data-response-id="{{ response.id }}">
+                                        <span>👍</span>
+                                        <span class="upvote-count text-green-400 font-medium">{{ response.helpful_count }}</span>
+                                    </button>
+                                    <button onclick="voteResponse({{ response.id }}, 'downvote', this)" 
+                                            class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-dark-300 hover:bg-red-600/20 transition text-sm response-downvote-btn"
+                                            data-response-id="{{ response.id }}">
+                                        <span>👎</span>
+                                        <span class="downvote-count text-red-400 font-medium">{{ response.downvote_count or 0 }}</span>
+                                    </button>
+                                </div>
                                 {% else %}
-                                <div class="flex items-center gap-2 px-3 py-1.5 text-sm text-gray-500">
-                                    <span>👍</span>
-                                    <span>Helpful</span>
-                                    <span class="text-purple-400 font-medium">({{ response.helpful_count }})</span>
+                                <div class="flex items-center gap-1">
+                                    <div class="flex items-center gap-1.5 px-3 py-1.5 text-sm text-gray-500">
+                                        <span>👍</span>
+                                        <span class="text-green-400 font-medium">{{ response.helpful_count }}</span>
+                                    </div>
+                                    <div class="flex items-center gap-1.5 px-3 py-1.5 text-sm text-gray-500">
+                                        <span>👎</span>
+                                        <span class="text-red-400 font-medium">{{ response.downvote_count or 0 }}</span>
+                                    </div>
                                 </div>
                                 {% endif %}
                                 
@@ -301,7 +321,7 @@
                     placeholder="Write a response..."></textarea>
                 <div class="flex justify-end">
                     <button type="submit" 
-                            class="px-6 py-2 rounded-lg bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-500 hover:to-pink-500 transition font-semibold">
+                            class="px-6 py-2 rounded-lg bg-purple-500 hover:bg-purple-400 transition font-semibold">
                         Respond
                     </button>
                 </div>
@@ -348,28 +368,42 @@ document.addEventListener('click', function(e) {
     }
 });
 
-// Vote Helpful Function
-async function voteHelpful(responseId, button) {
+// Vote Response (Up/Down)
+async function voteResponse(responseId, voteType, button) {
     try {
         const response = await fetch(`/api/response/${responseId}/vote`, {
             method: 'POST',
-            headers: {
-                'Content-Type': 'application/json'
-            }
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ vote_type: voteType })
         });
         
         const data = await response.json();
         
         if (response.ok) {
-            const countSpan = button.querySelector('.vote-count');
-            countSpan.textContent = `(${data.count})`;
+            // Find sibling buttons (parent container)
+            const container = button.closest('.flex');
+            const upBtn = container.querySelector('.response-upvote-btn') || container.querySelector('[onclick*="upvote"]');
+            const downBtn = container.querySelector('.response-downvote-btn') || container.querySelector('[onclick*="downvote"]');
             
-            if (data.voted) {
-                button.classList.add('bg-purple-600/20', 'text-purple-400');
-                button.classList.remove('bg-dark-300');
-            } else {
-                button.classList.remove('bg-purple-600/20', 'text-purple-400');
-                button.classList.add('bg-dark-300');
+            if (upBtn) {
+                upBtn.querySelector('.upvote-count').textContent = data.upvotes;
+                if (data.voted === 'upvote') {
+                    upBtn.classList.add('bg-green-600/20');
+                    upBtn.classList.remove('bg-dark-300');
+                } else {
+                    upBtn.classList.remove('bg-green-600/20');
+                    upBtn.classList.add('bg-dark-300');
+                }
+            }
+            if (downBtn) {
+                downBtn.querySelector('.downvote-count').textContent = data.downvotes;
+                if (data.voted === 'downvote') {
+                    downBtn.classList.add('bg-red-600/20');
+                    downBtn.classList.remove('bg-dark-300');
+                } else {
+                    downBtn.classList.remove('bg-red-600/20');
+                    downBtn.classList.add('bg-dark-300');
+                }
             }
         } else if (data.error) {
             alert(data.error);
@@ -379,28 +413,41 @@ async function voteHelpful(responseId, button) {
     }
 }
 
-// Vote Issue Helpful Function
-async function voteIssueHelpful(issueId, button) {
+// Vote Issue (Up/Down)
+async function voteIssue(issueId, voteType, button) {
     try {
         const response = await fetch(`/api/issue/${issueId}/vote`, {
             method: 'POST',
-            headers: {
-                'Content-Type': 'application/json'
-            }
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ vote_type: voteType })
         });
         
         const data = await response.json();
         
         if (response.ok) {
-            const countSpan = button.querySelector('.vote-count');
-            countSpan.textContent = `(${data.count})`;
+            // Update all issue vote buttons on page
+            const upBtn = document.querySelector('.issue-upvote-btn');
+            const downBtn = document.querySelector('.issue-downvote-btn');
             
-            if (data.voted) {
-                button.classList.add('bg-purple-600/20', 'text-purple-400');
-                button.classList.remove('bg-dark-300');
-            } else {
-                button.classList.remove('bg-purple-600/20', 'text-purple-400');
-                button.classList.add('bg-dark-300');
+            if (upBtn) {
+                upBtn.querySelector('.upvote-count').textContent = data.upvotes;
+                if (data.voted === 'upvote') {
+                    upBtn.classList.add('bg-green-600/20');
+                    upBtn.classList.remove('bg-dark-300');
+                } else {
+                    upBtn.classList.remove('bg-green-600/20');
+                    upBtn.classList.add('bg-dark-300');
+                }
+            }
+            if (downBtn) {
+                downBtn.querySelector('.downvote-count').textContent = data.downvotes;
+                if (data.voted === 'downvote') {
+                    downBtn.classList.add('bg-red-600/20');
+                    downBtn.classList.remove('bg-dark-300');
+                } else {
+                    downBtn.classList.remove('bg-red-600/20');
+                    downBtn.classList.add('bg-dark-300');
+                }
             }
         } else if (data.error) {
             alert(data.error);
@@ -556,7 +603,7 @@ document.addEventListener('keydown', (e) => {
                 <input type="text" id="shareLink" value="{{ request.url.scheme }}://{{ request.url.netloc }}/project/{{ project.id }}/issues/{{ issue.id }}" 
                        class="flex-1 px-4 py-2 bg-dark-300 border border-gray-700 rounded-lg text-sm text-gray-300" readonly>
                 <button id="copyBtn" onclick="copyShareLink()" 
-                        class="px-4 py-2 bg-purple-600 hover:bg-purple-500 rounded-lg transition" title="Copy Link">
+                        class="px-4 py-2 bg-purple-500 hover:bg-purple-400 rounded-lg transition" title="Copy Link">
                     <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 5H6a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2v-1M8 5a2 2 0 002 2h2a2 2 0 002-2M8 5a2 2 0 012-2h2a2 2 0 012 2m0 0h2a2 2 0 012 2v3m2 4H10m0 0l3-3m-3 3l3 3"></path>
                     </svg>
@@ -699,7 +746,7 @@ document.addEventListener('keydown', (e) => {
                     Cancel
                 </button>
                 <button type="submit" 
-                        class="flex-1 px-4 py-3 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-500 hover:to-pink-500 rounded-lg transition font-medium">
+                        class="flex-1 px-4 py-3 bg-purple-500 hover:bg-purple-400 rounded-lg transition font-medium">
                     Save Changes
                 </button>
             </div>

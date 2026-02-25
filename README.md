@@ -70,11 +70,16 @@ backend/
 
 ## Leaderboard Scoring
 
-- ✅ Solution marked: +10 points
-- 👍 Helpful vote: +1 point
-- 🐙 GitHub 👍 reaction: +2 points
-- 👎 GitHub 👎 reaction: -1 point
-- ⭐ 5-star user rating: +0.5 points
+Every action = +1 or -1 (simple & fair):
+
+- ✅ Solution marked: +1
+- 👍 Helpful vote: +1
+- 🐙 GitHub 👍 reaction: +1
+- 👎 GitHub 👎 reaction: -1
+- ⭐ 5-star user rating: +1
+- 🧪 Test Karma — Issue given: +1
+- 📥 Test Karma — Issue received: +1
+- ⚠️ Offer penalty (overdue obligation): -1
 
 ## Copyright © 2026 Xdest
 Developed by Karlheinz Beismann

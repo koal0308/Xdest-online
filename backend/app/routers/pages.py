@@ -105,6 +105,38 @@ async def dashboard(request: Request, db: Session = Depends(get_db)):
             "karma_penalty_applied": r.karma_penalty_applied
         })
     
+    # Get incoming test obligations for project owners (anonymous - no user info)
+    incoming_obligations = []
+    if project_ids:
+        incoming_redemptions = db.query(OfferRedemption).filter(
+            OfferRedemption.project_id.in_(project_ids),
+            OfferRedemption.fulfilled == False,
+            OfferRedemption.user_id != user.id  # Don't show own redemptions
+        ).all()
+        
+        # Group by offer for anonymous display
+        from collections import defaultdict
+        offer_groups = defaultdict(lambda: {"total": 0, "overdue": 0, "on_time": 0})
+        for r in incoming_redemptions:
+            offer = db.query(Offer).filter(Offer.id == r.offer_id).first()
+            project = db.query(Project).filter(Project.id == r.project_id).first()
+            key = r.offer_id
+            if key not in offer_groups or "offer_title" not in offer_groups[key]:
+                offer_groups[key] = {
+                    "offer_title": offer.title if offer else "Unknown",
+                    "project_id": r.project_id,
+                    "project_name": project.name if project else "Unknown",
+                    "total": 0,
+                    "overdue": 0,
+                    "on_time": 0
+                }
+            offer_groups[key]["total"] += 1
+            if r.is_overdue:
+                offer_groups[key]["overdue"] += 1
+            else:
+                offer_groups[key]["on_time"] += 1
+        incoming_obligations = list(offer_groups.values())
+    
     return templates.TemplateResponse("dashboard.html", {
         "request": request,
         "user": user,
@@ -117,7 +149,8 @@ async def dashboard(request: Request, db: Session = Depends(get_db)):
         "project_comment_counts": project_comment_counts,
         "total_notifications": total_notifications,
         "karma": user_karma,
-        "pending_obligations": obligation_details
+        "pending_obligations": obligation_details,
+        "incoming_obligations": incoming_obligations
     })
 
 @router.get("/user/{username}", response_class=HTMLResponse)

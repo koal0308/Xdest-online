@@ -348,7 +348,7 @@
                 <!-- Project Links -->
                 <div class="flex flex-wrap gap-3">
                     {% if project.project_url %}
-                    <a href="{{ project.project_url }}" target="_blank" class="inline-flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-500 hover:to-cyan-500 rounded-lg transition">
+                    <a href="{{ project.project_url }}" target="_blank" class="inline-flex items-center gap-2 px-4 py-2 bg-blue-500 hover:bg-blue-400 rounded-lg transition">
                         <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"></path>
                         </svg>
@@ -508,7 +508,7 @@
                         </svg>
                         <span class="text-sm">Add media</span>
                     </label>
-                    <button type="submit" class="px-6 py-2 rounded-lg bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-500 hover:to-pink-500 transition font-semibold">
+                    <button type="submit" class="px-6 py-2 rounded-lg bg-purple-500 hover:bg-purple-400 transition font-semibold">
                         Post
                     </button>
                 </div>
@@ -600,7 +600,7 @@
                             <!-- Claim Button (shown by default) -->
                             <div id="claim-btn-{{ offer.id }}">
                                 <button onclick="event.stopPropagation(); claimOffer({{ offer.id }})"
-                                   class="w-full py-2 bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-500 hover:to-emerald-500 rounded-lg transition font-medium text-sm flex items-center justify-center gap-2">
+                                   class="w-full py-2 bg-green-500 hover:bg-green-400 rounded-lg transition font-medium text-sm flex items-center justify-center gap-2">
                                     🎟️ Reveal Coupon Code
                                 </button>
                                 <p class="text-xs text-gray-500 mt-1 text-center">By claiming, you agree to test & review this project within 7 days</p>
@@ -631,7 +631,7 @@
                         
                         <!-- CTA Button -->
                         {% if offer.redemption_url %}
-                        <a href="{{ offer.redemption_url }}" target="_blank" class="block w-full text-center py-2 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-500 hover:to-pink-500 rounded-lg transition font-medium text-sm mb-3">
+                        <a href="{{ offer.redemption_url }}" target="_blank" class="block w-full text-center py-2 bg-purple-500 hover:bg-purple-400 rounded-lg transition font-medium text-sm mb-3">
                             Claim Offer →
                         </a>
                         {% endif %}
@@ -732,6 +732,33 @@
                         {% endif %}
                     {% endif %}
                     
+                    <!-- Post Vote Buttons -->
+                    <div class="flex items-center gap-3 mb-4">
+                        {% if user and user.id != post.user_id %}
+                        <button onclick="votePost({{ post.id }}, 'upvote', this)" 
+                                class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-dark-300 hover:bg-green-600/20 transition text-sm post-upvote-btn"
+                                data-post-id="{{ post.id }}">
+                            <span>👍</span>
+                            <span class="upvote-count text-green-400 font-medium">{{ post.upvote_count or 0 }}</span>
+                        </button>
+                        <button onclick="votePost({{ post.id }}, 'downvote', this)" 
+                                class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-dark-300 hover:bg-red-600/20 transition text-sm post-downvote-btn"
+                                data-post-id="{{ post.id }}">
+                            <span>👎</span>
+                            <span class="downvote-count text-red-400 font-medium">{{ post.downvote_count or 0 }}</span>
+                        </button>
+                        {% else %}
+                        <div class="flex items-center gap-1.5 px-3 py-1.5 text-sm text-gray-500">
+                            <span>👍</span>
+                            <span class="text-green-400 font-medium">{{ post.upvote_count or 0 }}</span>
+                        </div>
+                        <div class="flex items-center gap-1.5 px-3 py-1.5 text-sm text-gray-500">
+                            <span>👎</span>
+                            <span class="text-red-400 font-medium">{{ post.downvote_count or 0 }}</span>
+                        </div>
+                        {% endif %}
+                    </div>
+
                     <!-- Share Post Buttons -->
                     <div class="flex items-center gap-2 mb-4 pb-4 border-b border-gray-800">
                         <span class="text-gray-500 text-xs">Share:</span>
@@ -794,6 +821,26 @@
                                     {% endif %}
                                 </div>
                                 <p class="text-gray-300 text-sm">{{ comment.content }}</p>
+                                <!-- Comment Vote Buttons -->
+                                <div class="flex items-center gap-2 mt-1">
+                                    {% if user and user.id != comment.user_id %}
+                                    <button onclick="voteComment({{ comment.id }}, 'upvote', this)" 
+                                            class="flex items-center gap-1 px-2 py-0.5 rounded text-xs bg-dark-300 hover:bg-green-600/20 transition comment-upvote-btn"
+                                            data-comment-id="{{ comment.id }}">
+                                        <span>👍</span>
+                                        <span class="upvote-count text-green-400">{{ comment.upvote_count or 0 }}</span>
+                                    </button>
+                                    <button onclick="voteComment({{ comment.id }}, 'downvote', this)" 
+                                            class="flex items-center gap-1 px-2 py-0.5 rounded text-xs bg-dark-300 hover:bg-red-600/20 transition comment-downvote-btn"
+                                            data-comment-id="{{ comment.id }}">
+                                        <span>👎</span>
+                                        <span class="downvote-count text-red-400">{{ comment.downvote_count or 0 }}</span>
+                                    </button>
+                                    {% else %}
+                                    <span class="flex items-center gap-1 text-xs text-gray-500">👍 <span class="text-green-400">{{ comment.upvote_count or 0 }}</span></span>
+                                    <span class="flex items-center gap-1 text-xs text-gray-500">👎 <span class="text-red-400">{{ comment.downvote_count or 0 }}</span></span>
+                                    {% endif %}
+                                </div>
                             </div>
                         </div>
                         {% endfor %}
@@ -802,7 +849,7 @@
                         <form action="/api/post/{{ post.id }}/comment" method="POST" class="mt-4 flex flex-col sm:flex-row gap-2">
                             <input type="text" name="content" placeholder="Write a comment..." 
                                 class="flex-1 bg-dark-300 border border-gray-700 rounded-lg px-3 sm:px-4 py-2 text-sm text-white placeholder-gray-500 focus:outline-none focus:border-purple-500">
-                            <button type="submit" class="px-4 py-2 rounded-lg bg-purple-600 hover:bg-purple-500 transition text-sm whitespace-nowrap">
+                            <button type="submit" class="px-4 py-2 rounded-lg bg-purple-500 hover:bg-purple-400 transition text-sm whitespace-nowrap">
                                 Comment
                             </button>
                         </form>
@@ -890,7 +937,7 @@
             <form action="/api/project/{{ project.id }}/connect-repo" method="POST" class="flex gap-2">
                 <input type="url" name="repo_url" placeholder="https://github.com/username/repo" 
                     class="flex-1 bg-dark-300 border border-gray-700 rounded-lg px-4 py-2 text-white placeholder-gray-500 focus:outline-none focus:border-purple-500">
-                <button type="submit" class="px-4 py-2 rounded-lg bg-purple-600 hover:bg-purple-500 transition">
+                <button type="submit" class="px-4 py-2 rounded-lg bg-purple-500 hover:bg-purple-400 transition">
                     Connect
                 </button>
             </form>
@@ -2053,6 +2100,68 @@ function copyPostLink(postId) {
     });
 }
 
+// Post Vote (Up/Down)
+async function votePost(postId, voteType, button) {
+    try {
+        const response = await fetch(`/api/post/${postId}/vote`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ vote_type: voteType })
+        });
+        const data = await response.json();
+        if (response.ok) {
+            const container = button.parentElement;
+            const upBtn = container.querySelector('.post-upvote-btn') || container.querySelector('[onclick*="upvote"]');
+            const downBtn = container.querySelector('.post-downvote-btn') || container.querySelector('[onclick*="downvote"]');
+            if (upBtn) {
+                upBtn.querySelector('.upvote-count').textContent = data.upvotes;
+                upBtn.classList.toggle('bg-green-600/20', data.voted === 'upvote');
+                upBtn.classList.toggle('bg-dark-300', data.voted !== 'upvote');
+            }
+            if (downBtn) {
+                downBtn.querySelector('.downvote-count').textContent = data.downvotes;
+                downBtn.classList.toggle('bg-red-600/20', data.voted === 'downvote');
+                downBtn.classList.toggle('bg-dark-300', data.voted !== 'downvote');
+            }
+        } else if (data.error) {
+            alert(data.error);
+        }
+    } catch (error) {
+        console.error('Vote error:', error);
+    }
+}
+
+// Comment Vote (Up/Down)
+async function voteComment(commentId, voteType, button) {
+    try {
+        const response = await fetch(`/api/comment/${commentId}/vote`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ vote_type: voteType })
+        });
+        const data = await response.json();
+        if (response.ok) {
+            const container = button.parentElement;
+            const upBtn = container.querySelector('.comment-upvote-btn') || container.querySelector('[onclick*="upvote"]');
+            const downBtn = container.querySelector('.comment-downvote-btn') || container.querySelector('[onclick*="downvote"]');
+            if (upBtn) {
+                upBtn.querySelector('.upvote-count').textContent = data.upvotes;
+                upBtn.classList.toggle('bg-green-600/20', data.voted === 'upvote');
+                upBtn.classList.toggle('bg-dark-300', data.voted !== 'upvote');
+            }
+            if (downBtn) {
+                downBtn.querySelector('.downvote-count').textContent = data.downvotes;
+                downBtn.classList.toggle('bg-red-600/20', data.voted === 'downvote');
+                downBtn.classList.toggle('bg-dark-300', data.voted !== 'downvote');
+            }
+        } else if (data.error) {
+            alert(data.error);
+        }
+    } catch (error) {
+        console.error('Vote error:', error);
+    }
+}
+
 function copyOfferLink(offerId) {
     const url = window.location.origin + window.location.pathname + '#offer-' + offerId;
     navigator.clipboard.writeText(url).then(() => {
@@ -2182,7 +2291,7 @@ document.addEventListener('keydown', e => { if (e.key === 'Escape') closeOfferMo
             <div id="modalCouponSection" class="mb-6 hidden">
                 <!-- Claim button -->
                 <div id="modalClaimBtn">
-                    <button onclick="claimOfferModal()" class="w-full py-3 rounded-xl bg-gradient-to-r from-yellow-600 to-orange-600 hover:from-yellow-500 hover:to-orange-500 transition font-semibold text-center">
+                    <button onclick="claimOfferModal()" class="w-full py-3 rounded-xl bg-yellow-500 hover:bg-yellow-400 transition font-semibold text-center">
                         🎟️ Reveal Coupon Code
                     </button>
                     <p class="text-xs text-gray-500 mt-2 text-center">By revealing the code, you agree to test the product and write a review or issue within 7 days.</p>
@@ -2192,14 +2301,14 @@ document.addEventListener('keydown', e => { if (e.key === 'Escape') closeOfferMo
                     <p class="text-sm text-gray-400 mb-2">Your coupon code:</p>
                     <div class="bg-dark-300 rounded-xl p-4 flex items-center justify-between">
                         <code id="modalCouponCode" class="text-xl font-mono text-purple-400"></code>
-                        <button onclick="copyOfferCode()" class="px-4 py-2 bg-purple-600 hover:bg-purple-500 rounded-lg transition text-sm font-medium">Copy Code</button>
+                        <button onclick="copyOfferCode()" class="px-4 py-2 bg-purple-500 hover:bg-purple-400 rounded-lg transition text-sm font-medium">Copy Code</button>
                     </div>
                 </div>
                 <!-- Login prompt -->
                 <div id="modalCouponLogin" class="hidden">
                     <div class="bg-dark-300 rounded-xl p-4 text-center">
                         <p class="text-gray-400 mb-2">🔒 Log in to reveal the coupon code</p>
-                        <a href="/auth/login" class="inline-block px-4 py-2 bg-purple-600 hover:bg-purple-500 rounded-lg transition text-sm font-medium">Log In</a>
+                        <a href="/auth/login" class="inline-block px-4 py-2 bg-purple-500 hover:bg-purple-400 rounded-lg transition text-sm font-medium">Log In</a>
                     </div>
                 </div>
             </div>
@@ -2215,7 +2324,7 @@ document.addEventListener('keydown', e => { if (e.key === 'Escape') closeOfferMo
                 </div>
             </div>
             
-            <a id="modalRedemptionBtn" href="#" target="_blank" class="block w-full py-4 rounded-xl bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-500 hover:to-pink-500 transition font-semibold text-center text-lg hidden">🎁 Claim This Offer</a>
+            <a id="modalRedemptionBtn" href="#" target="_blank" class="block w-full py-4 rounded-xl bg-purple-500 hover:bg-purple-400 transition font-semibold text-center text-lg hidden">🎁 Claim This Offer</a>
         </div>
     </div>
 </div>
@@ -2239,7 +2348,7 @@ document.addEventListener('keydown', e => { if (e.key === 'Escape') closeOfferMo
                 <button type="button" onclick="closeEditPostModal()" class="px-4 py-2 rounded-lg border border-gray-600 text-gray-300 hover:bg-gray-700/50 transition">
                     Cancel
                 </button>
-                <button type="submit" class="px-6 py-2 rounded-lg bg-purple-600 hover:bg-purple-500 transition font-semibold">
+                <button type="submit" class="px-6 py-2 rounded-lg bg-purple-500 hover:bg-purple-400 transition font-semibold">
                     Save Changes
                 </button>
             </div>

@@ -183,7 +183,7 @@
                 <input type="hidden" name="category" value="{{ current_category }}">
                 {% endif %}
                 <div class="flex gap-2 sm:gap-3">
-                    <button type="submit" class="flex-1 sm:flex-none px-4 sm:px-6 py-3 bg-purple-600 hover:bg-purple-500 rounded-xl font-semibold transition whitespace-nowrap">
+                    <button type="submit" class="flex-1 sm:flex-none px-4 sm:px-6 py-3 bg-purple-500 hover:bg-purple-400 rounded-xl font-semibold transition whitespace-nowrap">
                         Search
                     </button>
                     {% if search_query %}
@@ -307,7 +307,7 @@
                     </h3>
                     <p class="text-gray-400 mb-6">Be the first to share something!</p>
                     {% if user %}
-                    <a href="/create-project" class="px-6 py-3 rounded-lg bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-500 hover:to-pink-500 transition font-semibold inline-block">
+                    <a href="/create-project" class="px-6 py-3 rounded-lg bg-purple-500 hover:bg-purple-400 transition font-semibold inline-block">
                         Create Project
                     </a>
                     {% endif %}

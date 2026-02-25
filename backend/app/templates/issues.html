@@ -34,7 +34,7 @@
                 {% endif %}
                 {% if user %}
                 <a href="/project/{{ project.id }}/issues/new" 
-                   class="px-4 py-2 sm:px-6 sm:py-3 rounded-lg bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-500 hover:to-pink-500 transition font-semibold flex items-center gap-1.5 sm:gap-2 text-sm sm:text-base">
+                   class="px-4 py-2 sm:px-6 sm:py-3 rounded-lg bg-purple-500 hover:bg-purple-400 transition font-semibold flex items-center gap-1.5 sm:gap-2 text-sm sm:text-base">
                     <svg class="w-4 h-4 sm:w-5 sm:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
                     </svg>
@@ -134,7 +134,7 @@
                     ⚠️ <strong>Your received issues are hidden.</strong> You've received more issues than you've given.
                     Test other projects and write issues to improve your karma.
                 </p>
-                <a href="/explore" class="mt-2 inline-block px-4 py-1.5 rounded-lg bg-purple-600 hover:bg-purple-500 transition text-xs font-semibold text-white">
+                <a href="/explore" class="mt-2 inline-block px-4 py-1.5 rounded-lg bg-purple-500 hover:bg-purple-400 transition text-xs font-semibold text-white">
                     🔍 Find projects to test
                 </a>
             </div>
@@ -232,7 +232,7 @@
             <h3 class="text-xl font-semibold mb-2">No Issues</h3>
             <p class="text-gray-400 mb-6">No issues or feature requests have been submitted yet.</p>
             {% if user %}
-            <a href="/project/{{ project.id }}/issues/new" class="inline-flex items-center gap-2 px-6 py-3 rounded-lg bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-500 hover:to-pink-500 transition font-semibold">
+            <a href="/project/{{ project.id }}/issues/new" class="inline-flex items-center gap-2 px-6 py-3 rounded-lg bg-purple-500 hover:bg-purple-400 transition font-semibold">
                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
                 </svg>
