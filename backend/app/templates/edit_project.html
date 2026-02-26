@@ -16,7 +16,7 @@
                 </a>
             </div>
             
-            <form action="/api/project/{{ project.id }}/edit" method="POST" enctype="multipart/form-data" class="space-y-6">
+            <form id="editProjectForm" action="/api/project/{{ project.id }}/edit" method="POST" enctype="multipart/form-data" class="space-y-6">
                 <!-- Project Name -->
                 <div>
                     <label class="block text-sm font-medium text-gray-300 mb-2">Project Name *</label>
@@ -160,10 +160,12 @@
                         {{ 'Replace Image' if project.image else 'Project Image' }}
                     </label>
                     <div class="border-2 border-dashed border-gray-700 rounded-lg p-8 text-center hover:border-purple-500 transition cursor-pointer" 
-                         onclick="document.getElementById('imageInput').click()">
-                        <input type="file" name="image" id="imageInput" accept="image/*" class="hidden" onchange="previewImage(this)">
+                         onclick="document.getElementById('imageInput').click()" id="editProjectDropzone">
+                        <input type="file" name="image" id="imageInput" accept="image/*" class="hidden">
                         <div id="imagePreview" class="hidden mb-4">
                             <img id="previewImg" class="max-h-48 mx-auto rounded-lg">
+                            <p id="editProjectFileName" class="text-sm text-gray-400 mt-2"></p>
+                            <p id="editProjectFileSize" class="text-xs text-gray-500"></p>
                         </div>
                         <div id="uploadPrompt">
                             <svg class="w-12 h-12 mx-auto text-gray-500 mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -175,10 +177,21 @@
                     </div>
                 </div>
                 
+                <!-- Upload Progress -->
+                <div id="editProjectUploadProgress" class="hidden">
+                    <div class="flex items-center gap-3 mb-2">
+                        <div class="animate-spin w-5 h-5 border-2 border-purple-500 border-t-transparent rounded-full"></div>
+                        <span id="editProjectUploadStatus" class="text-sm text-gray-300">Saving...</span>
+                    </div>
+                    <div class="w-full bg-dark-300 rounded-full h-2">
+                        <div id="editProjectProgressBar" class="bg-purple-500 h-2 rounded-full transition-all duration-300" style="width: 0%"></div>
+                    </div>
+                </div>
+                
                 <!-- Submit Buttons -->
                 <div class="flex gap-4 pt-4">
-                    <button type="submit" class="flex-1 py-3 bg-purple-500 hover:bg-purple-400 rounded-lg font-semibold transition">
-                        Save Changes
+                    <button type="submit" id="editProjectSubmitBtn" class="flex-1 py-3 bg-purple-500 hover:bg-purple-400 rounded-lg font-semibold transition flex items-center justify-center gap-2">
+                        <span>Save Changes</span>
                     </button>
                     <a href="/project/{{ project.id }}" class="px-6 py-3 border border-gray-700 hover:border-gray-600 rounded-lg text-gray-300 hover:text-white transition text-center">
                         Cancel
@@ -204,17 +217,38 @@
 </footer>
 
 <script>
-function previewImage(input) {
-    if (input.files && input.files[0]) {
+const imageInput = document.getElementById('imageInput');
+const previewImg = document.getElementById('previewImg');
+const imagePreview = document.getElementById('imagePreview');
+const uploadPrompt = document.getElementById('uploadPrompt');
+const editProjectFileName = document.getElementById('editProjectFileName');
+const editProjectFileSize = document.getElementById('editProjectFileSize');
+
+function formatSize(bytes) {
+    if (bytes < 1024) return bytes + ' B';
+    if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
+    return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
+}
+
+imageInput.addEventListener('change', function() {
+    const file = this.files[0];
+    if (file) {
+        if (file.size > 10 * 1024 * 1024) {
+            alert('File too large! Maximum 10MB allowed.');
+            this.value = '';
+            return;
+        }
         const reader = new FileReader();
         reader.onload = function(e) {
-            document.getElementById('previewImg').src = e.target.result;
-            document.getElementById('imagePreview').classList.remove('hidden');
-            document.getElementById('uploadPrompt').classList.add('hidden');
+            previewImg.src = e.target.result;
+            editProjectFileName.textContent = file.name;
+            editProjectFileSize.textContent = formatSize(file.size);
+            imagePreview.classList.remove('hidden');
+            uploadPrompt.classList.add('hidden');
         }
-        reader.readAsDataURL(input.files[0]);
+        reader.readAsDataURL(file);
     }
-}
+});
 
 // Handle remove image checkbox styling
 const removeCheck = document.getElementById('removeImageCheck');
@@ -230,5 +264,65 @@ if (removeCheck) {
         }
     });
 }
+
+// Form submit with progress
+const form = document.getElementById('editProjectForm');
+const submitBtn = document.getElementById('editProjectSubmitBtn');
+const uploadProgress = document.getElementById('editProjectUploadProgress');
+const uploadStatus = document.getElementById('editProjectUploadStatus');
+const progressBar = document.getElementById('editProjectProgressBar');
+
+form.addEventListener('submit', function(e) {
+    e.preventDefault();
+    
+    const formData = new FormData(form);
+    const hasFile = imageInput.files && imageInput.files[0];
+    
+    uploadProgress.classList.remove('hidden');
+    submitBtn.disabled = true;
+    submitBtn.innerHTML = '<div class="animate-spin w-4 h-4 border-2 border-white border-t-transparent rounded-full"></div><span>Saving...</span>';
+    
+    uploadStatus.textContent = hasFile && imageInput.files[0].size > 2 * 1024 * 1024 
+        ? 'Uploading image...' 
+        : 'Saving changes...';
+    
+    const xhr = new XMLHttpRequest();
+    
+    xhr.upload.addEventListener('progress', function(e) {
+        if (e.lengthComputable) {
+            const percent = Math.round((e.loaded / e.total) * 100);
+            progressBar.style.width = percent + '%';
+            if (hasFile) uploadStatus.textContent = `Uploading... ${percent}%`;
+        }
+    });
+    
+    xhr.addEventListener('load', function() {
+        if (xhr.status >= 200 && xhr.status < 400) {
+            uploadStatus.textContent = 'Done! Redirecting...';
+            progressBar.style.width = '100%';
+            window.location.href = xhr.responseURL || '/project/{{ project.id }}';
+        } else {
+            let errorMsg = 'Error saving changes';
+            try { errorMsg = JSON.parse(xhr.responseText).detail || errorMsg; } catch (e) {}
+            alert(errorMsg);
+            resetForm();
+        }
+    });
+    
+    xhr.addEventListener('error', function() {
+        alert('Network error. Please try again.');
+        resetForm();
+    });
+    
+    function resetForm() {
+        uploadProgress.classList.add('hidden');
+        progressBar.style.width = '0%';
+        submitBtn.disabled = false;
+        submitBtn.innerHTML = '<span>Save Changes</span>';
+    }
+    
+    xhr.open('POST', form.action);
+    xhr.send(formData);
+});
 </script>
 {% endblock %}

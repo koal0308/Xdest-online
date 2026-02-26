@@ -28,7 +28,8 @@ class Issue(Base):
     
     title = Column(String(300), nullable=False)
     description = Column(Text, nullable=False)
-    screenshot = Column(String(500), nullable=True)  # Screenshot URL
+    screenshot = Column(String(500), nullable=True)  # Screenshot/Media URL
+    media_type = Column(String(50), nullable=True)  # image, video
     issue_type = Column(String(50), default="bug")  # bug, feature, question, security, docs
     status = Column(String(50), default="open")     # open, in_progress, resolved, closed, wont_fix
     helpful_count = Column(Integer, default=0)  # Anzahl der "Hilfreich" Votes für das Issue (von dest)
@@ -63,6 +64,8 @@ class IssueResponse(Base):
     user_id = Column(Integer, ForeignKey("users.id"), nullable=True)  # Kann NULL sein wenn User gelöscht
     
     content = Column(Text, nullable=False)
+    media_url = Column(String(500), nullable=True)  # Angehängtes Bild/Video
+    media_type = Column(String(50), nullable=True)  # image, video
     helpful_count = Column(Integer, default=0)  # Anzahl der "Hilfreich" Votes
     downvote_count = Column(Integer, default=0)  # Anzahl der Downvotes
     is_solution = Column(Integer, default=0)  # 1 = vom Issue-Ersteller als Lösung markiert

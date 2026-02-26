@@ -1,10 +1,30 @@
 {% extends "base.html" %}
 
-{% block title %}{{ project.name }} - Xdest{% endblock %}
+{% block title %}{% if featured_post %}Update: {{ featured_post.content[:50] }}... - {% endif %}{{ project.name }} - Xdest{% endblock %}
 
-{% block extra_head %}
+{% block meta_tags %}
 <!-- Open Graph Meta Tags -->
-<meta property="og:type" content="website">
+<meta property="og:type" content="{% if featured_post %}article{% else %}website{% endif %}">
+{% if featured_post %}
+{# Post-specific sharing #}
+<meta property="og:url" content="https://xdest.dev/project/{{ project.id }}/post/{{ featured_post.id }}">
+<meta property="og:title" content="{{ project.name }} - Update">
+<meta property="og:description" content="{{ featured_post.content[:200] }}{% if featured_post.content|length > 200 %}...{% endif %}">
+{% if featured_post.media_url and featured_post.media_type == 'video' %}
+{# Post has video #}
+<meta property="og:video" content="https://xdest.dev{{ featured_post.media_url }}">
+<meta property="og:video:type" content="video/mp4">
+<meta property="og:image" content="{% if project.image %}https://xdest.dev{{ project.image }}{% else %}https://xdest.dev/static/logo.png{% endif %}">
+{% elif featured_post.media_url and featured_post.media_type == 'image' %}
+{# Post has image #}
+<meta property="og:image" content="https://xdest.dev{{ featured_post.media_url }}">
+{% elif project.image %}
+<meta property="og:image" content="https://xdest.dev{{ project.image }}">
+{% else %}
+<meta property="og:image" content="https://xdest.dev/static/logo.png">
+{% endif %}
+{% else %}
+{# Regular project page #}
 <meta property="og:url" content="https://xdest.dev/project/{{ project.id }}">
 <meta property="og:title" content="{{ project.name }} - Xdest">
 <meta property="og:description" content="{{ project.description[:200] if project.description else 'Check out this project on Xdest - A developer collaboration platform' }}">
@@ -13,11 +33,30 @@
 {% else %}
 <meta property="og:image" content="https://xdest.dev/static/logo.png">
 {% endif %}
+{% endif %}
 <meta property="og:site_name" content="Xdest">
 
 <!-- Twitter Card Meta Tags -->
+{% if featured_post %}
+{# Post-specific Twitter Card #}
+{% if featured_post.media_url and featured_post.media_type == 'video' %}
+<meta name="twitter:card" content="player">
+<meta name="twitter:player" content="https://xdest.dev/embed/post/{{ featured_post.id }}">
+<meta name="twitter:player:width" content="1280">
+<meta name="twitter:player:height" content="720">
+<meta name="twitter:image" content="{% if project.image %}https://xdest.dev{{ project.image }}{% else %}https://xdest.dev/static/logo.png{% endif %}">
+{% elif featured_post.media_url and featured_post.media_type == 'image' %}
 <meta name="twitter:card" content="summary_large_image">
-<meta name="twitter:site" content="@XdestHQ">
+<meta name="twitter:image" content="https://xdest.dev{{ featured_post.media_url }}">
+{% else %}
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:image" content="{% if project.image %}https://xdest.dev{{ project.image }}{% else %}https://xdest.dev/static/logo.png{% endif %}">
+{% endif %}
+<meta name="twitter:title" content="{{ project.name }} - Update">
+<meta name="twitter:description" content="{{ featured_post.content[:200] }}{% if featured_post.content|length > 200 %}...{% endif %}">
+{% else %}
+{# Regular project Twitter Card #}
+<meta name="twitter:card" content="summary_large_image">
 <meta name="twitter:title" content="{{ project.name }} - Xdest">
 <meta name="twitter:description" content="{{ project.description[:200] if project.description else 'Check out this project on Xdest - A developer collaboration platform' }}">
 {% if project.image %}
@@ -25,7 +64,11 @@
 {% else %}
 <meta name="twitter:image" content="https://xdest.dev/static/logo.png">
 {% endif %}
+{% endif %}
+<meta name="twitter:site" content="@XdestHQ">
+{% endblock %}
 
+{% block extra_head %}
 {% if project.google_analytics_id %}
 <!-- Google Analytics -->
 <script async src="https://www.googletagmanager.com/gtag/js?id={{ project.google_analytics_id }}"></script>
@@ -497,19 +540,52 @@
         {% if is_owner %}
         <div class="bg-dark-100 rounded-xl border border-gray-800 p-6 mb-8">
             <h2 class="text-lg font-semibold mb-4">Post an Update</h2>
-            <form action="/api/project/{{ project.id }}/post" method="POST" enctype="multipart/form-data">
-                <textarea name="content" rows="3" placeholder="Share an update about your project..." 
+            <form id="postUpdateForm" action="/api/project/{{ project.id }}/post" method="POST" enctype="multipart/form-data">
+                <textarea name="content" rows="3" placeholder="Share an update about your project... YouTube/Vimeo links will auto-embed!" required
                     class="w-full bg-dark-300 border border-gray-700 rounded-lg p-4 text-white placeholder-gray-500 focus:outline-none focus:border-purple-500 resize-none mb-4"></textarea>
-                <div class="flex items-center justify-between">
-                    <label class="flex items-center gap-2 cursor-pointer text-gray-400 hover:text-white transition">
-                        <input type="file" name="media" accept="image/*,video/*" class="hidden">
-                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
+                
+                <!-- File Selection Area -->
+                <div class="flex flex-col gap-3 mb-4">
+                    <div class="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3">
+                        <label class="flex items-center gap-2 cursor-pointer text-gray-400 hover:text-white transition">
+                            <input type="file" name="media" id="postMediaInput" accept="image/*,video/mp4,video/webm,video/quicktime" class="hidden">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
+                            </svg>
+                            <span class="text-sm">Add media</span>
+                        </label>
+                        <span class="text-xs text-gray-500">Images max 10MB · Videos max 100MB · YouTube/Vimeo links auto-embed</span>
+                    </div>
+                    
+                    <!-- Selected File Display -->
+                    <div id="postFilePreview" class="hidden flex items-center gap-2 bg-dark-300 rounded-lg px-3 py-2">
+                        <svg class="w-4 h-4 text-green-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
                         </svg>
-                        <span class="text-sm">Add media</span>
-                    </label>
-                    <button type="submit" class="px-6 py-2 rounded-lg bg-purple-500 hover:bg-purple-400 transition font-semibold">
-                        Post
+                        <span id="postFileName" class="text-sm text-gray-300 truncate"></span>
+                        <span id="postFileSize" class="text-xs text-gray-500 flex-shrink-0"></span>
+                        <button type="button" id="postRemoveFile" class="ml-auto text-gray-400 hover:text-red-400 transition">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                            </svg>
+                        </button>
+                    </div>
+                </div>
+                
+                <!-- Upload Progress -->
+                <div id="postUploadProgress" class="hidden mb-4">
+                    <div class="flex items-center gap-3 mb-2">
+                        <div class="animate-spin w-5 h-5 border-2 border-purple-500 border-t-transparent rounded-full"></div>
+                        <span id="postUploadStatus" class="text-sm text-gray-300">Uploading...</span>
+                    </div>
+                    <div class="w-full bg-dark-300 rounded-full h-2">
+                        <div id="postProgressBar" class="bg-purple-500 h-2 rounded-full transition-all duration-300" style="width: 0%"></div>
+                    </div>
+                </div>
+                
+                <div class="flex justify-end">
+                    <button type="submit" id="postSubmitBtn" class="px-6 py-2 rounded-lg bg-purple-500 hover:bg-purple-400 transition font-semibold flex items-center gap-2">
+                        <span>Post</span>
                     </button>
                 </div>
             </form>
@@ -762,8 +838,8 @@
                     <!-- Share Post Buttons -->
                     <div class="flex items-center gap-2 mb-4 pb-4 border-b border-gray-800">
                         <span class="text-gray-500 text-xs">Share:</span>
-                        <!-- X (Twitter) -->
-                        <a href="https://twitter.com/intent/tweet?text={{ post.content[:100] | urlencode }}...%0A%0A{{ project.name | urlencode }}{% if project.twitter_handle %}%20via%20%40{{ project.twitter_handle | replace('@', '') | urlencode }}{% endif %}&url=https://xdest.dev/project/{{ project.id }}%23post-{{ post.id }}" 
+                        <!-- X (Twitter) - uses /post/ URL for proper meta tags -->
+                        <a href="https://twitter.com/intent/tweet?text={{ post.content[:100] | urlencode }}...%0A%0A{{ project.name | urlencode }}{% if project.twitter_handle %}%20via%20%40{{ project.twitter_handle | replace('@', '') | urlencode }}{% endif %}&url=https://xdest.dev/project/{{ project.id }}/post/{{ post.id }}" 
                            target="_blank" rel="noopener noreferrer"
                            class="p-1.5 rounded-lg bg-dark-200 hover:bg-gray-700 border border-gray-700 transition" title="Share on X">
                             <svg class="w-4 h-4" viewBox="0 0 24 24" fill="currentColor">
@@ -771,7 +847,7 @@
                             </svg>
                         </a>
                         <!-- Farcaster -->
-                        <a href="https://warpcast.com/~/compose?text={{ post.content[:100] | urlencode }}...%0A%0A{{ project.name | urlencode }}{% if project.farcaster_handle %}%20via%20%40{{ project.farcaster_handle | replace('@', '') | urlencode }}{% endif %}%20https://xdest.dev/project/{{ project.id }}%23post-{{ post.id }}" 
+                        <a href="https://warpcast.com/~/compose?text={{ post.content[:100] | urlencode }}...%0A%0A{{ project.name | urlencode }}{% if project.farcaster_handle %}%20via%20%40{{ project.farcaster_handle | replace('@', '') | urlencode }}{% endif %}%20https://xdest.dev/project/{{ project.id }}/post/{{ post.id }}" 
                            target="_blank" rel="noopener noreferrer"
                            class="p-1.5 rounded-lg bg-dark-200 hover:bg-purple-700 border border-gray-700 transition" title="Share on Farcaster">
                             <svg class="w-4 h-4" viewBox="0 0 1000 1000" fill="currentColor">
@@ -781,7 +857,7 @@
                             </svg>
                         </a>
                         <!-- LinkedIn -->
-                        <a href="https://www.linkedin.com/sharing/share-offsite/?url=https://xdest.dev/project/{{ project.id }}%23post-{{ post.id }}" 
+                        <a href="https://www.linkedin.com/sharing/share-offsite/?url=https://xdest.dev/project/{{ project.id }}/post/{{ post.id }}" 
                            target="_blank" rel="noopener noreferrer"
                            class="p-1.5 rounded-lg bg-dark-200 hover:bg-blue-700 border border-gray-700 transition" title="Share on LinkedIn">
                             <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
@@ -820,7 +896,7 @@
                                     </button>
                                     {% endif %}
                                 </div>
-                                <p class="text-gray-300 text-sm">{{ comment.content }}</p>
+                                <p class="text-gray-300 text-sm comment-content">{{ comment.content }}</p>
                                 <!-- Comment Vote Buttons -->
                                 <div class="flex items-center gap-2 mt-1">
                                     {% if user and user.id != comment.user_id %}
@@ -2087,7 +2163,8 @@ function copyProjectLink() {
 }
 
 function copyPostLink(postId) {
-    const url = window.location.origin + window.location.pathname + '#post-' + postId;
+    // Use /post/ URL for proper meta tags when sharing
+    const url = window.location.origin + '/project/{{ project.id }}/post/' + postId;
     navigator.clipboard.writeText(url).then(() => {
         const btn = event.target.closest('button');
         const originalTitle = btn.title;
@@ -2341,7 +2418,7 @@ document.addEventListener('keydown', e => { if (e.key === 'Escape') closeOfferMo
             </button>
         </div>
         <form id="editPostForm" method="POST" class="p-6">
-            <textarea id="editPostContent" name="content" rows="6" 
+            <textarea id="editPostContent" name="content" rows="6" required
                 class="w-full bg-dark-300 border border-gray-700 rounded-lg px-4 py-3 text-white placeholder-gray-500 focus:outline-none focus:border-purple-500 resize-none"
                 placeholder="Write your update..."></textarea>
             <div class="flex justify-end gap-3 mt-4">
@@ -2357,6 +2434,125 @@ document.addEventListener('keydown', e => { if (e.key === 'Escape') closeOfferMo
 </div>
 
 <script>
+// Post Update Form - File Selection & Upload Progress
+(function() {
+    const form = document.getElementById('postUpdateForm');
+    const fileInput = document.getElementById('postMediaInput');
+    const filePreview = document.getElementById('postFilePreview');
+    const fileName = document.getElementById('postFileName');
+    const fileSize = document.getElementById('postFileSize');
+    const removeBtn = document.getElementById('postRemoveFile');
+    const uploadProgress = document.getElementById('postUploadProgress');
+    const uploadStatus = document.getElementById('postUploadStatus');
+    const progressBar = document.getElementById('postProgressBar');
+    const submitBtn = document.getElementById('postSubmitBtn');
+    
+    if (!form || !fileInput) return;
+    
+    // Format file size
+    function formatSize(bytes) {
+        if (bytes < 1024) return bytes + ' B';
+        if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
+        return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
+    }
+    
+    // File selection handler
+    fileInput.addEventListener('change', function() {
+        const file = this.files[0];
+        if (!file) {
+            filePreview.classList.add('hidden');
+            return;
+        }
+        
+        // Validate size
+        const isVideo = file.type.startsWith('video/');
+        const maxSize = isVideo ? 100 * 1024 * 1024 : 10 * 1024 * 1024;
+        
+        if (file.size > maxSize) {
+            alert(`File too large! Maximum ${isVideo ? '100MB for videos' : '10MB for images'}.`);
+            this.value = '';
+            filePreview.classList.add('hidden');
+            return;
+        }
+        
+        // Show preview
+        fileName.textContent = file.name;
+        fileSize.textContent = formatSize(file.size);
+        filePreview.classList.remove('hidden');
+    });
+    
+    // Remove file handler
+    removeBtn.addEventListener('click', function() {
+        fileInput.value = '';
+        filePreview.classList.add('hidden');
+    });
+    
+    // Form submit with progress
+    form.addEventListener('submit', function(e) {
+        e.preventDefault();
+        
+        const formData = new FormData(form);
+        const hasFile = fileInput.files && fileInput.files[0];
+        
+        // Show progress UI
+        uploadProgress.classList.remove('hidden');
+        submitBtn.disabled = true;
+        submitBtn.innerHTML = '<div class="animate-spin w-4 h-4 border-2 border-white border-t-transparent rounded-full"></div><span>Posting...</span>';
+        
+        if (hasFile && fileInput.files[0].size > 5 * 1024 * 1024) {
+            uploadStatus.textContent = 'Uploading media... Large files may take a moment.';
+        } else {
+            uploadStatus.textContent = 'Posting update...';
+        }
+        
+        const xhr = new XMLHttpRequest();
+        
+        // Progress tracking
+        xhr.upload.addEventListener('progress', function(e) {
+            if (e.lengthComputable) {
+                const percent = Math.round((e.loaded / e.total) * 100);
+                progressBar.style.width = percent + '%';
+                if (hasFile) {
+                    uploadStatus.textContent = `Uploading... ${percent}%`;
+                }
+            }
+        });
+        
+        xhr.addEventListener('load', function() {
+            if (xhr.status >= 200 && xhr.status < 400) {
+                uploadStatus.textContent = 'Done! Redirecting...';
+                progressBar.style.width = '100%';
+                // Follow redirect
+                window.location.href = xhr.responseURL || form.action.replace('/api/project/', '/project/').replace('/post', '');
+            } else {
+                // Error handling
+                let errorMsg = 'Error posting update';
+                try {
+                    const resp = JSON.parse(xhr.responseText);
+                    errorMsg = resp.detail || errorMsg;
+                } catch (e) {}
+                alert(errorMsg);
+                resetForm();
+            }
+        });
+        
+        xhr.addEventListener('error', function() {
+            alert('Network error. Please try again.');
+            resetForm();
+        });
+        
+        function resetForm() {
+            uploadProgress.classList.add('hidden');
+            progressBar.style.width = '0%';
+            submitBtn.disabled = false;
+            submitBtn.innerHTML = '<span>Post</span>';
+        }
+        
+        xhr.open('POST', form.action);
+        xhr.send(formData);
+    });
+})();
+
 // Edit Post Modal Functions
 function openEditPostModal(postId, content) {
     const modal = document.getElementById('editPostModal');

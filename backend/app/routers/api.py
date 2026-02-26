@@ -17,9 +17,6 @@ import json
 
 router = APIRouter(prefix="/api", tags=["api"])
 
-ALLOWED_IMAGE_TYPES = {"image/jpeg", "image/png", "image/gif", "image/webp"}
-ALLOWED_VIDEO_TYPES = {"video/mp4", "video/webm", "video/quicktime"}
-
 
 def _fulfill_offer_obligation(db: Session, user_id: int, project_id: int):
     """Check if user has pending offer obligations for this project and fulfill them.
@@ -141,18 +138,115 @@ def get_decrypted_plausible_key(project) -> str:
 ALLOWED_IMAGE_TYPES = {"image/jpeg", "image/png", "image/gif", "image/webp"}
 ALLOWED_VIDEO_TYPES = {"video/mp4", "video/webm", "video/quicktime"}
 
-def save_upload(file: UploadFile, subfolder: str) -> str:
-    """Save uploaded file and return the URL path"""
+# Upload limits
+MAX_IMAGE_SIZE = 10 * 1024 * 1024      # 10 MB
+MAX_VIDEO_SIZE = 100 * 1024 * 1024     # 100 MB
+MAX_AVATAR_SIZE = 5 * 1024 * 1024      # 5 MB
+VIDEO_COMPRESS_THRESHOLD = 20 * 1024 * 1024  # Compress if > 20 MB
+
+# Magic bytes for file type validation
+FILE_SIGNATURES = {
+    b'\xff\xd8\xff': 'image/jpeg',
+    b'\x89PNG': 'image/png',
+    b'GIF87a': 'image/gif',
+    b'GIF89a': 'image/gif',
+    b'RIFF': 'image/webp',  # WebP starts with RIFF....WEBP
+    b'\x00\x00\x00': 'video/mp4',  # ftyp box (offset 4)
+    b'\x1a\x45\xdf\xa3': 'video/webm',  # EBML header (WebM/MKV)
+}
+
+def validate_file_type(file_bytes: bytes, claimed_type: str) -> bool:
+    """Validate file by checking magic bytes, not just the Content-Type header"""
+    if claimed_type in ALLOWED_IMAGE_TYPES:
+        if file_bytes[:3] == b'\xff\xd8\xff':  # JPEG
+            return True
+        if file_bytes[:4] == b'\x89PNG':  # PNG
+            return True
+        if file_bytes[:6] in (b'GIF87a', b'GIF89a'):  # GIF
+            return True
+        if file_bytes[:4] == b'RIFF' and file_bytes[8:12] == b'WEBP':  # WebP
+            return True
+        return False
+    elif claimed_type in ALLOWED_VIDEO_TYPES:
+        # MP4/MOV: ftyp box at byte 4
+        if len(file_bytes) > 11 and file_bytes[4:8] == b'ftyp':
+            return True
+        # WebM: EBML header
+        if file_bytes[:4] == b'\x1a\x45\xdf\xa3':
+            return True
+        return False
+    return False
+
+def compress_video(input_path: str, output_path: str) -> bool:
+    """Compress video using ffmpeg (720p, reasonable bitrate)"""
+    import subprocess
+    try:
+        result = subprocess.run([
+            'ffmpeg', '-i', input_path,
+            '-vf', 'scale=-2:720',          # Max 720p height
+            '-c:v', 'libx264',              # H.264 codec
+            '-crf', '28',                    # Quality (higher = smaller, 23-30 is good)
+            '-preset', 'fast',               # Speed/size tradeoff
+            '-c:a', 'aac', '-b:a', '128k',  # Audio
+            '-movflags', '+faststart',       # Stream-friendly
+            '-y',                            # Overwrite
+            output_path
+        ], capture_output=True, timeout=120)
+        return result.returncode == 0
+    except Exception:
+        return False
+
+def save_upload(file: UploadFile, subfolder: str, max_size: int = None) -> str:
+    """Save uploaded file with validation and optional video compression"""
     upload_dir = os.path.join(settings.UPLOAD_DIR, subfolder)
     os.makedirs(upload_dir, exist_ok=True)
     
-    ext = os.path.splitext(file.filename)[1] if file.filename else ".bin"
+    # Read file content
+    content = file.file.read()
+    file_size = len(content)
+    
+    # Determine max size
+    if max_size is None:
+        if file.content_type in ALLOWED_VIDEO_TYPES:
+            max_size = MAX_VIDEO_SIZE
+        elif subfolder == "avatars":
+            max_size = MAX_AVATAR_SIZE
+        else:
+            max_size = MAX_IMAGE_SIZE
+    
+    # Check file size
+    if file_size > max_size:
+        max_mb = max_size // (1024 * 1024)
+        raise HTTPException(status_code=413, detail=f"File too large. Maximum {max_mb}MB allowed.")
+    
+    # Validate file type by magic bytes
+    if not validate_file_type(content, file.content_type):
+        raise HTTPException(status_code=400, detail="Invalid file: content doesn't match the file type. Only real images/videos allowed.")
+    
+    ext = os.path.splitext(file.filename)[1].lower() if file.filename else ".bin"
+    # Sanitize extension
+    allowed_extensions = {'.jpg', '.jpeg', '.png', '.gif', '.webp', '.mp4', '.webm', '.mov'}
+    if ext not in allowed_extensions:
+        ext = '.bin'
+    
     filename = f"{uuid.uuid4()}{ext}"
     filepath = os.path.join(upload_dir, filename)
     
     with open(filepath, "wb") as f:
-        content = file.file.read()
         f.write(content)
+    
+    # Compress video if it's large
+    if file.content_type in ALLOWED_VIDEO_TYPES and file_size > VIDEO_COMPRESS_THRESHOLD:
+        compressed_name = f"{uuid.uuid4()}.mp4"
+        compressed_path = os.path.join(upload_dir, compressed_name)
+        
+        if compress_video(filepath, compressed_path):
+            # Delete original, use compressed
+            os.remove(filepath)
+            filepath = compressed_path
+            filename = compressed_name
+            ext = '.mp4'
+        # If compression fails, keep original
     
     return f"/uploads/{subfolder}/{filename}"
 
@@ -316,13 +410,16 @@ async def edit_project(
 async def create_post(
     project_id: int,
     request: Request,
-    content: str = Form(...),
+    content: str = Form(""),
     media: UploadFile = File(None),
     db: Session = Depends(get_db)
 ):
     user = await get_current_user(request, db)
     if not user:
         raise HTTPException(status_code=401, detail="Not authenticated")
+    
+    if not content.strip():
+        raise HTTPException(status_code=400, detail="Content cannot be empty")
     
     project = db.query(Project).filter(Project.id == project_id).first()
     if not project:
@@ -360,12 +457,15 @@ async def create_post(
 async def edit_post(
     post_id: int,
     request: Request,
-    content: str = Form(...),
+    content: str = Form(""),
     db: Session = Depends(get_db)
 ):
     user = await get_current_user(request, db)
     if not user:
         raise HTTPException(status_code=401, detail="Not authenticated")
+    
+    if not content.strip():
+        raise HTTPException(status_code=400, detail="Content cannot be empty")
     
     post = db.query(Post).filter(Post.id == post_id).first()
     if not post:
@@ -408,12 +508,15 @@ async def delete_post(
 async def create_comment(
     post_id: int,
     request: Request,
-    content: str = Form(...),
+    content: str = Form(""),
     db: Session = Depends(get_db)
 ):
     user = await get_current_user(request, db)
     if not user:
         raise HTTPException(status_code=401, detail="Not authenticated")
+    
+    if not content.strip():
+        raise HTTPException(status_code=400, detail="Comment cannot be empty")
     
     post = db.query(Post).filter(Post.id == post_id).first()
     if not post:
@@ -1223,11 +1326,16 @@ async def create_issue(
     if issue_type not in valid_types:
         issue_type = "bug"
     
-    # Handle screenshot upload
+    # Handle screenshot/media upload
     screenshot_url = None
+    issue_media_type = None
     if screenshot and screenshot.filename:
         if screenshot.content_type in ALLOWED_IMAGE_TYPES:
             screenshot_url = save_upload(screenshot, "issues")
+            issue_media_type = "image"
+        elif screenshot.content_type in ALLOWED_VIDEO_TYPES:
+            screenshot_url = save_upload(screenshot, "issues")
+            issue_media_type = "video"
     
     # GitHub Sync Variablen
     github_issue_number = None
@@ -1282,6 +1390,7 @@ async def create_issue(
         title=title,
         description=description,
         screenshot=screenshot_url,
+        media_type=issue_media_type,
         issue_type=issue_type,
         status="open",
         source_platform="Xdest",
@@ -1301,7 +1410,8 @@ async def create_issue(
 async def respond_to_issue(
     issue_id: int,
     request: Request,
-    content: str = Form(...),
+    content: str = Form(""),
+    media: UploadFile = File(None),
     db: Session = Depends(get_db)
 ):
     """Fügt eine Antwort zu einem Issue hinzu"""
@@ -1309,14 +1419,30 @@ async def respond_to_issue(
     if not user:
         raise HTTPException(status_code=401, detail="Not authenticated")
     
+    if not content.strip():
+        raise HTTPException(status_code=400, detail="Response cannot be empty")
+    
     issue = db.query(Issue).filter(Issue.id == issue_id).first()
     if not issue:
         raise HTTPException(status_code=404, detail="Issue not found")
     
+    # Handle media upload
+    media_url = None
+    media_type = None
+    if media and media.filename:
+        if media.content_type in ALLOWED_IMAGE_TYPES:
+            media_url = save_upload(media, "issues")
+            media_type = "image"
+        elif media.content_type in ALLOWED_VIDEO_TYPES:
+            media_url = save_upload(media, "issues")
+            media_type = "video"
+    
     response = IssueResponse(
         issue_id=issue_id,
         user_id=user.id,
-        content=content
+        content=content,
+        media_url=media_url,
+        media_type=media_type
     )
     db.add(response)
     db.commit()
@@ -1365,22 +1491,14 @@ async def edit_issue(
     issue.updated_at = datetime.utcnow()
     
     # Handle screenshot upload
+    # Handle screenshot/media upload
     if screenshot and screenshot.filename:
-        # Create uploads directory if needed
-        upload_dir = Path("uploads/issues")
-        upload_dir.mkdir(parents=True, exist_ok=True)
-        
-        # Generate unique filename
-        file_ext = Path(screenshot.filename).suffix
-        unique_filename = f"{uuid.uuid4()}{file_ext}"
-        file_path = upload_dir / unique_filename
-        
-        # Save file
-        with open(file_path, "wb") as f:
-            content = await screenshot.read()
-            f.write(content)
-        
-        issue.screenshot = f"/uploads/issues/{unique_filename}"
+        if screenshot.content_type in ALLOWED_IMAGE_TYPES:
+            issue.screenshot = save_upload(screenshot, "issues")
+            issue.media_type = "image"
+        elif screenshot.content_type in ALLOWED_VIDEO_TYPES:
+            issue.screenshot = save_upload(screenshot, "issues")
+            issue.media_type = "video"
     
     db.commit()
     
@@ -2755,7 +2873,7 @@ async def toggle_offer(
 @router.post("/messages")
 async def create_message(
     request: Request,
-    content: str = Form(...),
+    content: str = Form(""),
     db: Session = Depends(get_db)
 ):
     """Create a new community message - available to all logged in users"""
@@ -2779,7 +2897,7 @@ async def create_message(
 async def reply_to_message(
     message_id: int,
     request: Request,
-    content: str = Form(...),
+    content: str = Form(""),
     db: Session = Depends(get_db)
 ):
     """Reply to a community message - available to all logged in users"""

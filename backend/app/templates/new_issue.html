@@ -39,7 +39,7 @@
                 </div>
             </div>
             
-            <form action="/api/project/{{ project.id }}/issue" method="POST" enctype="multipart/form-data" class="space-y-6">
+            <form id="createIssueForm" action="/api/project/{{ project.id }}/issue" method="POST" enctype="multipart/form-data" class="space-y-6">
                 <!-- Issue Type -->
                 <div>
                     <label class="block text-sm font-medium mb-3">Issue Type *</label>
@@ -113,23 +113,26 @@
 - What did you expect?
 - What happened?
 - Steps to reproduce (for bugs)
-- Screenshots or links (if helpful)"></textarea>
-                    <p class="text-xs text-gray-500 mt-1">Tip: The more details, the faster we can help</p>
+- Screenshots or links (if helpful)
+
+💡 YouTube/Vimeo links will auto-embed!"></textarea>
+                    <p class="text-xs text-gray-500 mt-1">Tip: The more details, the faster we can help · YouTube/Vimeo links auto-embed</p>
                 </div>
                 
-                <!-- Screenshot Upload -->
+                <!-- Media Upload -->
                 <div>
-                    <label class="block text-sm font-medium mb-2">Screenshot (optional)</label>
+                    <label class="block text-sm font-medium mb-2">Screenshot / Video (optional)</label>
                     <div id="screenshot-dropzone" 
                          class="border-2 border-dashed border-gray-700 rounded-lg p-8 text-center hover:border-purple-500 transition cursor-pointer relative">
-                        <input type="file" name="screenshot" id="screenshot-input" accept="image/*" class="absolute inset-0 w-full h-full opacity-0 cursor-pointer">
+                        <input type="file" name="screenshot" id="screenshot-input" accept="image/*,video/mp4,video/webm,video/quicktime" class="absolute inset-0 w-full h-full opacity-0 cursor-pointer">
                         <div id="screenshot-placeholder">
-                            <div class="text-4xl mb-3">📸</div>
-                            <p class="text-gray-400">Drop screenshot here or click to select</p>
-                            <p class="text-xs text-gray-500 mt-2">PNG, JPG, GIF or WebP (max. 10MB)</p>
+                            <div class="text-4xl mb-3">�</div>
+                            <p class="text-gray-400">Drop image or video here, or click to select</p>
+                            <p class="text-xs text-gray-500 mt-2">PNG, JPG, GIF, WebP (max 10MB) · MP4, WebM (max 100MB, auto-compressed)</p>
                         </div>
                         <div id="screenshot-preview" class="hidden">
                             <img id="preview-image" src="" alt="Preview" class="max-h-64 mx-auto rounded-lg">
+                            <video id="preview-video" src="" controls class="max-h-64 mx-auto rounded-lg hidden"></video>
                             <p id="preview-name" class="text-sm text-gray-400 mt-3"></p>
                             <button type="button" id="remove-screenshot" class="mt-2 text-red-400 hover:text-red-300 text-sm">
                                 ✕ Remove
@@ -170,10 +173,21 @@
                        class="flex-1 px-6 py-3 rounded-lg border border-gray-700 hover:border-gray-600 text-center transition">
                         Cancel
                     </a>
-                    <button type="submit" 
-                            class="flex-1 px-6 py-3 rounded-lg bg-purple-500 hover:bg-purple-400 transition font-semibold">
-                        Create Issue
+                    <button type="submit" id="createIssueSubmitBtn"
+                            class="flex-1 px-6 py-3 rounded-lg bg-purple-500 hover:bg-purple-400 transition font-semibold flex items-center justify-center gap-2">
+                        <span>Create Issue</span>
                     </button>
+                </div>
+                
+                <!-- Upload Progress -->
+                <div id="createIssueUploadProgress" class="hidden">
+                    <div class="flex items-center gap-3 mb-2">
+                        <div class="animate-spin w-5 h-5 border-2 border-purple-500 border-t-transparent rounded-full"></div>
+                        <span id="createIssueUploadStatus" class="text-sm text-gray-300">Creating issue...</span>
+                    </div>
+                    <div class="w-full bg-dark-300 rounded-full h-2">
+                        <div id="createIssueProgressBar" class="bg-purple-500 h-2 rounded-full transition-all duration-300" style="width: 0%"></div>
+                    </div>
                 </div>
             </form>
         </div>
@@ -201,6 +215,7 @@ document.addEventListener('DOMContentLoaded', function() {
     const placeholder = document.getElementById('screenshot-placeholder');
     const preview = document.getElementById('screenshot-preview');
     const previewImage = document.getElementById('preview-image');
+    const previewVideo = document.getElementById('preview-video');
     const previewName = document.getElementById('preview-name');
     const removeBtn = document.getElementById('remove-screenshot');
     
@@ -247,15 +262,20 @@ document.addEventListener('DOMContentLoaded', function() {
     
     function handleFile(file) {
         // Validate file type
-        const validTypes = ['image/png', 'image/jpeg', 'image/jpg', 'image/gif', 'image/webp'];
-        if (!validTypes.includes(file.type)) {
-            alert('Please upload images only (PNG, JPG, GIF, WebP)');
+        const validImageTypes = ['image/png', 'image/jpeg', 'image/jpg', 'image/gif', 'image/webp'];
+        const validVideoTypes = ['video/mp4', 'video/webm', 'video/quicktime'];
+        const isImage = validImageTypes.includes(file.type);
+        const isVideo = validVideoTypes.includes(file.type);
+        
+        if (!isImage && !isVideo) {
+            alert('Please upload images or videos only (PNG, JPG, GIF, WebP, MP4, WebM)');
             return;
         }
         
-        // Validate file size (10MB)
-        if (file.size > 10 * 1024 * 1024) {
-            alert('File too large. Maximum 10MB allowed.');
+        // Validate file size (100MB for video, 10MB for image)
+        const maxSize = isVideo ? 100 * 1024 * 1024 : 10 * 1024 * 1024;
+        if (file.size > maxSize) {
+            alert(`File too large. Maximum ${isVideo ? '100' : '10'}MB allowed.`);
             return;
         }
         
@@ -265,14 +285,25 @@ document.addEventListener('DOMContentLoaded', function() {
         input.files = dataTransfer.files;
         
         // Show preview
-        const reader = new FileReader();
-        reader.onload = function(e) {
-            previewImage.src = e.target.result;
+        if (isImage) {
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                previewImage.src = e.target.result;
+                previewImage.classList.remove('hidden');
+                previewVideo.classList.add('hidden');
+                previewName.textContent = file.name;
+                placeholder.classList.add('hidden');
+                preview.classList.remove('hidden');
+            };
+            reader.readAsDataURL(file);
+        } else {
+            previewVideo.src = URL.createObjectURL(file);
+            previewVideo.classList.remove('hidden');
+            previewImage.classList.add('hidden');
             previewName.textContent = file.name;
             placeholder.classList.add('hidden');
             preview.classList.remove('hidden');
-        };
-        reader.readAsDataURL(file);
+        }
     }
     
     // Remove Screenshot
@@ -280,6 +311,9 @@ document.addEventListener('DOMContentLoaded', function() {
         e.stopPropagation();
         input.value = '';
         previewImage.src = '';
+        previewImage.classList.remove('hidden');
+        previewVideo.src = '';
+        previewVideo.classList.add('hidden');
         previewName.textContent = '';
         placeholder.classList.remove('hidden');
         preview.classList.add('hidden');
@@ -293,6 +327,69 @@ document.addEventListener('DOMContentLoaded', function() {
         if (radioInput) {
             radioInput.checked = true;
         }
+    }
+    
+    // Form submit with progress
+    const form = document.getElementById('createIssueForm');
+    const submitBtn = document.getElementById('createIssueSubmitBtn');
+    const uploadProgress = document.getElementById('createIssueUploadProgress');
+    const uploadStatus = document.getElementById('createIssueUploadStatus');
+    const progressBar = document.getElementById('createIssueProgressBar');
+    
+    if (form) {
+        form.addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            const formData = new FormData(form);
+            const fileInput = document.getElementById('screenshot-input');
+            const hasFile = fileInput && fileInput.files && fileInput.files[0];
+            
+            uploadProgress.classList.remove('hidden');
+            submitBtn.disabled = true;
+            submitBtn.innerHTML = '<div class="animate-spin w-4 h-4 border-2 border-white border-t-transparent rounded-full"></div><span>Creating...</span>';
+            
+            uploadStatus.textContent = hasFile && fileInput.files[0].size > 5 * 1024 * 1024 
+                ? 'Uploading media... Large files may take a moment.' 
+                : 'Creating issue...';
+            
+            const xhr = new XMLHttpRequest();
+            
+            xhr.upload.addEventListener('progress', function(e) {
+                if (e.lengthComputable) {
+                    const percent = Math.round((e.loaded / e.total) * 100);
+                    progressBar.style.width = percent + '%';
+                    if (hasFile) uploadStatus.textContent = `Uploading... ${percent}%`;
+                }
+            });
+            
+            xhr.addEventListener('load', function() {
+                if (xhr.status >= 200 && xhr.status < 400) {
+                    uploadStatus.textContent = 'Done! Redirecting...';
+                    progressBar.style.width = '100%';
+                    window.location.href = xhr.responseURL || '/project/{{ project.id }}/issues';
+                } else {
+                    let errorMsg = 'Error creating issue';
+                    try { errorMsg = JSON.parse(xhr.responseText).detail || errorMsg; } catch (e) {}
+                    alert(errorMsg);
+                    resetForm();
+                }
+            });
+            
+            xhr.addEventListener('error', function() {
+                alert('Network error. Please try again.');
+                resetForm();
+            });
+            
+            function resetForm() {
+                uploadProgress.classList.add('hidden');
+                progressBar.style.width = '0%';
+                submitBtn.disabled = false;
+                submitBtn.innerHTML = '<span>Create Issue</span>';
+            }
+            
+            xhr.open('POST', form.action);
+            xhr.send(formData);
+        });
     }
 });
 </script>

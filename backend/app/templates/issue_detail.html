@@ -7,20 +7,41 @@
 <meta property="og:title" content="{{ issue.title }} - {{ project.name }}">
 <meta property="og:description" content="{{ issue.description[:200] }}{% if issue.description|length > 200 %}...{% endif %}">
 <meta property="og:url" content="{{ request.url.scheme }}://{{ request.url.netloc }}/project/{{ project.id }}/issues/{{ issue.id }}">
+{% if issue.screenshot and issue.media_type == 'video' %}
+{# Issue has a video - use video player card with embed endpoint #}
+<meta property="og:video" content="{{ request.url.scheme }}://{{ request.url.netloc }}{{ issue.screenshot }}">
+<meta property="og:video:type" content="video/mp4">
+<meta name="twitter:card" content="player">
+<meta name="twitter:player" content="{{ request.url.scheme }}://{{ request.url.netloc }}/embed/issue/{{ issue.id }}">
+<meta name="twitter:player:width" content="1280">
+<meta name="twitter:player:height" content="720">
+{# Fallback image for platforms that don't support video #}
 {% if project.image %}
 <meta property="og:image" content="{{ request.url.scheme }}://{{ request.url.netloc }}{{ project.image }}">
-{% else %}
-<meta property="og:image" content="{{ request.url.scheme }}://{{ request.url.netloc }}/static/favicon-512.png">
-{% endif %}
-<meta property="og:site_name" content="Xdest">
-<meta name="twitter:card" content="summary_large_image">
-<meta name="twitter:title" content="{{ issue.title }} - {{ project.name }}">
-<meta name="twitter:description" content="{{ issue.description[:200] }}{% if issue.description|length > 200 %}...{% endif %}">
-{% if project.image %}
 <meta name="twitter:image" content="{{ request.url.scheme }}://{{ request.url.netloc }}{{ project.image }}">
 {% else %}
+<meta property="og:image" content="{{ request.url.scheme }}://{{ request.url.netloc }}/static/favicon-512.png">
 <meta name="twitter:image" content="{{ request.url.scheme }}://{{ request.url.netloc }}/static/favicon-512.png">
 {% endif %}
+{% elif issue.screenshot %}
+{# Issue has an image - use it #}
+<meta property="og:image" content="{{ request.url.scheme }}://{{ request.url.netloc }}{{ issue.screenshot }}">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:image" content="{{ request.url.scheme }}://{{ request.url.netloc }}{{ issue.screenshot }}">
+{% elif project.image %}
+{# No issue media - use project image #}
+<meta property="og:image" content="{{ request.url.scheme }}://{{ request.url.netloc }}{{ project.image }}">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:image" content="{{ request.url.scheme }}://{{ request.url.netloc }}{{ project.image }}">
+{% else %}
+{# Fallback to Xdest logo #}
+<meta property="og:image" content="{{ request.url.scheme }}://{{ request.url.netloc }}/static/favicon-512.png">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:image" content="{{ request.url.scheme }}://{{ request.url.netloc }}/static/favicon-512.png">
+{% endif %}
+<meta property="og:site_name" content="Xdest">
+<meta name="twitter:title" content="{{ issue.title }} - {{ project.name }}">
+<meta name="twitter:description" content="{{ issue.description[:200] }}{% if issue.description|length > 200 %}...{% endif %}">
 {% endblock %}
 
 {% block content %}
@@ -211,13 +232,17 @@
                 {% endif %}
             </div>
             
-            <!-- Screenshot -->
+            <!-- Attachment -->
             {% if issue.screenshot %}
             <div class="mt-4">
                 <p class="text-sm text-gray-400 mb-2">📎 Attachment:</p>
+                {% if issue.media_type == 'video' %}
+                <video src="{{ issue.screenshot }}" controls class="rounded-lg max-h-96 w-auto border border-gray-700"></video>
+                {% else %}
                 <a href="{{ issue.screenshot }}" target="_blank" class="block">
                     <img src="{{ issue.screenshot }}" alt="Screenshot" class="rounded-lg max-h-96 border border-gray-700 hover:border-purple-500 transition cursor-pointer">
                 </a>
+                {% endif %}
             </div>
             {% endif %}
         </div>
@@ -261,6 +286,18 @@
                     
                     <!-- Response Content - full width -->
                     <div class="markdown-content text-gray-300 mb-4 break-words overflow-hidden" data-markdown="{{ response.content }}">{{ response.content }}</div>
+                    
+                    {% if response.media_url %}
+                    <div class="mb-4">
+                        {% if response.media_type == 'video' %}
+                        <video src="{{ response.media_url }}" controls class="rounded-lg max-h-80 w-auto border border-gray-700"></video>
+                        {% else %}
+                        <a href="{{ response.media_url }}" target="_blank" class="block">
+                            <img src="{{ response.media_url }}" alt="Attachment" class="rounded-lg max-h-80 border border-gray-700 hover:border-purple-500 transition cursor-pointer">
+                        </a>
+                        {% endif %}
+                    </div>
+                    {% endif %}
                     
                     <!-- Vote & Solution Buttons -->
                     <div class="flex flex-wrap items-center gap-2 sm:gap-4">
@@ -315,14 +352,53 @@
         {% if user %}
         <div class="bg-dark-100 rounded-xl border border-gray-800 p-6">
             <h3 class="font-semibold mb-4">Add Response</h3>
-            <form action="/api/issue/{{ issue.id }}/respond" method="POST">
+            <form id="responseForm" action="/api/issue/{{ issue.id }}/respond" method="POST" enctype="multipart/form-data">
                 <textarea name="content" required rows="4"
                     class="w-full bg-dark-300 border border-gray-700 rounded-lg px-4 py-3 text-white placeholder-gray-500 focus:outline-none focus:border-purple-500 resize-none mb-4"
-                    placeholder="Write a response..."></textarea>
+                    placeholder="Write a response... YouTube/Vimeo links will auto-embed!"></textarea>
+                
+                <!-- File Selection Area -->
+                <div class="flex flex-col gap-3 mb-4">
+                    <div class="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3">
+                        <label class="flex items-center gap-2 cursor-pointer text-gray-400 hover:text-white transition">
+                            <input type="file" name="media" id="responseMediaInput" accept="image/*,video/mp4,video/webm,video/quicktime" class="hidden">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13"></path>
+                            </svg>
+                            <span class="text-sm">Attach image or video</span>
+                        </label>
+                        <span class="text-xs text-gray-500">Images max 10MB · Videos max 100MB · YouTube/Vimeo links auto-embed</span>
+                    </div>
+                    
+                    <!-- Selected File Display -->
+                    <div id="responseFilePreview" class="hidden flex items-center gap-2 bg-dark-300 rounded-lg px-3 py-2">
+                        <svg class="w-4 h-4 text-green-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                        </svg>
+                        <span id="responseFileName" class="text-sm text-gray-300 truncate"></span>
+                        <span id="responseFileSize" class="text-xs text-gray-500 flex-shrink-0"></span>
+                        <button type="button" id="responseRemoveFile" class="ml-auto text-gray-400 hover:text-red-400 transition">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                            </svg>
+                        </button>
+                    </div>
+                </div>
+                
+                <!-- Upload Progress -->
+                <div id="responseUploadProgress" class="hidden mb-4">
+                    <div class="flex items-center gap-3 mb-2">
+                        <div class="animate-spin w-5 h-5 border-2 border-purple-500 border-t-transparent rounded-full"></div>
+                        <span id="responseUploadStatus" class="text-sm text-gray-300">Uploading...</span>
+                    </div>
+                    <div class="w-full bg-dark-300 rounded-full h-2">
+                        <div id="responseProgressBar" class="bg-purple-500 h-2 rounded-full transition-all duration-300" style="width: 0%"></div>
+                    </div>
+                </div>
+                
                 <div class="flex justify-end">
-                    <button type="submit" 
-                            class="px-6 py-2 rounded-lg bg-purple-500 hover:bg-purple-400 transition font-semibold">
-                        Respond
+                    <button type="submit" id="responseSubmitBtn" class="px-6 py-2 rounded-lg bg-purple-500 hover:bg-purple-400 transition font-semibold flex items-center gap-2">
+                        <span>Respond</span>
                     </button>
                 </div>
             </form>
@@ -724,19 +800,53 @@ document.addEventListener('keydown', (e) => {
                 <p class="text-xs text-gray-500 mt-1">Markdown supported</p>
             </div>
             
-            <!-- Current Screenshot -->
+            <!-- Current Attachment -->
             {% if issue.screenshot %}
             <div>
-                <label class="block text-sm font-medium text-gray-300 mb-2">Current Screenshot</label>
+                <label class="block text-sm font-medium text-gray-300 mb-2">Current Attachment</label>
+                {% if issue.media_type == 'video' %}
+                <video src="{{ issue.screenshot }}" controls class="max-h-32 rounded-lg border border-gray-700"></video>
+                {% else %}
                 <img src="{{ issue.screenshot }}" alt="Current screenshot" class="max-h-32 rounded-lg border border-gray-700">
+                {% endif %}
             </div>
             {% endif %}
             
-            <!-- New Screenshot -->
+            <!-- New Attachment -->
             <div>
-                <label class="block text-sm font-medium text-gray-300 mb-2">{{ 'Replace Screenshot' if issue.screenshot else 'Add Screenshot' }} (optional)</label>
-                <input type="file" name="screenshot" accept="image/*"
-                       class="w-full px-4 py-3 bg-dark-300 border border-gray-700 rounded-lg focus:border-purple-500 focus:outline-none transition file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:bg-purple-600 file:text-white file:cursor-pointer">
+                <label class="block text-sm font-medium text-gray-300 mb-2">{{ 'Replace Attachment' if issue.screenshot else 'Add Attachment' }} (optional)</label>
+                <div class="flex flex-col gap-3">
+                    <div class="flex items-center gap-3">
+                        <input type="file" name="screenshot" id="editIssueFileInput" accept="image/*,video/mp4,video/webm,video/quicktime"
+                               class="w-full px-4 py-3 bg-dark-300 border border-gray-700 rounded-lg focus:border-purple-500 focus:outline-none transition file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:bg-purple-600 file:text-white file:cursor-pointer">
+                    </div>
+                    <p class="text-xs text-gray-500">Images max 10MB · Videos max 100MB (MP4, WebM)</p>
+                    
+                    <!-- Selected File Display -->
+                    <div id="editIssueFilePreview" class="hidden flex items-center gap-2 bg-dark-300 rounded-lg px-3 py-2">
+                        <svg class="w-4 h-4 text-green-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                        </svg>
+                        <span id="editIssueFileName" class="text-sm text-gray-300 truncate"></span>
+                        <span id="editIssueFileSize" class="text-xs text-gray-500 flex-shrink-0"></span>
+                        <button type="button" id="editIssueRemoveFile" class="ml-auto text-gray-400 hover:text-red-400 transition">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                            </svg>
+                        </button>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Upload Progress -->
+            <div id="editIssueUploadProgress" class="hidden">
+                <div class="flex items-center gap-3 mb-2">
+                    <div class="animate-spin w-5 h-5 border-2 border-purple-500 border-t-transparent rounded-full"></div>
+                    <span id="editIssueUploadStatus" class="text-sm text-gray-300">Uploading...</span>
+                </div>
+                <div class="w-full bg-dark-300 rounded-full h-2">
+                    <div id="editIssueProgressBar" class="bg-purple-500 h-2 rounded-full transition-all duration-300" style="width: 0%"></div>
+                </div>
             </div>
             
             <!-- Submit -->
@@ -745,9 +855,9 @@ document.addEventListener('keydown', (e) => {
                         class="flex-1 px-4 py-3 bg-dark-300 hover:bg-dark-200 rounded-lg transition font-medium">
                     Cancel
                 </button>
-                <button type="submit" 
-                        class="flex-1 px-4 py-3 bg-purple-500 hover:bg-purple-400 rounded-lg transition font-medium">
-                    Save Changes
+                <button type="submit" id="editIssueSubmitBtn"
+                        class="flex-1 px-4 py-3 bg-purple-500 hover:bg-purple-400 rounded-lg transition font-medium flex items-center justify-center gap-2">
+                    <span>Save Changes</span>
                 </button>
             </div>
         </form>
@@ -772,6 +882,105 @@ function closeEditIssueModal() {
 document.addEventListener('keydown', (e) => {
     if (e.key === 'Escape') closeEditIssueModal();
 });
+
+// Edit Issue Form - File Selection & Upload Progress
+(function() {
+    const form = document.querySelector('#editIssueModal form');
+    const fileInput = document.getElementById('editIssueFileInput');
+    const filePreview = document.getElementById('editIssueFilePreview');
+    const fileName = document.getElementById('editIssueFileName');
+    const fileSize = document.getElementById('editIssueFileSize');
+    const removeBtn = document.getElementById('editIssueRemoveFile');
+    const uploadProgress = document.getElementById('editIssueUploadProgress');
+    const uploadStatus = document.getElementById('editIssueUploadStatus');
+    const progressBar = document.getElementById('editIssueProgressBar');
+    const submitBtn = document.getElementById('editIssueSubmitBtn');
+    
+    if (!form || !fileInput) return;
+    
+    function formatSize(bytes) {
+        if (bytes < 1024) return bytes + ' B';
+        if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
+        return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
+    }
+    
+    fileInput.addEventListener('change', function() {
+        const file = this.files[0];
+        if (!file) { filePreview.classList.add('hidden'); return; }
+        
+        const isVideo = file.type.startsWith('video/');
+        const maxSize = isVideo ? 100 * 1024 * 1024 : 10 * 1024 * 1024;
+        
+        if (file.size > maxSize) {
+            alert(`File too large! Maximum ${isVideo ? '100MB for videos' : '10MB for images'}.`);
+            this.value = '';
+            filePreview.classList.add('hidden');
+            return;
+        }
+        
+        fileName.textContent = file.name;
+        fileSize.textContent = formatSize(file.size);
+        filePreview.classList.remove('hidden');
+    });
+    
+    removeBtn.addEventListener('click', function() {
+        fileInput.value = '';
+        filePreview.classList.add('hidden');
+    });
+    
+    form.addEventListener('submit', function(e) {
+        e.preventDefault();
+        
+        const formData = new FormData(form);
+        const hasFile = fileInput.files && fileInput.files[0];
+        
+        uploadProgress.classList.remove('hidden');
+        submitBtn.disabled = true;
+        submitBtn.innerHTML = '<div class="animate-spin w-4 h-4 border-2 border-white border-t-transparent rounded-full"></div><span>Saving...</span>';
+        
+        uploadStatus.textContent = hasFile && fileInput.files[0].size > 5 * 1024 * 1024 
+            ? 'Uploading media... Large files may take a moment.' 
+            : 'Saving changes...';
+        
+        const xhr = new XMLHttpRequest();
+        
+        xhr.upload.addEventListener('progress', function(e) {
+            if (e.lengthComputable) {
+                const percent = Math.round((e.loaded / e.total) * 100);
+                progressBar.style.width = percent + '%';
+                if (hasFile) uploadStatus.textContent = `Uploading... ${percent}%`;
+            }
+        });
+        
+        xhr.addEventListener('load', function() {
+            if (xhr.status >= 200 && xhr.status < 400) {
+                uploadStatus.textContent = 'Done! Redirecting...';
+                progressBar.style.width = '100%';
+                window.location.reload();
+            } else {
+                let errorMsg = 'Error saving changes';
+                try { errorMsg = JSON.parse(xhr.responseText).detail || errorMsg; } catch (e) {}
+                alert(errorMsg);
+                resetForm();
+            }
+        });
+        
+        xhr.addEventListener('error', function() {
+            alert('Network error. Please try again.');
+            resetForm();
+        });
+        
+        function resetForm() {
+            uploadProgress.classList.add('hidden');
+            progressBar.style.width = '0%';
+            submitBtn.disabled = false;
+            submitBtn.innerHTML = '<span>Save Changes</span>';
+        }
+        
+        xhr.open('POST', form.action);
+        xhr.send(formData);
+    });
+})();
 </script>
 {% endif %}
 
@@ -814,5 +1023,104 @@ function shareIssue() {
     
     window.open(xUrl, '_blank', 'width=550,height=420');
 }
+
+// Response Form - File Selection & Upload Progress
+(function() {
+    const form = document.getElementById('responseForm');
+    const fileInput = document.getElementById('responseMediaInput');
+    const filePreview = document.getElementById('responseFilePreview');
+    const fileName = document.getElementById('responseFileName');
+    const fileSize = document.getElementById('responseFileSize');
+    const removeBtn = document.getElementById('responseRemoveFile');
+    const uploadProgress = document.getElementById('responseUploadProgress');
+    const uploadStatus = document.getElementById('responseUploadStatus');
+    const progressBar = document.getElementById('responseProgressBar');
+    const submitBtn = document.getElementById('responseSubmitBtn');
+    
+    if (!form || !fileInput) return;
+    
+    function formatSize(bytes) {
+        if (bytes < 1024) return bytes + ' B';
+        if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
+        return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
+    }
+    
+    fileInput.addEventListener('change', function() {
+        const file = this.files[0];
+        if (!file) { filePreview.classList.add('hidden'); return; }
+        
+        const isVideo = file.type.startsWith('video/');
+        const maxSize = isVideo ? 100 * 1024 * 1024 : 10 * 1024 * 1024;
+        
+        if (file.size > maxSize) {
+            alert(`File too large! Maximum ${isVideo ? '100MB for videos' : '10MB for images'}.`);
+            this.value = '';
+            filePreview.classList.add('hidden');
+            return;
+        }
+        
+        fileName.textContent = file.name;
+        fileSize.textContent = formatSize(file.size);
+        filePreview.classList.remove('hidden');
+    });
+    
+    removeBtn.addEventListener('click', function() {
+        fileInput.value = '';
+        filePreview.classList.add('hidden');
+    });
+    
+    form.addEventListener('submit', function(e) {
+        e.preventDefault();
+        
+        const formData = new FormData(form);
+        const hasFile = fileInput.files && fileInput.files[0];
+        
+        uploadProgress.classList.remove('hidden');
+        submitBtn.disabled = true;
+        submitBtn.innerHTML = '<div class="animate-spin w-4 h-4 border-2 border-white border-t-transparent rounded-full"></div><span>Sending...</span>';
+        
+        uploadStatus.textContent = hasFile && fileInput.files[0].size > 5 * 1024 * 1024 
+            ? 'Uploading media... Large files may take a moment.' 
+            : 'Sending response...';
+        
+        const xhr = new XMLHttpRequest();
+        
+        xhr.upload.addEventListener('progress', function(e) {
+            if (e.lengthComputable) {
+                const percent = Math.round((e.loaded / e.total) * 100);
+                progressBar.style.width = percent + '%';
+                if (hasFile) uploadStatus.textContent = `Uploading... ${percent}%`;
+            }
+        });
+        
+        xhr.addEventListener('load', function() {
+            if (xhr.status >= 200 && xhr.status < 400) {
+                uploadStatus.textContent = 'Done! Redirecting...';
+                progressBar.style.width = '100%';
+                window.location.reload();
+            } else {
+                let errorMsg = 'Error sending response';
+                try { errorMsg = JSON.parse(xhr.responseText).detail || errorMsg; } catch (e) {}
+                alert(errorMsg);
+                resetForm();
+            }
+        });
+        
+        xhr.addEventListener('error', function() {
+            alert('Network error. Please try again.');
+            resetForm();
+        });
+        
+        function resetForm() {
+            uploadProgress.classList.add('hidden');
+            progressBar.style.width = '0%';
+            submitBtn.disabled = false;
+            submitBtn.innerHTML = '<span>Respond</span>';
+        }
+        
+        xhr.open('POST', form.action);
+        xhr.send(formData);
+    });
+})();
 </script>
 {% endblock %}

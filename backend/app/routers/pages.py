@@ -207,6 +207,93 @@ async def project_page(project_id: int, request: Request, db: Session = Depends(
         "github_info": github_info
     })
 
+@router.get("/project/{project_id}/post/{post_id}", response_class=HTMLResponse)
+async def post_detail_page(project_id: int, post_id: int, request: Request, db: Session = Depends(get_db)):
+    """Post detail page - renders project page but with post-specific meta tags for sharing"""
+    user = await get_current_user_optional(request, db)
+    project = db.query(Project).filter(Project.id == project_id).first()
+    
+    if not project:
+        raise HTTPException(status_code=404, detail="Project not found")
+    
+    post = db.query(Post).filter(Post.id == post_id, Post.project_id == project_id).first()
+    
+    if not post:
+        raise HTTPException(status_code=404, detail="Post not found")
+    
+    # Get all posts for context
+    posts = db.query(Post).filter(Post.project_id == project_id).order_by(Post.created_at.desc()).all()
+    is_owner = user and user.id == project.user_id
+    
+    # Fetch GitHub repo info if URL exists
+    github_info = None
+    if project.github_url:
+        github_info = await fetch_github_repo_info(project.github_url)
+    
+    # Use project.html template but pass featured_post for meta tags
+    return templates.TemplateResponse("project.html", {
+        "request": request,
+        "user": user,
+        "project": project,
+        "post": post,  # The specific post being shared
+        "featured_post": post,  # For meta tags
+        "posts": posts,
+        "is_owner": is_owner,
+        "github_info": github_info
+    })
+
+@router.get("/embed/post/{post_id}", response_class=HTMLResponse)
+async def embed_post_video(post_id: int, request: Request, db: Session = Depends(get_db)):
+    """Embeddable video player page for Twitter/X player cards"""
+    post = db.query(Post).filter(Post.id == post_id).first()
+    
+    if not post or not post.media_url or post.media_type != 'video':
+        raise HTTPException(status_code=404, detail="Video not found")
+    
+    # Return a minimal HTML page with just the video player
+    html_content = f"""<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <style>
+        * {{ margin: 0; padding: 0; box-sizing: border-box; }}
+        body {{ background: #000; display: flex; align-items: center; justify-content: center; min-height: 100vh; }}
+        video {{ max-width: 100%; max-height: 100vh; }}
+    </style>
+</head>
+<body>
+    <video src="{post.media_url}" controls autoplay muted playsinline></video>
+</body>
+</html>"""
+    return HTMLResponse(content=html_content)
+
+@router.get("/embed/issue/{issue_id}", response_class=HTMLResponse)
+async def embed_issue_video(issue_id: int, request: Request, db: Session = Depends(get_db)):
+    """Embeddable video player page for Twitter/X player cards (Issues)"""
+    issue = db.query(Issue).filter(Issue.id == issue_id).first()
+    
+    if not issue or not issue.screenshot or issue.media_type != 'video':
+        raise HTTPException(status_code=404, detail="Video not found")
+    
+    # Return a minimal HTML page with just the video player
+    html_content = f"""<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <style>
+        * {{ margin: 0; padding: 0; box-sizing: border-box; }}
+        body {{ background: #000; display: flex; align-items: center; justify-content: center; min-height: 100vh; }}
+        video {{ max-width: 100%; max-height: 100vh; }}
+    </style>
+</head>
+<body>
+    <video src="{issue.screenshot}" controls autoplay muted playsinline></video>
+</body>
+</html>"""
+    return HTMLResponse(content=html_content)
+
 @router.get("/project/{project_id}/edit", response_class=HTMLResponse)
 async def edit_project_page(project_id: int, request: Request, db: Session = Depends(get_db)):
     user = await get_current_user(request, db)
